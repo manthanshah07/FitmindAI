@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import ScrollToTop from './components/ScrollToTop';
 import MarketingPage from './pages/MarketingPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import TechnologyPage from './pages/TechnologyPage';
@@ -9,6 +10,7 @@ import Footer from './sections/Footer';
 function App() {
   return (
     <div className="bg-bone text-graphite min-h-screen font-sans selection:bg-graphite selection:text-bone">
+      <ScrollToTop />
       <div className="noise-bg" />
       <Navbar />
       <main className="pt-16 border-x border-borderLine max-w-[1600px] mx-auto">
