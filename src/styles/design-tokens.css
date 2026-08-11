@@ -1,0 +1,38 @@
+/* Design Tokens: FitMind AI Visual Identity Lock */
+:root {
+  /* Core Colors */
+  --color-bone: #F3F2ED;
+  --color-graphite: #161616;
+  --color-charcoal: #2A2A2A;
+  
+  /* Accents */
+  --color-olive: #6B705C;
+  --color-accent: #A5A58D;
+  --color-faded: #B7B7A4;
+  
+  /* Structural */
+  --color-border: #D4D4CE;
+
+  /* Semantic UI Colors (Derived from palette, restrained) */
+  --color-success: #6B705C; /* Olive */
+  --color-error: #9a3324;
+  --color-warning: #b38b4d;
+  --color-info: #5c6a70;
+
+  /* Typography */
+  --font-display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Space Mono", monospace;
+
+  /* Spacing & Layout */
+  --radius-sm: 0px; /* Brutalist/Editorial edge */
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  
+  --shadow-editorial: 0 4px 20px rgba(0, 0, 0, 0.05);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 300ms ease-in-out;
+  --transition-slow: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
