@@ -1,93 +1,125 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X } from 'lucide-react';
+
+const navLinks = [
+  { label: 'Product', to: '/' },
+  { label: 'How It Works', to: '/how-it-works' },
+  { label: 'Technology', to: '/technology' },
+  { label: 'About', to: '/about' },
+];
 
 const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
-    { name: 'System', href: '#architecture' },
-    { name: 'Memory', href: '#memory' },
-    { name: 'Coaching', href: '#coaching' },
-    { name: 'Scope', href: '#scope' },
-  ];
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location]);
 
   return (
-    <nav
-      className={`fixed top-0 w-full z-40 transition-all duration-300 border-b border-borderLine bg-bone ${
-        scrolled ? 'py-4' : 'py-6'
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? 'bg-bone/95 backdrop-blur-sm border-b border-borderLine' : 'bg-bone border-b border-borderLine'
       }`}
     >
-      <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <span className="text-xl font-bold tracking-tighter uppercase text-graphite">
+      <div className="max-w-[1600px] mx-auto flex items-center justify-between px-6 md:px-12 h-16">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-3 group">
+          <span className="text-base font-bold tracking-tighter uppercase text-graphite group-hover:text-charcoal transition-colors">
             FitMind AI
           </span>
-          <span className="hidden md:block text-xs font-mono text-faded uppercase tracking-widest border-l border-borderLine pl-4">
-            Project Case Study
+          <div className="h-3 w-px bg-borderLine" />
+          <span className="text-[9px] font-mono tracking-widest text-olive uppercase hidden sm:block">
+            AI Fitness Coach
           </span>
-        </div>
+        </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-12">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="text-xs font-mono font-medium text-charcoal hover:text-olive transition-colors uppercase tracking-widest"
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map(link => (
+            <Link
+              key={link.label}
+              to={link.to}
+              className={`px-4 py-2 text-[10px] font-mono tracking-widest uppercase transition-colors ${
+                location.pathname === link.to
+                  ? 'text-graphite font-bold'
+                  : 'text-charcoal hover:text-graphite'
+              }`}
             >
-              {link.name}
-            </a>
+              {link.label}
+            </Link>
           ))}
-          <a
-            href="#explore"
-            className="px-6 py-3 text-xs font-bold font-mono tracking-widest uppercase bg-graphite text-bone hover:bg-charcoal transition-colors"
+        </nav>
+
+        {/* Desktop CTAs */}
+        <div className="hidden md:flex items-center gap-3">
+          <Link
+            to="/login"
+            className="px-4 py-2 text-[10px] font-mono tracking-widest uppercase text-charcoal hover:text-graphite transition-colors"
           >
-            Explore System
-          </a>
+            Log In
+          </Link>
+          <Link
+            to="/signup"
+            className="px-5 py-2.5 bg-graphite text-bone font-bold tracking-widest uppercase text-[10px] hover:bg-charcoal transition-colors"
+          >
+            Start Your Journey
+          </Link>
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile hamburger */}
         <button
-          className="md:hidden text-graphite"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-graphite"
+          onClick={() => setMenuOpen(v => !v)}
+          aria-label="Toggle menu"
         >
-          {mobileMenuOpen ? <X /> : <Menu />}
+          {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile Menu */}
       <AnimatePresence>
-        {mobileMenuOpen && (
+        {menuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full bg-bone border-b border-borderLine p-6 md:hidden flex flex-col gap-6"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-borderLine bg-bone overflow-hidden"
           >
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="text-2xl font-bold tracking-tight text-graphite hover:text-olive transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {link.name}
-              </a>
-            ))}
+            <div className="px-6 py-4 space-y-1">
+              {navLinks.map(link => (
+                <Link
+                  key={link.label}
+                  to={link.to}
+                  className={`block py-3 border-b border-borderLine text-[10px] font-mono tracking-widest uppercase ${
+                    location.pathname === link.to ? 'text-graphite font-bold' : 'text-charcoal'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="pt-4 space-y-3">
+                <Link to="/login" className="block py-3 text-center border border-borderLine text-[10px] font-mono tracking-widest uppercase text-charcoal">
+                  Log In
+                </Link>
+                <Link to="/signup" className="block py-3 text-center bg-graphite text-bone text-[10px] font-bold tracking-widest uppercase">
+                  Start Your Journey
+                </Link>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </nav>
+    </header>
   );
 };
 
