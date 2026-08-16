@@ -120,3 +120,49 @@ class TestWorkoutAPI:
         res_detail = client.get(f"/api/v1/workout/logs/{log_id}", headers=headers)
         assert res_detail.status_code == 200
         assert res_detail.json()["id"] == log_id
+
+    def test_user_isolation_idor_prevention(self):
+        # User A logs a workout session
+        headers_a = get_auth_headers("user_a@example.com")
+        client.post("/api/v1/exercises/seed", headers=headers_a)
+        res_plan_a = client.post("/api/v1/workout/plan", json={}, headers=headers_a)
+        exercise_id = res_plan_a.json()["plan_exercises"][0]["exercise_id"]
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        log_payload = {
+            "started_at": now_iso,
+            "notes": "User A Private Session",
+            "logged_exercises": [
+                {
+                    "exercise_id": exercise_id,
+                    "set_number": 1,
+                    "reps_completed": 10,
+                    "weight_kg": 50.0,
+                }
+            ],
+        }
+        res_log_a = client.post("/api/v1/workout/logs", json=log_payload, headers=headers_a)
+        assert res_log_a.status_code == 201
+        log_id_a = res_log_a.json()["id"]
+
+        # User B attempts to access User A's workout log by ID
+        headers_b = get_auth_headers("user_b@example.com")
+        res_idor = client.get(f"/api/v1/workout/logs/{log_id_a}", headers=headers_b)
+        assert res_idor.status_code == 404
+        assert res_idor.json()["detail"] == "Workout log session not found"
+
+    def test_nonexistent_resource_id_returns_404(self):
+        headers = get_auth_headers("nonexistent_user@example.com")
+        fake_uuid = "00000000-0000-0000-0000-000000000000"
+        res = client.get(f"/api/v1/workout/logs/{fake_uuid}", headers=headers)
+        assert res.status_code == 404
+
+    def test_exercise_filtering_by_primary_muscle(self):
+        headers = get_auth_headers("filteruser@example.com")
+        client.post("/api/v1/exercises/seed", headers=headers)
+
+        res_chest = client.get("/api/v1/exercises?muscle=Chest", headers=headers)
+        assert res_chest.status_code == 200
+        for ex in res_chest.json():
+            assert "Chest" in ex["primary_muscle"]
+
