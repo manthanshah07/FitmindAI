@@ -38,7 +38,7 @@ describe('OnboardingPage Wizard', () => {
     vi.clearAllMocks();
   });
 
-  it('renders Step 1 with prefilled full_name and validates required height_cm', async () => {
+  it('renders Step 1 with prefilled full_name and validates required height_cm and weight_kg', async () => {
     render(
       <MemoryRouter initialEntries={['/onboarding']}>
         <Routes>
@@ -50,21 +50,22 @@ describe('OnboardingPage Wizard', () => {
     expect(screen.getByRole('heading', { name: /Personal Information/i })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Prefilled Name')).toBeInTheDocument();
 
-    // Click Continue without entering height
+    // Click Continue without entering height or weight
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Height in cm is required/i)).toBeInTheDocument();
+      expect(screen.getByText(/Current weight in kg is required/i)).toBeInTheDocument();
     });
 
-    // Enter out-of-range height (< 50cm)
-    fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), {
-      target: { value: '30' },
-    });
+    // Enter out-of-range height and weight
+    fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), { target: { value: '30' } });
+    fireEvent.change(screen.getByLabelText(/Current Weight \(KG\)/i), { target: { value: '10' } });
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/Height must be between 50 and 300 cm/i)).toBeInTheDocument();
+      expect(screen.getByText(/Current weight must be between 30 and 300 kg/i)).toBeInTheDocument();
     });
   });
 
@@ -77,10 +78,9 @@ describe('OnboardingPage Wizard', () => {
       </MemoryRouter>,
     );
 
-    // Step 1: Valid Height
-    fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), {
-      target: { value: '180' },
-    });
+    // Step 1: Valid Height and Weight
+    fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), { target: { value: '180' } });
+    fireEvent.change(screen.getByLabelText(/Current Weight \(KG\)/i), { target: { value: '75' } });
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     // Step 2: Fitness Goals
@@ -116,7 +116,7 @@ describe('OnboardingPage Wizard', () => {
     });
   });
 
-  it('handles final submission and navigates to /dashboard on completion', async () => {
+  it('handles final submission, renders honest assessment, and navigates to /dashboard on completion', async () => {
     vi.mocked(goalsApi.createGoalApi).mockResolvedValueOnce({
       id: 'goal-1',
       user_id: 'uuid-123',
@@ -131,6 +131,7 @@ describe('OnboardingPage Wizard', () => {
       user_id: 'uuid-123',
       full_name: 'Prefilled Name',
       height_cm: 180,
+      weight_kg: 75,
       onboarding_complete: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -147,6 +148,7 @@ describe('OnboardingPage Wizard', () => {
 
     // Step 1
     fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), { target: { value: '180' } });
+    fireEvent.change(screen.getByLabelText(/Current Weight \(KG\)/i), { target: { value: '75' } });
     fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
 
     // Step 2
@@ -165,7 +167,8 @@ describe('OnboardingPage Wizard', () => {
 
     // Step 5: Assessment
     await waitFor(() => expect(screen.getByRole('heading', { name: /Initial Baseline Assessment/i })).toBeInTheDocument());
-    expect(screen.getByText(/Starting Fitness Score/i)).toBeInTheDocument();
+    expect(screen.getByText('Baseline Evaluation')).toBeInTheDocument();
+    expect(screen.queryByText('65 / 100')).toBeNull(); // Fabricated score removed
 
     // Click Final CTA
     fireEvent.click(screen.getByRole('button', { name: /View My Plan/i }));
@@ -184,6 +187,7 @@ describe('OnboardingPage Wizard', () => {
       date_of_birth: undefined,
       gender: undefined,
       height_cm: 180,
+      weight_kg: 75,
       activity_level: 'very_active',
       diet_preference: 'omnivore',
       equipment: ['bodyweight'],

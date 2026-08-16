@@ -38,6 +38,7 @@ class TestOnboardingPersistence:
             "full_name": "Athlete Alex",
             "gender": "male",
             "height_cm": 182.5,
+            "weight_kg": 78.5,
             "activity_level": "very_active",
             "diet_preference": "omnivore",
             "equipment": ["dumbbells", "barbell", "pull-up bar"],
@@ -51,6 +52,7 @@ class TestOnboardingPersistence:
         assert data["full_name"] == "Athlete Alex"
         assert data["gender"] == "male"
         assert float(data["height_cm"]) == 182.5
+        assert float(data["weight_kg"]) == 78.5
         assert data["activity_level"] == "very_active"
         assert data["equipment"] == ["dumbbells", "barbell", "pull-up bar"]
 

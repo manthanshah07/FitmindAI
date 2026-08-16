@@ -34,6 +34,7 @@ class Profile(Base):
     date_of_birth: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=False), nullable=True)
     gender: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     height_cm: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    weight_kg: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
     activity_level: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     diet_preference: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     equipment: Mapped[Optional[List[str]]] = mapped_column(JSON, nullable=True)

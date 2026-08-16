@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { completeOnboardingApi } from '../../lib/api/profile';
 import { createGoalApi } from '../../lib/api/goals';
 import { getErrorMessage } from '../../utils/apiError';
+import { calculateTDEE } from '../../utils/tdeeCalculator';
 import type { Gender, ActivityLevel, DietPreference } from '../../types/profile';
 import type { GoalType } from '../../types/goal';
 
@@ -18,6 +19,7 @@ interface OnboardingWizardState {
   date_of_birth: string;
   gender: Gender | '';
   height_cm: string;
+  weight_kg: string;
 
   // Step 2: Goals
   goal_type: GoalType | '';
@@ -57,6 +59,7 @@ export const OnboardingPage: React.FC = () => {
     date_of_birth: '',
     gender: '',
     height_cm: '',
+    weight_kg: '',
     goal_type: 'general_fitness',
     target_weight_kg: '',
     target_date: '',
@@ -99,12 +102,22 @@ export const OnboardingPage: React.FC = () => {
       if (!formData.full_name.trim()) {
         errors.full_name = 'Full name is required';
       }
+
       if (!formData.height_cm.trim()) {
         errors.height_cm = 'Height in cm is required';
       } else {
         const height = parseFloat(formData.height_cm);
         if (isNaN(height) || height < 50 || height > 300) {
           errors.height_cm = 'Height must be between 50 and 300 cm';
+        }
+      }
+
+      if (!formData.weight_kg.trim()) {
+        errors.weight_kg = 'Current weight in kg is required';
+      } else {
+        const weight = parseFloat(formData.weight_kg);
+        if (isNaN(weight) || weight < 30 || weight > 300) {
+          errors.weight_kg = 'Current weight must be between 30 and 300 kg';
         }
       }
     }
@@ -166,6 +179,7 @@ export const OnboardingPage: React.FC = () => {
         date_of_birth: formData.date_of_birth || undefined,
         gender: (formData.gender as Gender) || undefined,
         height_cm: parseFloat(formData.height_cm),
+        weight_kg: parseFloat(formData.weight_kg),
         activity_level: (formData.activity_level as ActivityLevel) || undefined,
         diet_preference: (formData.diet_preference as DietPreference) || undefined,
         equipment: formData.equipment.length > 0 ? formData.equipment : undefined,
@@ -188,18 +202,14 @@ export const OnboardingPage: React.FC = () => {
     }
   };
 
-  // Calculations for Step 5 Assessment
-  const estimatedHeight = parseFloat(formData.height_cm) || 175;
-  const activityMultiplierMap: Record<string, number> = {
-    sedentary: 1.2,
-    light: 1.375,
-    moderate: 1.55,
-    very_active: 1.725,
-    extra_active: 1.9,
-  };
-  const multiplier = activityMultiplierMap[formData.activity_level] || 1.55;
-  const estimatedBMR = 10 * 70 + 6.25 * estimatedHeight - 5 * 25 + 5; // Standard estimated baseline
-  const estimatedTDEE = Math.round(estimatedBMR * multiplier);
+  // Calculations for Step 5 Assessment using Mifflin-St Jeor formula
+  const tdeeResult = calculateTDEE({
+    weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
+    height_cm: formData.height_cm ? parseFloat(formData.height_cm) : undefined,
+    date_of_birth: formData.date_of_birth || undefined,
+    gender: formData.gender || undefined,
+    activity_level: formData.activity_level || undefined,
+  });
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 md:p-8 bg-bone">
@@ -233,7 +243,7 @@ export const OnboardingPage: React.FC = () => {
             {step === 2 && 'Set your primary fitness target and timeline.'}
             {step === 3 && 'Estimate your baseline physical activity frequency.'}
             {step === 4 && 'Specify dietary preferences, equipment, and health considerations.'}
-            {step === 5 && 'Your baseline assessment and initial targets have been generated.'}
+            {step === 5 && 'Your baseline evaluation and caloric targets have been calculated.'}
           </p>
         </div>
 
@@ -259,20 +269,34 @@ export const OnboardingPage: React.FC = () => {
               error={stepErrors.full_name}
             />
 
-            <Input
-              label="Height (CM)"
-              type="number"
-              placeholder="175"
-              required
-              helperText="Must be between 50 and 300 cm"
-              value={formData.height_cm}
-              onChange={(e) => updateField('height_cm', e.target.value)}
-              error={stepErrors.height_cm}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Height (CM)"
+                type="number"
+                placeholder="175"
+                required
+                helperText="50 to 300 cm"
+                value={formData.height_cm}
+                onChange={(e) => updateField('height_cm', e.target.value)}
+                error={stepErrors.height_cm}
+              />
+
+              <Input
+                label="Current Weight (KG)"
+                type="number"
+                placeholder="75"
+                required
+                helperText="30 to 300 kg"
+                value={formData.weight_kg}
+                onChange={(e) => updateField('weight_kg', e.target.value)}
+                error={stepErrors.weight_kg}
+              />
+            </div>
 
             <Input
               label="Date of Birth (Optional)"
               type="date"
+              helperText="Used to compute age for TDEE energy expenditure calculation"
               value={formData.date_of_birth}
               onChange={(e) => updateField('date_of_birth', e.target.value)}
             />
@@ -410,48 +434,53 @@ export const OnboardingPage: React.FC = () => {
           </div>
         )}
 
-        {/* STEP 5: INITIAL ASSESSMENT (NON-ENTRY) */}
+        {/* STEP 5: INITIAL ASSESSMENT (HONEST DISPLAY) */}
         {step === 5 && (
           <div className="flex flex-col gap-6">
             <div className="p-6 border border-borderLine bg-black/5">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-2">
                 <span className="font-mono text-xs uppercase tracking-widest text-olive font-bold">
-                  Starting Fitness Score
+                  Baseline Evaluation
                 </span>
-                <span className="font-mono text-xl font-bold text-graphite">65 / 100</span>
+                <Badge variant="olive">Ready</Badge>
               </div>
-              <p className="text-xs text-charcoal">
-                Baseline fitness score evaluated from your physical metrics ({formData.height_cm} cm) and activity level.
+              <p className="text-xs text-charcoal leading-relaxed">
+                Your physical metrics ({tdeeResult.heightUsed} cm, {tdeeResult.weightUsed} kg) and activity level have been calibrated.
+                Numeric fitness score tracking will activate after your first logged workout.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-6 border border-borderLine">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
-                  Estimated TDEE
+                  Estimated TDEE (Mifflin-St Jeor)
                 </span>
-                <span className="font-mono text-2xl font-bold text-graphite">{estimatedTDEE} kcal/day</span>
-                <p className="text-xs text-faded mt-1">Caloric expenditure baseline</p>
+                <span className="font-mono text-2xl font-bold text-graphite">{tdeeResult.tdee} kcal/day</span>
+                <p className="text-xs text-faded mt-1">
+                  BMR: {tdeeResult.bmr} kcal/day (Age: {tdeeResult.ageUsed}
+                  {tdeeResult.isAgeDefaulted ? ' [Default]' : ''})
+                </p>
               </div>
 
               <div className="p-6 border border-borderLine">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
-                  Selected Goal
+                  Primary Goal Target
                 </span>
                 <span className="font-mono text-lg font-bold uppercase text-graphite">
                   {formData.goal_type ? formData.goal_type.replace('_', ' ') : 'General Fitness'}
                 </span>
-                <p className="text-xs text-faded mt-1">Primary training target</p>
+                <p className="text-xs text-faded mt-1">
+                  {formData.target_weight_kg ? `Target: ${formData.target_weight_kg} kg` : 'Target weight not specified'}
+                </p>
               </div>
             </div>
 
             <div className="p-6 border border-borderLine">
               <span className="font-mono text-xs uppercase tracking-widest text-graphite font-bold block mb-2">
-                Initial Recommendation
+                Routine Setup
               </span>
               <p className="text-sm text-charcoal font-sans">
-                Based on your {formData.activity_level || 'moderate'} activity level and available equipment (
-                {formData.equipment.join(', ')}), your AI Coach will assemble your structured weekly routine.
+                Your initial training structure will be assembled in your dashboard based on your {formData.activity_level || 'moderate'} activity level and selected equipment ({formData.equipment.join(', ')}).
               </p>
             </div>
           </div>

@@ -37,6 +37,7 @@ class ProfileResponse(BaseModel):
     date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
     activity_level: Optional[str] = None
     diet_preference: Optional[str] = None
     equipment: Optional[List[str]] = None
@@ -53,6 +54,7 @@ class ProfileUpdate(BaseModel):
     date_of_birth: Optional[date] = None
     gender: Optional[GenderEnum] = None
     height_cm: Optional[float] = Field(None, ge=50.0, le=300.0)
+    weight_kg: Optional[float] = Field(None, ge=30.0, le=300.0)
     activity_level: Optional[ActivityLevelEnum] = None
     diet_preference: Optional[DietPreferenceEnum] = None
     equipment: Optional[List[str]] = None
@@ -64,6 +66,7 @@ class OnboardingCreate(BaseModel):
     date_of_birth: Optional[date] = None
     gender: Optional[GenderEnum] = None
     height_cm: Optional[float] = Field(None, ge=50.0, le=300.0)
+    weight_kg: Optional[float] = Field(None, ge=30.0, le=300.0)
     activity_level: Optional[ActivityLevelEnum] = None
     diet_preference: Optional[DietPreferenceEnum] = None
     equipment: Optional[List[str]] = None

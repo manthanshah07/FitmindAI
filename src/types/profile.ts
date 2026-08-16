@@ -18,6 +18,7 @@ export interface Profile {
   date_of_birth?: string | null;
   gender?: Gender | null;
   height_cm?: number | null;
+  weight_kg?: number | null;
   activity_level?: ActivityLevel | null;
   diet_preference?: DietPreference | null;
   equipment?: string[] | null;
@@ -32,6 +33,7 @@ export interface ProfileUpdate {
   date_of_birth?: string;
   gender?: Gender;
   height_cm?: number;
+  weight_kg?: number;
   activity_level?: ActivityLevel;
   diet_preference?: DietPreference;
   equipment?: string[];
@@ -43,6 +45,7 @@ export interface OnboardingCreate {
   date_of_birth?: string;
   gender?: Gender;
   height_cm?: number;
+  weight_kg?: number;
   activity_level?: ActivityLevel;
   diet_preference?: DietPreference;
   equipment?: string[];
