@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from app.api.v1.auth import router as auth_router
 from app.api.v1.profile import router as profile_router
 from app.api.v1.goals import router as goals_router
+from app.api.v1.exercises import router as exercises_router
+from app.api.v1.workout import router as workout_router
 
 api_v1_router = APIRouter()
 
@@ -13,5 +15,11 @@ api_v1_router.include_router(profile_router, prefix="/profile", tags=["Profile"]
 
 # Include goals endpoints
 api_v1_router.include_router(goals_router, prefix="/goals", tags=["Goals"])
+
+# Include exercises endpoints
+api_v1_router.include_router(exercises_router, prefix="/exercises", tags=["Exercises"])
+
+# Include workout endpoints
+api_v1_router.include_router(workout_router, prefix="/workout", tags=["Workout"])
 
 

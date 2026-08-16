@@ -4,5 +4,23 @@ from app.models.user import User
 from app.models.refresh_token import RefreshToken
 from app.models.profile import Profile
 from app.models.goal import Goal
+from app.models.workout import (
+    Exercise,
+    WorkoutPlan,
+    WorkoutPlanExercise,
+    WorkoutLog,
+    WorkoutLogExercise,
+)
 
-__all__ = ["Base", "User", "RefreshToken", "Profile", "Goal"]
+__all__ = [
+    "Base",
+    "User",
+    "RefreshToken",
+    "Profile",
+    "Goal",
+    "Exercise",
+    "WorkoutPlan",
+    "WorkoutPlanExercise",
+    "WorkoutLog",
+    "WorkoutLogExercise",
+]

@@ -30,7 +30,10 @@
 **PHASE 2A — APPSHELL & DASHBOARD CONTRACT**  
 **Status: COMPLETE**
 
-**PHASE 3 — WORKOUT MODULE**  
+**PHASE 3A — WORKOUT BACKEND DOMAIN & SCHEMAS**  
+**Status: COMPLETE**
+
+**PHASE 3B — WORKOUT FRONTEND & TODAY'S WORKOUT UI**  
 **Status: READY TO IMPLEMENT**
 
 ---
@@ -131,6 +134,15 @@
 - [x] Dashboard Page (`src/pages/dashboard/DashboardPage.tsx`) displaying real calibrated baseline metrics (TDEE, Primary Goal) and honest structural module placeholders for future backend phases
 - [x] Vitest test suite (`src/tests/appshell.test.tsx` 100% passing)
 
+### Workout Backend Domain & Schemas (Phase 3A)
+- [x] `exercises`, `workout_plans`, `workout_plan_exercises`, `workout_logs`, `workout_log_exercises` ORM models (`backend/app/models/workout.py`)
+- [x] Pydantic schemas (`backend/app/schemas/workout.py`) for exercise browsing, plan generation, and workout session logging
+- [x] Exercise catalog seeding & retrieval service (`backend/app/services/exercise_service.py`)
+- [x] Workout plan generation matching user goal & equipment + session log execution service (`backend/app/services/workout_service.py`)
+- [x] Protected API routes (`GET/POST /api/v1/exercises`, `GET/POST /api/v1/workout/plan`, `GET/POST /api/v1/workout/logs`)
+- [x] Alembic migration script (`backend/alembic/versions/2026_08_16_0005_create_workout_tables.py`)
+- [x] Comprehensive pytest suite (`backend/tests/test_workout.py` 100% passing)
+
 ---
 
 ## What Is NOT Started
@@ -145,14 +157,17 @@
 | Onboarding Wizard UI | Phase 1C-D | COMPLETE |
 | AppShell & Core Layout Components | Phase 2A | COMPLETE |
 | Dashboard Baseline View | Phase 2A | COMPLETE |
-| Workout module | Phase 3 | Not Started |
+| Workout Backend Domain & Schemas | Phase 3A | COMPLETE |
+| Workout Frontend Types & Today's Workout UI | Phase 3B | Not Started |
+| Workout Session Execution & Logging UI | Phase 3C | Not Started |
+| Workout History & Dashboard Integration | Phase 3D | Not Started |
 | Nutrition module | Phase 4 | Not Started |
 | Progress tracking | Phase 5 | Not Started |
 | Fitness score engine | Phase 6 | Not Started |
 | AI Coach | Phase 7 | Not Started |
 | Memory system | Phase 7–8 | Not Started |
 | Reports | Phase 9 | Not Started |
-| Testing suite | Phase 10 | In Progress (28 Backend + 31 Frontend tests complete) |
+| Testing suite | Phase 10 | In Progress (32 Backend + 31 Frontend tests complete) |
 | Deployment | Phase 11 | Not Started |
 
 ---
