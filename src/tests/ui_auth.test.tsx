@@ -101,7 +101,7 @@ describe('LoginPage Component', () => {
     });
   });
 
-  it('handles successful login and redirects to /onboarding', async () => {
+  it('handles successful login and redirects to /dashboard', async () => {
     vi.mocked(authApi.loginApi).mockResolvedValueOnce({
       access_token: 'valid_access_token',
       refresh_token: 'valid_refresh_token',
@@ -119,7 +119,7 @@ describe('LoginPage Component', () => {
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/onboarding" element={<div>Onboarding Target Page</div>} />
+          <Route path="/dashboard" element={<div>Dashboard Target Page</div>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -134,7 +134,7 @@ describe('LoginPage Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Sign In/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Onboarding Target Page/i)).toBeInTheDocument();
+      expect(screen.getByText(/Dashboard Target Page/i)).toBeInTheDocument();
     });
 
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
@@ -233,7 +233,7 @@ describe('SignupPage Component', () => {
       <MemoryRouter initialEntries={['/signup']}>
         <Routes>
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/onboarding" element={<div>Onboarding Target Page</div>} />
+          <Route path="/dashboard" element={<div>Dashboard Target Page</div>} />
         </Routes>
       </MemoryRouter>,
     );
@@ -251,7 +251,7 @@ describe('SignupPage Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Onboarding Target Page/i)).toBeInTheDocument();
+      expect(screen.getByText(/Dashboard Target Page/i)).toBeInTheDocument();
     });
 
     expect(authApi.registerApi).toHaveBeenCalledWith({
@@ -282,5 +282,57 @@ describe('Auth Navigation', () => {
     fireEvent.click(screen.getByRole('link', { name: /Sign In/i }));
 
     expect(screen.getByRole('heading', { name: /Welcome Back/i })).toBeInTheDocument();
+  });
+});
+
+describe('Navbar Auth Awareness', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useAuthStore.setState({
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+      isInitialized: true,
+      error: null,
+    });
+  });
+
+  it('renders unauthenticated CTAs (Log In & Start Your Journey) when logged out', async () => {
+    const NavbarComponent = (await import('../components/Navbar')).default;
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <NavbarComponent />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByRole('link', { name: /Log In/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /Start Your Journey/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: /Go To Dashboard/i })).not.toBeInTheDocument();
+  });
+
+  it('renders authenticated CTA (Go To Dashboard) when logged in', async () => {
+    useAuthStore.setState({
+      user: {
+        id: 'u-1',
+        email: 'loggeduser@example.com',
+        full_name: 'Logged User',
+        is_active: true,
+        is_verified: false,
+        created_at: new Date().toISOString(),
+      },
+      accessToken: 'mock_token',
+      isAuthenticated: true,
+    });
+
+    const NavbarComponent = (await import('../components/Navbar')).default;
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <NavbarComponent />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link', { name: /Start Your Journey/i })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /Go To Dashboard/i }).length).toBeGreaterThan(0);
   });
 });

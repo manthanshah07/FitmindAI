@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
+import { useAuthStore } from '../store/useAuthStore';
 
 const navLinks = [
   { label: 'Product', to: '/' },
@@ -14,6 +15,8 @@ const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuthStore();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -24,6 +27,11 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     setMenuOpen(false);
   }, [location]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header
@@ -45,7 +53,7 @@ const Navbar: React.FC = () => {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {navLinks.map(link => (
+          {navLinks.map((link) => (
             <Link
               key={link.label}
               to={link.to}
@@ -62,24 +70,44 @@ const Navbar: React.FC = () => {
 
         {/* Desktop CTAs */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            to="/login"
-            className="px-4 py-2 text-[10px] font-mono tracking-widest uppercase text-charcoal hover:text-graphite transition-colors"
-          >
-            Log In
-          </Link>
-          <Link
-            to="/signup"
-            className="px-5 py-2.5 bg-graphite text-bone font-bold tracking-widest uppercase text-[10px] hover:bg-charcoal transition-colors"
-          >
-            Start Your Journey
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-4 py-2 text-[10px] font-mono tracking-widest uppercase text-charcoal hover:text-graphite transition-colors"
+              >
+                Log Out
+              </button>
+              <Link
+                to="/dashboard"
+                className="px-5 py-2.5 bg-graphite text-bone font-bold tracking-widest uppercase text-[10px] hover:bg-charcoal transition-colors"
+              >
+                Go To Dashboard
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="px-4 py-2 text-[10px] font-mono tracking-widest uppercase text-charcoal hover:text-graphite transition-colors"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/signup"
+                className="px-5 py-2.5 bg-graphite text-bone font-bold tracking-widest uppercase text-[10px] hover:bg-charcoal transition-colors"
+              >
+                Start Your Journey
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
         <button
           className="md:hidden p-2 text-graphite"
-          onClick={() => setMenuOpen(v => !v)}
+          onClick={() => setMenuOpen((v) => !v)}
           aria-label="Toggle menu"
         >
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
@@ -96,7 +124,7 @@ const Navbar: React.FC = () => {
             className="md:hidden border-t border-borderLine bg-bone overflow-hidden"
           >
             <div className="px-6 py-4 space-y-1">
-              {navLinks.map(link => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.label}
                   to={link.to}
@@ -108,12 +136,38 @@ const Navbar: React.FC = () => {
                 </Link>
               ))}
               <div className="pt-4 space-y-3">
-                <Link to="/login" className="block py-3 text-center border border-borderLine text-[10px] font-mono tracking-widest uppercase text-charcoal">
-                  Log In
-                </Link>
-                <Link to="/signup" className="block py-3 text-center bg-graphite text-bone text-[10px] font-bold tracking-widest uppercase">
-                  Start Your Journey
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <Link
+                      to="/dashboard"
+                      className="block py-3 text-center bg-graphite text-bone text-[10px] font-bold tracking-widest uppercase"
+                    >
+                      Go To Dashboard
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full py-3 text-center border border-borderLine text-[10px] font-mono tracking-widest uppercase text-charcoal"
+                    >
+                      Log Out
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="block py-3 text-center border border-borderLine text-[10px] font-mono tracking-widest uppercase text-charcoal"
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="block py-3 text-center bg-graphite text-bone text-[10px] font-bold tracking-widest uppercase"
+                    >
+                      Start Your Journey
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

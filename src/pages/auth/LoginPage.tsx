@@ -26,6 +26,7 @@ export const LoginPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -35,11 +36,18 @@ export const LoginPage: React.FC = () => {
     },
   });
 
+  React.useEffect(() => {
+    reset({
+      email: '',
+      password: '',
+    });
+  }, [reset]);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError(null);
       await login(data);
-      navigate('/onboarding', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch {
       // Error state is captured and preserved in useAuthStore
     }

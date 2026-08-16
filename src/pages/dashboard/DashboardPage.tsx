@@ -64,11 +64,34 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <Badge variant="olive">
+          <Badge variant={profile?.onboarding_complete ? 'olive' : 'faded'}>
             {profile?.onboarding_complete ? 'Onboarding Complete' : 'Onboarding Pending'}
           </Badge>
         </div>
       </div>
+
+      {/* Non-blocking Onboarding Reminder (Only when onboarding_complete === false) */}
+      {!isLoading && profile?.onboarding_complete === false && (
+        <Card className="p-6 border border-olive bg-olive/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-olive font-bold block mb-1">
+              Setup Incomplete
+            </span>
+            <h3 className="text-lg font-bold uppercase tracking-tighter text-graphite">
+              Your profile is not fully set up yet.
+            </h3>
+            <p className="text-xs text-charcoal mt-1 font-sans">
+              Complete onboarding to calibrate your fitness plan and personalized recommendations.
+            </p>
+          </div>
+          <NavLink
+            to="/onboarding"
+            className="px-5 py-2.5 bg-olive text-bone font-mono font-bold text-xs uppercase tracking-widest hover:bg-graphite transition-colors inline-block text-center whitespace-nowrap"
+          >
+            Complete Onboarding →
+          </NavLink>
+        </Card>
+      )}
 
       {/* Grid Row 1: Real Calibrated Baseline Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

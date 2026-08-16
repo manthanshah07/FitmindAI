@@ -27,7 +27,31 @@
 **PHASE 1C-D — ONBOARDING WIZARD UI**  
 **Status: COMPLETE**
 
+**PHASE 0 — PRE-DEVELOPMENT SETUP**  
+**Status: COMPLETE**
+
+**PHASE 1A — BACKEND FOUNDATION**  
+**Status: COMPLETE**
+
+**PHASE 1B — AUTHENTICATION (BACKEND)**  
+**Status: COMPLETE**
+
+**PHASE 1C-A — FRONTEND AUTHENTICATION INFRASTRUCTURE**  
+**Status: COMPLETE**
+
+**PHASE 1C-B — AUTHENTICATION UI**  
+**Status: COMPLETE**
+
+**PHASE 1C-C — PROFILE BACKEND & ONBOARDING PERSISTENCE**  
+**Status: COMPLETE**
+
+**PHASE 1C-D — ONBOARDING WIZARD UI**  
+**Status: COMPLETE**
+
 **PHASE 2A — APPSHELL & DASHBOARD CONTRACT**  
+**Status: COMPLETE**
+
+**PHASE 2B — USER PROFILE & ACCOUNT SETTINGS UI**  
 **Status: COMPLETE**
 
 **PHASE 3A — WORKOUT BACKEND DOMAIN & SCHEMAS**  
@@ -133,6 +157,13 @@
 - [x] Protected application routing mounted under `<AppShell>` (`/dashboard`, `/coach`, `/workout`, `/nutrition`, `/progress`, `/reports`, `/profile`)
 - [x] Dashboard Page (`src/pages/dashboard/DashboardPage.tsx`) displaying real calibrated baseline metrics (TDEE, Primary Goal) and honest structural module placeholders for future backend phases
 - [x] Vitest test suite (`src/tests/appshell.test.tsx` 100% passing)
+
+### User Profile & Account Settings UI (Phase 2B)
+- [x] Interactive User Profile view & edit screen (`src/pages/profile/ProfilePage.tsx`)
+- [x] Viewing and editing support for `full_name`, `date_of_birth`, `gender`, `height_cm`, `weight_kg`, `activity_level`, `diet_preference`, `equipment` multi-selection, and `medical_notes`
+- [x] Full validation for physical limits ($50\text{--}300\text{ cm}$ height, $30\text{--}300\text{ kg}$ weight)
+- [x] View/Edit/Save/Cancel flow with loading indicators and alert feedback
+- [x] Vitest test suite (`src/tests/profile.test.tsx` 100% passing)
 
 ### Workout Backend Domain & Schemas (Phase 3A)
 - [x] `exercises`, `workout_plans`, `workout_plan_exercises`, `workout_logs`, `workout_log_exercises` ORM models (`backend/app/models/workout.py`)

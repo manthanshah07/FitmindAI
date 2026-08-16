@@ -119,6 +119,51 @@ describe('AppShell & Dashboard Shell', () => {
     expect(screen.getAllByText(/Phase 7/i).length).toBeGreaterThan(0); // AI Coach
   });
 
+  it('shows non-blocking onboarding card when onboarding_complete is false', async () => {
+    vi.mocked(profileApi.getProfileApi).mockResolvedValue({
+      id: 'p-1',
+      user_id: 'uuid-123',
+      full_name: 'AppShell User',
+      onboarding_complete: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <AppShell>
+          <DashboardPage />
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/Your profile is not fully set up yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Complete Onboarding →/i })).toBeInTheDocument();
+  });
+
+  it('hides onboarding card when onboarding_complete is true', async () => {
+    vi.mocked(profileApi.getProfileApi).mockResolvedValue({
+      id: 'p-1',
+      user_id: 'uuid-123',
+      full_name: 'AppShell User',
+      onboarding_complete: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <AppShell>
+          <DashboardPage />
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/FitMind AI Dashboard/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Your profile is not fully set up yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Complete Onboarding →/i })).not.toBeInTheDocument();
+  });
+
   it('triggers logout from AppShell and clears auth session', async () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>

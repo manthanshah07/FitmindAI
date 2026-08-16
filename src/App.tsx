@@ -9,6 +9,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { ProfilePage } from './pages/profile/ProfilePage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import Footer from './sections/Footer';
@@ -120,11 +121,7 @@ function App() {
             element={
               <ProtectedRoute>
                 <AppShell>
-                  <div className="border border-borderLine p-8 text-center bg-bone">
-                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Account & Settings</span>
-                    <h2 className="text-2xl font-bold uppercase tracking-tighter">User Profile & Account Settings</h2>
-                    <p className="text-sm text-charcoal mt-2">Profile edit forms and account preference options.</p>
-                  </div>
+                  <ProfilePage />
                 </AppShell>
               </ProtectedRoute>
             }

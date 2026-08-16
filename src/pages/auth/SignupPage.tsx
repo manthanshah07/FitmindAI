@@ -30,6 +30,7 @@ export const SignupPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -40,13 +41,21 @@ export const SignupPage: React.FC = () => {
     },
   });
 
+  React.useEffect(() => {
+    reset({
+      full_name: '',
+      email: '',
+      password: '',
+    });
+  }, [reset]);
+
   const onSubmit = async (data: SignupFormData) => {
     try {
       setError(null);
       await registerUser(data);
       try {
         await login({ email: data.email, password: data.password });
-        navigate('/onboarding', { replace: true });
+        navigate('/dashboard', { replace: true });
       } catch {
         navigate('/login', {
           state: { message: 'Account created successfully. Please sign in.' },
