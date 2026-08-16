@@ -25,8 +25,12 @@ export async function seedFoodsApi(): Promise<Food[]> {
   return response.data;
 }
 
-export async function getTodayNutritionSummaryApi(): Promise<DailyNutritionSummary> {
-  const response = await api.get<DailyNutritionSummary>('/nutrition/today');
+export async function getTodayNutritionSummaryApi(
+  targetDate?: string,
+): Promise<DailyNutritionSummary> {
+  const response = await api.get<DailyNutritionSummary>('/nutrition/today', {
+    params: targetDate ? { target_date: targetDate } : undefined,
+  });
   return response.data;
 }
 

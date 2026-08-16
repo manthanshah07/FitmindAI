@@ -124,6 +124,9 @@ class FoodService:
         limit: int = 50,
         skip: int = 0,
     ) -> List[FoodResponse]:
+        if db.query(Food).first() is None:
+            FoodService.seed_default_foods(db)
+
         query = db.query(Food)
         if search:
             query = query.filter(Food.name.ilike(f"%{search}%"))

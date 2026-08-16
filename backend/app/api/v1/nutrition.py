@@ -1,4 +1,5 @@
-from typing import List
+from datetime import date
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -17,11 +18,12 @@ router = APIRouter()
 
 @router.get("/today", response_model=DailyNutritionSummaryResponse)
 def get_today_nutrition_summary(
+    target_date: Optional[date] = Query(None, description="Target date in YYYY-MM-DD format"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DailyNutritionSummaryResponse:
-    """Get today's daily nutrition summary (consumed vs target calories & macros)."""
-    return NutritionService.get_today_summary(db, current_user)
+    """Get daily nutrition summary for target_date (defaults to today)."""
+    return NutritionService.get_today_summary(db, current_user, target_date=target_date)
 
 
 @router.get("/logs", response_model=List[MealLogResponse])

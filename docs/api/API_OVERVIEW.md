@@ -142,32 +142,51 @@ Response includes: today's workouts, meals, calories, protein, fitness score, AI
 
 ---
 
-## Example: POST /nutrition/log
+## Example: POST /api/v1/nutrition/log
 
 **Request:**
 ```json
 {
   "meal_type": "lunch",
-  "raw_input": "2 rotis, chicken curry, glass of buttermilk",
-  "logged_at": "2026-08-11T13:00:00Z"
+  "logged_at": "2026-08-11T13:00:00Z",
+  "notes": "Post-workout lunch",
+  "items": [
+    { "food_id": "c1f7b8e2-9b2a-4a6c-8e4d-1e2f3a4b5c6d", "quantity_grams": 120.0 }
+  ]
 }
 ```
 
 **Response (201):**
 ```json
 {
-  "meal_log_id": "uuid",
+  "id": "uuid",
+  "user_id": "uuid",
   "meal_type": "lunch",
+  "logged_at": "2026-08-11T13:00:00Z",
+  "notes": "Post-workout lunch",
+  "created_at": "2026-08-11T13:00:00.123456Z",
   "items": [
-    { "food": "Roti", "quantity_g": 120, "calories": 295, "protein": 8.4, "carbs": 60, "fat": 1.2 },
-    { "food": "Chicken Curry", "quantity_g": 200, "calories": 320, "protein": 28, "carbs": 8, "fat": 18 }
-  ],
-  "totals": {
-    "calories": 615,
-    "protein": 36.4,
-    "carbs": 68,
-    "fat": 19.2
-  }
+    {
+      "id": "uuid",
+      "meal_log_id": "uuid",
+      "food_id": "c1f7b8e2-9b2a-4a6c-8e4d-1e2f3a4b5c6d",
+      "quantity_grams": 120.0,
+      "calculated_calories": 316.8,
+      "calculated_protein": 11.04,
+      "calculated_carbs": 62.4,
+      "calculated_fat": 3.0,
+      "food": {
+        "id": "c1f7b8e2-9b2a-4a6c-8e4d-1e2f3a4b5c6d",
+        "name": "Whole Wheat Roti (Chapati)",
+        "calories_per_100g": 264.0,
+        "protein_per_100g": 9.2,
+        "carbs_per_100g": 52.0,
+        "fat_per_100g": 2.5,
+        "is_verified": true,
+        "created_at": "2026-08-11T12:00:00Z"
+      }
+    }
+  ]
 }
 ```
 

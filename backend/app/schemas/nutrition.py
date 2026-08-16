@@ -56,7 +56,7 @@ class MealLogItemResponse(BaseModel):
 class MealLogCreate(BaseModel):
     meal_type: str = Field(..., pattern="^(breakfast|lunch|dinner|snack)$")
     logged_at: datetime
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=2000)
     items: List[MealLogItemCreate] = Field(..., min_length=1)
 
 
