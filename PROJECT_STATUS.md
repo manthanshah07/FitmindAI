@@ -12,7 +12,13 @@
 **PHASE 1A — BACKEND FOUNDATION**  
 **Status: COMPLETE**
 
-**PHASE 1B — AUTHENTICATION & ONBOARDING**  
+**PHASE 1B — AUTHENTICATION (BACKEND)**  
+**Status: COMPLETE**
+
+**PHASE 1C-A — FRONTEND AUTHENTICATION INFRASTRUCTURE**  
+**Status: COMPLETE**
+
+**PHASE 1C-B — AUTHENTICATION & ONBOARDING UI**  
 **Status: READY TO IMPLEMENT**
 
 ---
@@ -62,6 +68,27 @@
 - [x] Unprotected `/health` endpoint (`GET /health` returning `{"status": "ok"}`)
 - [x] Pytest suite verified (`backend/tests/test_health.py` passing 100%)
 
+### Authentication Backend (Phase 1B)
+- [x] `users` table model (`backend/app/models/user.py`)
+- [x] `refresh_tokens` persistence model (`backend/app/models/refresh_token.py`)
+- [x] Pydantic authentication schemas (`backend/app/schemas/auth.py`)
+- [x] Authentication service logic (`backend/app/services/auth_service.py`)
+- [x] Protected route dependency `get_current_user` (`backend/app/api/deps.py`)
+- [x] Auth endpoints (`POST /api/v1/auth/register`, `/login`, `/refresh`, `/logout`)
+- [x] Alembic migration script (`2026_08_16_0001_create_users_and_refresh_tokens.py`)
+- [x] Comprehensive pytest suite (`backend/tests/test_auth.py` 100% passing)
+
+### Frontend Authentication Infrastructure (Phase 1C-A)
+- [x] TypeScript authentication interfaces (`src/types/auth.ts`)
+- [x] User-safe API error message parser (`src/utils/apiError.ts`)
+- [x] Browser token storage adapter (`src/lib/api/tokenStorage.ts`)
+- [x] Centralized Axios client with Bearer header injection & 401 refresh/retry interceptor (`src/lib/api/client.ts`)
+- [x] Typed auth API module (`src/lib/api/auth.ts`)
+- [x] Zustand auth store (`src/store/useAuthStore.ts`)
+- [x] TanStack Query setup (`src/lib/react-query.ts` & `QueryClientProvider` in `src/main.tsx`)
+- [x] Client-side route guard (`src/components/layout/ProtectedRoute.tsx`)
+- [x] Vitest test suite (`src/tests/auth.test.tsx` 100% passing)
+
 ---
 
 ## What Is NOT Started
@@ -69,9 +96,11 @@
 | Feature | Phase | Status |
 |---|---|---|
 | Backend Foundation | Phase 1A | COMPLETE |
-| Authentication (Endpoints / Auth UI) | Phase 1B | Not Started |
-| Onboarding wizard | Phase 1B | Not Started |
-| Application routing & AppShell | Phase 1B | Not Started |
+| Authentication (Backend API) | Phase 1B | COMPLETE |
+| Frontend Auth Infrastructure | Phase 1C-A | COMPLETE |
+| Login & Signup UI | Phase 1C-B | Not Started |
+| Onboarding Wizard UI | Phase 1C-B | Not Started |
+| AppShell & Layout Components | Phase 1C-B | Not Started |
 | Dashboard | Phase 2 | Not Started |
 | Workout module | Phase 3 | Not Started |
 | Nutrition module | Phase 4 | Not Started |
@@ -80,7 +109,7 @@
 | AI Coach | Phase 7 | Not Started |
 | Memory system | Phase 7–8 | Not Started |
 | Reports | Phase 9 | Not Started |
-| Testing suite (Full) | Phase 10 | In Progress (Phase 1A test complete) |
+| Testing suite | Phase 10 | In Progress (Backend + Frontend Auth Infra tests complete) |
 | Deployment | Phase 11 | Not Started |
 
 ---
