@@ -8,7 +8,9 @@ import AboutPage from './pages/AboutPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { AppShell } from './components/layout/AppShell';
 import Footer from './sections/Footer';
 
 function App() {
@@ -37,19 +39,93 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8 bg-bone">
-                  <div className="text-center border border-borderLine p-16 max-w-md w-full">
-                    <span className="text-[9px] font-mono text-olive uppercase tracking-widest block mb-4">
-                      Phase 2 Destination
-                    </span>
-                    <h2 className="text-3xl font-bold tracking-tighter uppercase mb-4">
-                      Dashboard
-                    </h2>
-                    <p className="text-charcoal text-sm font-medium">
-                      Onboarding complete. Personalized Dashboard is ready for Phase 2 implementation.
-                    </p>
+                <AppShell>
+                  <DashboardPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/coach"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <div className="border border-borderLine p-8 text-center bg-bone">
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 7 Module</span>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">AI Coach Engine</h2>
+                    <p className="text-sm text-charcoal mt-2">Conversational AI and persistent user memory will launch in Phase 7.</p>
                   </div>
-                </div>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workout/*"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <div className="border border-borderLine p-8 text-center bg-bone">
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 3 Module</span>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Workout Overview & Sessions</h2>
+                    <p className="text-sm text-charcoal mt-2">Workout routine generation and exercise tracking will be built in Phase 3.</p>
+                  </div>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/nutrition/*"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <div className="border border-borderLine p-8 text-center bg-bone">
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 4 Module</span>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Nutrition Dashboard & Logger</h2>
+                    <p className="text-sm text-charcoal mt-2">Food logging, calorie tracking, and macro targets will be built in Phase 4.</p>
+                  </div>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/progress/*"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <div className="border border-borderLine p-8 text-center bg-bone">
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 5 Module</span>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Progress & Measurement Tracking</h2>
+                    <p className="text-sm text-charcoal mt-2">Weight history graphs and body measurement logs will be built in Phase 5.</p>
+                  </div>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/*"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <div className="border border-borderLine p-8 text-center bg-bone">
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 9 Module</span>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Reports Archive</h2>
+                    <p className="text-sm text-charcoal mt-2">Weekly and monthly fitness summaries will be archived here in Phase 9.</p>
+                  </div>
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <div className="border border-borderLine p-8 text-center bg-bone">
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Account & Settings</span>
+                    <h2 className="text-2xl font-bold uppercase tracking-tighter">User Profile & Account Settings</h2>
+                    <p className="text-sm text-charcoal mt-2">Profile edit forms and account preference options.</p>
+                  </div>
+                </AppShell>
               </ProtectedRoute>
             }
           />

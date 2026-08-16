@@ -27,7 +27,10 @@
 **PHASE 1C-D — ONBOARDING WIZARD UI**  
 **Status: COMPLETE**
 
-**PHASE 2 — DASHBOARD & CORE APPSHELL**  
+**PHASE 2A — APPSHELL & DASHBOARD CONTRACT**  
+**Status: COMPLETE**
+
+**PHASE 3 — WORKOUT MODULE**  
 **Status: READY TO IMPLEMENT**
 
 ---
@@ -111,15 +114,22 @@
 - [x] Pydantic schemas (`backend/app/schemas/profile.py`, `backend/app/schemas/goal.py`)
 - [x] Decoupled service layers (`backend/app/services/profile_service.py`, `backend/app/services/goal_service.py`)
 - [x] Protected endpoints (`GET/PUT /api/v1/profile`, `POST /api/v1/profile/onboarding`, `GET/POST /api/v1/goals`)
-- [x] Alembic migration scripts (`2026_08_16_0002_create_profiles.py`, `2026_08_16_0003_create_goals.py`)
-- [x] Comprehensive pytest suite (`backend/tests/test_profile.py`, `backend/tests/test_goals.py` 100% passing)
+- [x] Alembic migration scripts (`2026_08_16_0002_create_profiles.py`, `2026_08_16_0003_create_goals.py`, `2026_08_16_0004_add_weight_kg_to_profiles.py`)
+- [x] Comprehensive pytest suite (`backend/tests/test_profile.py`, `backend/tests/test_goals.py`, `backend/tests/test_calculations.py` 100% passing)
 
 ### Onboarding Wizard UI (Phase 1C-D)
 - [x] Select UI primitive (`src/components/ui/Select.tsx`) matching FitMind design system
 - [x] 5-Step Onboarding Wizard component (`src/pages/onboarding/OnboardingPage.tsx`) handling Personal Info, Goals, Activity Level, Preferences, and Initial Baseline Assessment
+- [x] Mifflin-St Jeor TDEE & age calculation utility (`src/utils/tdeeCalculator.ts`)
 - [x] Client-side validation per step, Back/Next navigation, local wizard state persistence across steps
 - [x] Integration with backend `createGoalApi` and `completeOnboardingApi`
-- [x] Vitest test suite (`src/tests/onboarding.test.tsx` 100% passing)
+- [x] Vitest test suite (`src/tests/onboarding.test.tsx`, `src/tests/tdeeCalculator.test.ts` 100% passing)
+
+### AppShell & Dashboard Foundation (Phase 2A)
+- [x] AppShell container (`src/components/layout/AppShell.tsx`), Sidebar (`src/components/layout/Sidebar.tsx`), TopBar (`src/components/layout/TopBar.tsx`), BottomNav (`src/components/layout/BottomNav.tsx`)
+- [x] Protected application routing mounted under `<AppShell>` (`/dashboard`, `/coach`, `/workout`, `/nutrition`, `/progress`, `/reports`, `/profile`)
+- [x] Dashboard Page (`src/pages/dashboard/DashboardPage.tsx`) displaying real calibrated baseline metrics (TDEE, Primary Goal) and honest structural module placeholders for future backend phases
+- [x] Vitest test suite (`src/tests/appshell.test.tsx` 100% passing)
 
 ---
 
@@ -133,8 +143,8 @@
 | Login & Signup UI | Phase 1C-B | COMPLETE |
 | Profile & Goals Backend | Phase 1C-C | COMPLETE |
 | Onboarding Wizard UI | Phase 1C-D | COMPLETE |
-| Core AppShell & Layout Components | Phase 2 | Not Started |
-| Dashboard | Phase 2 | Not Started |
+| AppShell & Core Layout Components | Phase 2A | COMPLETE |
+| Dashboard Baseline View | Phase 2A | COMPLETE |
 | Workout module | Phase 3 | Not Started |
 | Nutrition module | Phase 4 | Not Started |
 | Progress tracking | Phase 5 | Not Started |
@@ -142,7 +152,7 @@
 | AI Coach | Phase 7 | Not Started |
 | Memory system | Phase 7–8 | Not Started |
 | Reports | Phase 9 | Not Started |
-| Testing suite | Phase 10 | In Progress (26 Backend + 25 Frontend tests complete) |
+| Testing suite | Phase 10 | In Progress (28 Backend + 31 Frontend tests complete) |
 | Deployment | Phase 11 | Not Started |
 
 ---
