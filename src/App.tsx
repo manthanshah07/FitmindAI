@@ -10,6 +10,10 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
+import { WorkoutOverviewPage } from './pages/workout/WorkoutOverviewPage';
+import { WorkoutSessionPage } from './pages/workout/WorkoutSessionPage';
+import { WorkoutHistoryPage } from './pages/workout/WorkoutHistoryPage';
+import { ExerciseDetailPage } from './pages/workout/ExerciseDetailPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import Footer from './sections/Footer';
@@ -61,15 +65,41 @@ function App() {
             }
           />
           <Route
-            path="/workout/*"
+            path="/workout"
             element={
               <ProtectedRoute>
                 <AppShell>
-                  <div className="border border-borderLine p-8 text-center bg-bone">
-                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 3 Module</span>
-                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Workout Overview & Sessions</h2>
-                    <p className="text-sm text-charcoal mt-2">Workout routine generation and exercise tracking will be built in Phase 3.</p>
-                  </div>
+                  <WorkoutOverviewPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workout/session"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <WorkoutSessionPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workout/history"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <WorkoutHistoryPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/workout/exercise/:id"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ExerciseDetailPage />
                 </AppShell>
               </ProtectedRoute>
             }

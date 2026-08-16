@@ -5,22 +5,26 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { getProfileApi } from '../../lib/api/profile';
 import { getActiveGoalApi } from '../../lib/api/goals';
+import { getActiveWorkoutPlanApi } from '../../lib/api/workout';
 import { calculateTDEE } from '../../utils/tdeeCalculator';
 import type { Profile } from '../../types/profile';
 import type { Goal } from '../../types/goal';
+import type { WorkoutPlan } from '../../types/workout';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
+  const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const [profileData, goalData] = await Promise.allSettled([
+        const [profileData, goalData, workoutData] = await Promise.allSettled([
           getProfileApi(),
           getActiveGoalApi(),
+          getActiveWorkoutPlanApi(),
         ]);
 
         if (profileData.status === 'fulfilled') {
@@ -28,6 +32,9 @@ export const DashboardPage: React.FC = () => {
         }
         if (goalData.status === 'fulfilled') {
           setGoal(goalData.value);
+        }
+        if (workoutData.status === 'fulfilled') {
+          setWorkoutPlan(workoutData.value);
         }
       } catch {
         // Fallback to local store user
@@ -159,26 +166,31 @@ export const DashboardPage: React.FC = () => {
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Module 1: Workout Module Placeholder */}
-        <Card className="p-6 flex flex-col justify-between border-dashed">
+        {/* Module 1: Workout Module (Live Integration) */}
+        <Card className="p-6 flex flex-col justify-between border-solid">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-                <span>🏋️</span> Workout Module
+                <span>🏋️</span> Workout System
               </span>
-              <Badge variant="faded">Phase 3</Badge>
+              <Badge variant="olive">Phase 3 Active</Badge>
             </div>
-            <p className="text-xs text-charcoal">
-              Scheduled workout logs, routine generation, and session execution will be built in Phase 3.
+            <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+              {workoutPlan ? workoutPlan.name : 'Routine Ready'}
+            </h3>
+            <p className="text-xs text-charcoal font-sans">
+              {workoutPlan
+                ? `${workoutPlan.plan_exercises.length} exercises scheduled • ${workoutPlan.days_per_week || 4} days/week`
+                : 'View active workout plan, track completed sets, and start live training sessions.'}
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">Endpoint: /api/v1/workouts</span>
+            <span className="font-mono text-[10px] text-faded uppercase">Endpoint: /api/v1/workout</span>
             <NavLink
               to="/workout"
               className="font-mono text-xs uppercase font-bold text-olive hover:underline"
             >
-              View Module →
+              Open Workout Module →
             </NavLink>
           </div>
         </Card>
