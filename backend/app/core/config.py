@@ -1,5 +1,5 @@
 from typing import List, Union
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,20 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     SUPABASE_URL: str | None = None
     SUPABASE_SERVICE_KEY: str | None = None
+
+    @model_validator(mode="after")
+    def validate_production_jwt_secret(self) -> "Settings":
+        DEFAULT_DEV_SECRET = "default_dev_secret_change_me_in_production_32_bytes"
+        if self.ENVIRONMENT.lower() == "production":
+            if not self.JWT_SECRET or self.JWT_SECRET == DEFAULT_DEV_SECRET:
+                raise ValueError(
+                    "JWT_SECRET must be explicitly set and cannot use the development fallback in production mode."
+                )
+            if len(self.JWT_SECRET) < 32:
+                raise ValueError(
+                    "JWT_SECRET must be at least 32 characters long in production mode."
+                )
+        return self
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
