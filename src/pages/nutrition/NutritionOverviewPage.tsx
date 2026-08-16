@@ -21,7 +21,7 @@ export const NutritionOverviewPage: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
-        await seedFoodsApi();
+        await seedFoodsApi().catch(() => {});
         const data = await getTodayNutritionSummaryApi();
         setSummary(data);
       } catch (err) {
