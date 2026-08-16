@@ -49,7 +49,7 @@
 | A-03 | Animation: Framer Motion | DECIDED | Already implemented |
 | A-04 | Backend: FastAPI (Python) | DECIDED | Confirmed in project context |
 | A-05 | Database: PostgreSQL | DECIDED | Confirmed in project context |
-| A-06 | Authentication: JWT | PROPOSED | Firebase Auth also mentioned; UNDECIDED on final choice |
+| A-06 | Authentication: Custom FastAPI JWT | DECIDED | Password hashing (bcrypt/Argon2), short-lived access tokens + refresh tokens, Bearer header, FastAPI dependency auth. No Firebase Auth. (2026-08-16) |
 | A-07 | File/Photo storage: Supabase Storage | DECIDED | Confirmed in project context |
 | A-08 | AI provider: OpenAI API | DECIDED | Confirmed in project context |
 | A-09 | Memory approach: RAG-based | DECIDED | Confirmed in project context |
@@ -57,11 +57,11 @@
 | A-11 | Deployment: Railway or Render (backend) | DECIDED | Either acceptable; final choice UNDECIDED |
 | A-12 | Backend handles all deterministic calculations | DECIDED | Core architectural principle |
 | A-13 | AI handles only reasoning, explanation, personalization | DECIDED | Core architectural principle |
-| A-14 | Monorepo vs separate repos | UNDECIDED | Landing + backend in same repo vs separate |
-| A-15 | State management library | UNDECIDED | Zustand / Redux Toolkit / Jotai / React Query |
-| A-16 | HTTP client | UNDECIDED | Axios vs Fetch + React Query |
-| A-17 | Vector database for semantic memory | UNDECIDED | Needed for RAG; specific technology not chosen |
-| A-18 | Relational memory vs vector memory split | PROPOSED | Static/Dynamic = PostgreSQL; Conversational = vector store |
+| A-14 | Monorepo structure | DECIDED | Frontend at root (`src/`), backend in `/backend`. No moving `src/` to `/frontend`. (2026-08-16) |
+| A-15 | State management | DECIDED | Zustand for client/app/UI state & auth session; TanStack Query for server state. No React Context for global state. (2026-08-16) |
+| A-16 | HTTP client | DECIDED | Axios centralized instance handling Bearer tokens and token refresh. (2026-08-16) |
+| A-17 | Vector database for semantic memory | UNDECIDED | Optional for post-Phase 8; architecture remains extensible for future vector store integration. |
+| A-18 | Relational memory vs vector memory split | DECIDED | Static, Dynamic, and Conversational memory stored in PostgreSQL for Phases 1–8. (2026-08-16) |
 
 ---
 
@@ -70,12 +70,12 @@
 | # | Decision | Status | Notes |
 |---|---|---|---|
 | AI-01 | Memory system has three layers: Static, Dynamic, Conversational | DECIDED | Defined in project context |
-| AI-02 | Static memory stored in PostgreSQL | PROPOSED | Fits structured nature |
-| AI-03 | Dynamic memory stored in PostgreSQL | PROPOSED | Workout/meal logs are structured |
-| AI-04 | Conversational memory: storage approach | UNDECIDED | PostgreSQL JSON fields vs vector DB vs hybrid |
+| AI-02 | Static memory stored in PostgreSQL | DECIDED | Fits structured nature (`profiles`, `goals`) |
+| AI-03 | Dynamic memory stored in PostgreSQL | DECIDED | Workout/meal logs/scores are structured |
+| AI-04 | Conversational memory storage (Phases 1–8) | DECIDED | PostgreSQL `ai_memory` table. Vector DB deferred but architecture remains extensible. (2026-08-16) |
 | AI-05 | Context window management strategy | UNDECIDED | How to prevent irrelevant context from reaching LLM |
-| AI-06 | Prompt architecture | UNDECIDED | System prompt structure not yet designed |
-| AI-07 | Specific OpenAI model | UNDECIDED | GPT-4o / GPT-4o-mini / future model |
+| AI-06 | Prompt architecture | UNDECIDED | System prompt structure to be designed in Phase 7 |
+| AI-07 | OpenAI model selection | DECIDED | Configured via `OPENAI_MODEL` environment variable; finalized in AI Coach phase. (2026-08-16) |
 | AI-08 | Token usage optimization | UNDECIDED | Budget not defined |
 | AI-09 | AI response validation strategy | UNDECIDED | How to detect and handle hallucinations |
 | AI-10 | Escalation behavior for medical questions | PROPOSED | Redirect to professional; decline to diagnose |
@@ -96,25 +96,25 @@
 
 ---
 
-## KNOWN CONFLICTS
+## KNOWN CONFLICTS (RESOLVED)
 
 | # | Conflict | Documents Involved | Resolution |
 |---|---|---|---|
-| C-01 | Authentication: JWT vs Firebase Auth | Project Context mentions both | UNDECIDED — needs decision before Phase 1 |
-| C-02 | PRD and Tech Spec referenced but missing | Task specification | Cannot resolve until documents are provided |
+| C-01 | Authentication: JWT vs Firebase Auth | Project Context / Status | RESOLVED — Custom FastAPI JWT confirmed (Decision A-06). |
+| C-02 | PRD and Tech Spec missing claim | Audit / Status | RESOLVED — `docs/FitMind_PRD.md` and `docs/FitMind_TECH_SPEC.md` exist. |
+| C-03 | Hydration / Water Intake scope | PRD vs Tech Spec | RESOLVED — Hydration remains in score calculation spec; dedicated water logger page deferred to nutrition phase. |
 
 ---
 
-## OPEN DECISIONS (REQUIRE ACTION BEFORE IMPLEMENTATION)
+## OPEN DECISIONS (REMAINING FOR FUTURE PHASES)
 
-1. **A-06**: JWT vs Firebase Auth — decide before Phase 1 (Authentication)
-2. **A-14**: Monorepo vs separate repositories
-3. **A-15**: State management library
-4. **A-16**: HTTP client strategy
-5. **AI-04**: Conversational memory storage technology
-6. **AI-05**: Context window management strategy
-7. **AI-07**: Specific OpenAI model selection
+1. **A-11**: Backend deployment target (Railway vs Render — Phase 11)
+2. **AI-05**: Context window management strategy (Phase 7)
+3. **AI-06**: System prompt architecture (Phase 7)
+4. **AI-08**: Token usage budget optimization (Phase 7)
+5. **AI-09**: Response validation / hallucination detection strategy (Phase 7)
 
 ---
 
-*Last updated: 2026-08-11*
+*Last updated: 2026-08-16*
+

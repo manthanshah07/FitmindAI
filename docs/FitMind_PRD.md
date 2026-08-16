@@ -53,7 +53,7 @@ The dashboard displays:
 - Today's workout
 - Calories consumed today
 - Protein consumed today
-- Water intake (STATUS: UNDECIDED — not clearly in core scope)
+- Hydration status (Included in fitness score calculation spec; dedicated water logging UI deferred to Phase 4)
 - Weight (most recent)
 - Streak
 - Weekly summary
