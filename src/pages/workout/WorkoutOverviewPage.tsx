@@ -4,19 +4,46 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
+import { Input } from '../../components/ui/Input';
 import {
   getActiveWorkoutPlanApi,
   generateWorkoutPlanApi,
   getWorkoutLogsApi,
+  getExercisesApi,
   seedExercisesApi,
 } from '../../lib/api/workout';
 import { getErrorMessage } from '../../utils/apiError';
-import type { WorkoutPlan, WorkoutLog } from '../../types/workout';
+import type { WorkoutPlan, WorkoutLog, Exercise } from '../../types/workout';
 
 const DAYS_OPTIONS = [
   { value: '3', label: '3 Days / Week (Full Body Split)' },
   { value: '4', label: '4 Days / Week (Upper/Lower Split)' },
   { value: '5', label: '5 Days / Week (Push/Pull/Legs Split)' },
+];
+
+const MUSCLE_OPTIONS = [
+  { value: '', label: 'All Muscles' },
+  { value: 'Chest', label: 'Chest' },
+  { value: 'Quadriceps', label: 'Quadriceps' },
+  { value: 'Lats', label: 'Lats' },
+  { value: 'Hamstrings', label: 'Hamstrings' },
+  { value: 'Biceps', label: 'Biceps' },
+  { value: 'Glutes', label: 'Glutes' },
+  { value: 'Abs', label: 'Abs' },
+];
+
+const DIFFICULTY_OPTIONS = [
+  { value: '', label: 'All Difficulties' },
+  { value: 'beginner', label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced', label: 'Advanced' },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'All Categories' },
+  { value: 'strength', label: 'Strength' },
+  { value: 'cardio', label: 'Cardio' },
+  { value: 'core', label: 'Core' },
 ];
 
 export const WorkoutOverviewPage: React.FC = () => {
@@ -31,15 +58,24 @@ export const WorkoutOverviewPage: React.FC = () => {
   );
   const [error, setError] = useState<string | null>(null);
 
+  // Exercise Catalog Explorer State
+  const [catalogExercises, setCatalogExercises] = useState<Exercise[]>([]);
+  const [isCatalogLoading, setIsCatalogLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedMuscle, setSelectedMuscle] = useState<string>('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
   const loadWorkoutOverview = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Fetch active plan and logs in parallel
-      const [planData, logsData] = await Promise.allSettled([
+      // Fetch active plan, logs, and initial exercise catalog in parallel
+      const [planData, logsData, exercisesData] = await Promise.allSettled([
         getActiveWorkoutPlanApi(),
         getWorkoutLogsApi(1, 0),
+        getExercisesApi(),
       ]);
 
       let activePlan: WorkoutPlan | null = null;
@@ -58,6 +94,10 @@ export const WorkoutOverviewPage: React.FC = () => {
       if (logsData.status === 'fulfilled' && logsData.value.length > 0) {
         setRecentLog(logsData.value[0]);
       }
+
+      if (exercisesData.status === 'fulfilled') {
+        setCatalogExercises(exercisesData.value);
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -68,6 +108,32 @@ export const WorkoutOverviewPage: React.FC = () => {
   useEffect(() => {
     loadWorkoutOverview();
   }, []);
+
+  // Filter Catalog exercises dynamically
+  useEffect(() => {
+    async function filterCatalog() {
+      try {
+        setIsCatalogLoading(true);
+        const data = await getExercisesApi({
+          search: searchQuery || undefined,
+          muscle: selectedMuscle || undefined,
+          difficulty: selectedDifficulty || undefined,
+          category: selectedCategory || undefined,
+        });
+        setCatalogExercises(data);
+      } catch {
+        // Soft fallback
+      } finally {
+        setIsCatalogLoading(false);
+      }
+    }
+
+    const timer = setTimeout(() => {
+      filterCatalog();
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedMuscle, selectedDifficulty, selectedCategory]);
 
   const handleGeneratePlan = async () => {
     try {
@@ -249,6 +315,89 @@ export const WorkoutOverviewPage: React.FC = () => {
           </p>
         </Card>
       )}
+
+      {/* ─────────────────────────────────────────────────────────────
+          Exercise Catalog Explorer Section
+          ───────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-6 pt-4 border-t border-borderLine">
+        <div>
+          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
+            Database Catalog Explorer
+          </span>
+          <h2 className="text-2xl font-bold uppercase tracking-tighter text-graphite font-mono">
+            Browse Exercise Database
+          </h2>
+          <p className="text-xs text-charcoal font-sans mt-1">
+            Search exercises by name, primary muscle group, category, or difficulty level.
+          </p>
+        </div>
+
+        {/* Catalog Search & Filters Bar */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Input
+            placeholder="Search exercises by name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+
+          <Select
+            options={MUSCLE_OPTIONS}
+            value={selectedMuscle}
+            onChange={(e) => setSelectedMuscle(e.target.value)}
+          />
+
+          <Select
+            options={DIFFICULTY_OPTIONS}
+            value={selectedDifficulty}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
+          />
+
+          <Select
+            options={CATEGORY_OPTIONS}
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+          />
+        </div>
+
+        {/* Exercise Catalog Grid */}
+        {isCatalogLoading ? (
+          <div className="p-8 text-center border border-borderLine bg-bone font-mono text-xs uppercase animate-pulse">
+            Searching exercise catalog...
+          </div>
+        ) : catalogExercises.length === 0 ? (
+          <div className="p-8 text-center border border-borderLine bg-bone font-mono text-xs uppercase text-faded">
+            No exercises match the selected search filters.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {catalogExercises.map((ex) => (
+              <Card key={ex.id} className="p-5 flex flex-col justify-between gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-mono text-base font-bold uppercase text-graphite">
+                      {ex.name}
+                    </h3>
+                    <Badge variant="olive">{ex.primary_muscle}</Badge>
+                  </div>
+                  <p className="text-xs text-charcoal font-sans line-clamp-2">
+                    {ex.description || 'Standard training exercise.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t border-borderLine text-xs font-mono">
+                  <div className="flex items-center gap-2">
+                    {ex.difficulty && <Badge variant="faded">{ex.difficulty.toUpperCase()}</Badge>}
+                    {ex.category && <Badge variant="faded">{ex.category.toUpperCase()}</Badge>}
+                  </div>
+                  <NavLink to={`/workout/exercise/${ex.id}`}>
+                    <Button variant="secondary">View Spec →</Button>
+                  </NavLink>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

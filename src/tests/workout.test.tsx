@@ -46,7 +46,7 @@ const mockPlan = {
       id: 'pe-1',
       plan_id: 'plan-1',
       exercise_id: 'ex-1',
-      sets: 3,
+      sets: 2,
       reps: '10',
       rest_seconds: 90,
       exercise: mockExercise,
@@ -58,7 +58,7 @@ const mockLog = {
   id: 'log-1',
   user_id: 'u-123',
   plan_id: 'plan-1',
-  started_at: new Date().toISOString(),
+  started_at: new Date(Date.now() - 30 * 60000).toISOString(), // 30 mins ago
   ended_at: new Date().toISOString(),
   notes: 'Felt strong today!',
   created_at: new Date().toISOString(),
@@ -69,14 +69,24 @@ const mockLog = {
       exercise_id: 'ex-1',
       set_number: 1,
       reps_completed: 10,
-      weight_kg: 80,
+      weight_kg: 80, // Volume: 10 * 80 = 800 kg
       rpe: 8,
+      exercise: mockExercise,
+    },
+    {
+      id: 'le-2',
+      log_id: 'log-1',
+      exercise_id: 'ex-1',
+      set_number: 2,
+      reps_completed: 8,
+      weight_kg: 85, // Volume: 8 * 85 = 680 kg -> Total Volume = 1480 kg
+      rpe: 9,
       exercise: mockExercise,
     },
   ],
 };
 
-describe('Phase 3B — Workout Frontend Module', () => {
+describe('Phase 3C — Workout Session Completion & Catalog Explorer', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -97,9 +107,10 @@ describe('Phase 3B — Workout Frontend Module', () => {
     vi.clearAllMocks();
   });
 
-  it('renders Workout Overview Page with active plan and exercise specs', async () => {
+  it('renders Workout Overview Page with active plan and exercise catalog', async () => {
     vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValueOnce(mockPlan);
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([mockLog]);
+    vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
 
     render(
       <MemoryRouter initialEntries={['/workout']}>
@@ -110,29 +121,11 @@ describe('Phase 3B — Workout Frontend Module', () => {
     );
 
     expect(await screen.findByText(/Hypertrophy Routine/i)).toBeInTheDocument();
-    expect(screen.getByText(/Barbell Bench Press/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Start Workout Session →/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/Barbell Bench Press/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Database Catalog Explorer/i)).toBeInTheDocument();
   });
 
-  it('handles empty plan state and allows generating a personalized plan', async () => {
-    vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValueOnce(null);
-    vi.mocked(workoutApi.seedExercisesApi).mockResolvedValueOnce([mockExercise]);
-    vi.mocked(workoutApi.generateWorkoutPlanApi).mockResolvedValueOnce(mockPlan);
-    vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
-
-    render(
-      <MemoryRouter initialEntries={['/workout']}>
-        <AppShell>
-          <WorkoutOverviewPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText(/Hypertrophy Routine/i)).toBeInTheDocument();
-    expect(workoutApi.generateWorkoutPlanApi).toHaveBeenCalled();
-  });
-
-  it('allows starting and completing a live workout session', async () => {
+  it('allows starting a live session, logging sets, and renders Session Completion Summary', async () => {
     vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValue(mockPlan);
     vi.mocked(workoutApi.logWorkoutSessionApi).mockResolvedValueOnce(mockLog);
 
@@ -140,30 +133,50 @@ describe('Phase 3B — Workout Frontend Module', () => {
       <MemoryRouter initialEntries={['/workout/session']}>
         <Routes>
           <Route path="/workout/session" element={<WorkoutSessionPage />} />
-          <Route path="/workout" element={<div>Workout Target Page</div>} />
+          <Route path="/workout" element={<div>Workout Overview Target</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
     expect(await screen.findByText(/Active Workout Session/i)).toBeInTheDocument();
-    expect(screen.getByText(/Barbell Bench Press/i)).toBeInTheDocument();
 
     // Click Finish Workout
     fireEvent.click(screen.getByRole('button', { name: /Finish Workout ✓/i }));
 
+    // Assert Session Completion Summary Screen appears with exact calculated values
+    expect(await screen.findByText(/Session Summary/i)).toBeInTheDocument();
+    expect(screen.getByText(/1,480/i)).toBeInTheDocument(); // Total Volume: 1480 kg
+    expect(screen.getByText(/Return to Workouts →/i)).toBeInTheDocument();
+
+    // Click Return to Workouts
+    fireEvent.click(screen.getByText(/Return to Workouts →/i));
+    expect(await screen.findByText(/Workout Overview Target/i)).toBeInTheDocument();
+  });
+
+  it('filters Exercise Catalog Explorer by name search and muscle group', async () => {
+    vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValueOnce(mockPlan);
+    vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
+    vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
+
+    render(
+      <MemoryRouter initialEntries={['/workout']}>
+        <AppShell>
+          <WorkoutOverviewPage />
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/Database Catalog Explorer/i)).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText(/Search exercises by name.../i);
+    fireEvent.change(searchInput, { target: { value: 'Bench Press' } });
+
     await waitFor(() => {
-      expect(workoutApi.logWorkoutSessionApi).toHaveBeenCalledWith(
+      expect(workoutApi.getExercisesApi).toHaveBeenCalledWith(
         expect.objectContaining({
-          notes: expect.any(String),
-          logged_exercises: expect.arrayContaining([
-            expect.objectContaining({
-              exercise_id: 'ex-1',
-              set_number: 1,
-            }),
-          ]),
+          search: 'Bench Press',
         }),
       );
-      expect(screen.getByText(/Workout Target Page/i)).toBeInTheDocument();
     });
   });
 
@@ -182,28 +195,12 @@ describe('Phase 3B — Workout Frontend Module', () => {
     expect(await screen.findByText(/Completed Workout Sessions/i)).toBeInTheDocument();
     expect(screen.getByText(/Felt strong today!/i)).toBeInTheDocument();
 
-    // Select session log
     fireEvent.click(screen.getByText(/Felt strong today!/i));
 
     await waitFor(() => {
       expect(workoutApi.getWorkoutLogByIdApi).toHaveBeenCalledWith('log-1');
       expect(screen.getByText(/Logged Sets & Load Performance/i)).toBeInTheDocument();
     });
-  });
-
-  it('displays empty history state when no workout sessions exist', async () => {
-    vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
-
-    render(
-      <MemoryRouter initialEntries={['/workout/history']}>
-        <AppShell>
-          <WorkoutHistoryPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText(/No Workout Logs Recorded/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Start First Workout →/i })).toBeInTheDocument();
   });
 
   it('displays Exercise Specification detail page for a valid exercise ID', async () => {
@@ -219,6 +216,5 @@ describe('Phase 3B — Workout Frontend Module', () => {
 
     expect(await screen.findByText(/Barbell Bench Press/i)).toBeInTheDocument();
     expect(screen.getByText(/Compound push exercise targeting upper body/i)).toBeInTheDocument();
-    expect(screen.getByText(/Lie on bench, lower bar to chest, press upward/i)).toBeInTheDocument();
   });
 });

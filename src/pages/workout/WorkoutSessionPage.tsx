@@ -6,7 +6,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { getActiveWorkoutPlanApi, seedExercisesApi, logWorkoutSessionApi } from '../../lib/api/workout';
 import { getErrorMessage } from '../../utils/apiError';
-import type { WorkoutPlan, WorkoutLogExerciseCreate } from '../../types/workout';
+import type { WorkoutPlan, WorkoutLog, WorkoutLogExerciseCreate } from '../../types/workout';
 
 export const WorkoutSessionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +16,7 @@ export const WorkoutSessionPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState<string>(() => new Date().toISOString());
   const [sessionNotes, setSessionNotes] = useState<string>('');
+  const [completedLog, setCompletedLog] = useState<WorkoutLog | null>(null);
 
   // Local state tracking set-by-set input values:
   // Key: `${exercise_id}_${set_number}`
@@ -92,25 +93,24 @@ export const WorkoutSessionPage: React.FC = () => {
             loggedExercises.push({
               exercise_id: item.exercise_id,
               set_number: setNum,
-              reps_completed: entry.reps,
-              weight_kg: entry.weight,
-              rpe: entry.rpe,
+              reps_completed: Math.max(0, entry.reps || 0),
+              weight_kg: Math.max(0, entry.weight || 0),
+              rpe: Math.min(10, Math.max(1, entry.rpe || 8)),
             });
           }
         });
       }
 
-      await logWorkoutSessionApi({
+      const endedTime = new Date().toISOString();
+      const logResult = await logWorkoutSessionApi({
         plan_id: plan?.id,
         started_at: startTime,
-        ended_at: new Date().toISOString(),
+        ended_at: endedTime,
         notes: sessionNotes || 'Active session completed',
         logged_exercises: loggedExercises,
       });
 
-      navigate('/workout', {
-        state: { message: 'Workout session logged successfully!' },
-      });
+      setCompletedLog(logResult);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -127,6 +127,122 @@ export const WorkoutSessionPage: React.FC = () => {
         <h3 className="text-xl font-bold uppercase tracking-tighter animate-pulse font-mono">
           Preparing Workout Routine...
         </h3>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Session Completion Summary Screen (Rendered after successful log)
+  // ─────────────────────────────────────────────────────────────
+  if (completedLog) {
+    const startedMs = new Date(completedLog.started_at).getTime();
+    const endedMs = new Date(completedLog.ended_at || Date.now()).getTime();
+    const durationMinutes = Math.max(1, Math.round((endedMs - startedMs) / 60000));
+
+    // Correct Volume Formula: Σ(weight_kg × reps_completed)
+    const totalVolumeKg = completedLog.logged_exercises.reduce((sum, item) => {
+      const weight = item.weight_kg || 0;
+      const reps = item.reps_completed || 0;
+      return sum + weight * reps;
+    }, 0);
+
+    const totalExercisesCount = new Set(completedLog.logged_exercises.map((e) => e.exercise_id)).size;
+    const totalSetsCount = completedLog.logged_exercises.length;
+
+    return (
+      <div className="flex flex-col gap-8 max-w-3xl mx-auto">
+        <div className="border border-olive bg-olive/5 p-8 text-center flex flex-col items-center gap-4">
+          <Badge variant="olive">Workout Completed ✓</Badge>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-graphite font-mono">
+            Session Summary
+          </h1>
+          <p className="text-sm text-charcoal font-sans max-w-md">
+            Great work! Your training performance has been saved to your persisted history.
+          </p>
+        </div>
+
+        {/* Primary Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="p-5 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
+              Duration
+            </span>
+            <span className="font-mono text-2xl font-bold text-graphite block">
+              {durationMinutes} <span className="text-xs text-olive">min</span>
+            </span>
+          </Card>
+
+          <Card className="p-5 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
+              Total Volume
+            </span>
+            <span className="font-mono text-2xl font-bold text-graphite block">
+              {totalVolumeKg.toLocaleString()} <span className="text-xs text-olive">kg</span>
+            </span>
+          </Card>
+
+          <Card className="p-5 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
+              Exercises
+            </span>
+            <span className="font-mono text-2xl font-bold text-graphite block">
+              {totalExercisesCount}
+            </span>
+          </Card>
+
+          <Card className="p-5 text-center">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
+              Sets Completed
+            </span>
+            <span className="font-mono text-2xl font-bold text-graphite block">
+              {totalSetsCount}
+            </span>
+          </Card>
+        </div>
+
+        {/* Reflection Notes */}
+        {completedLog.notes && (
+          <Card className="p-6">
+            <span className="font-mono text-xs uppercase font-bold text-graphite tracking-widest block mb-2">
+              Session Reflection Notes
+            </span>
+            <p className="text-xs text-charcoal font-sans bg-bone/80 p-3.5 border border-borderLine">
+              {completedLog.notes}
+            </p>
+          </Card>
+        )}
+
+        {/* Completed Sets Breakdown */}
+        <Card className="p-6">
+          <span className="font-mono text-xs uppercase font-bold text-graphite tracking-widest block mb-4">
+            Logged Set Breakdown
+          </span>
+          <div className="flex flex-col gap-2">
+            {completedLog.logged_exercises.map((item, idx) => (
+              <div
+                key={item.id || idx}
+                className="flex items-center justify-between p-3 border border-borderLine bg-bone text-xs font-mono"
+              >
+                <div className="font-bold text-graphite">
+                  {item.exercise?.name || `Exercise Set #${item.set_number}`}
+                </div>
+                <div className="flex items-center gap-4 text-charcoal">
+                  <span>Set {item.set_number}</span>
+                  <span>{item.reps_completed || 0} reps</span>
+                  <span className="font-bold text-olive">{item.weight_kg || 0} kg</span>
+                  {item.rpe && <span>RPE {item.rpe}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Return Button */}
+        <div className="flex justify-center pt-2">
+          <Button variant="primary" onClick={() => navigate('/workout')}>
+            Return to Workouts →
+          </Button>
+        </div>
       </div>
     );
   }
