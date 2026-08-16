@@ -86,7 +86,7 @@ const mockLog = {
   ],
 };
 
-describe('Phase 3C — Workout Session Completion & Catalog Explorer', () => {
+describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -180,6 +180,39 @@ describe('Phase 3C — Workout Session Completion & Catalog Explorer', () => {
     });
   });
 
+  it('filters Exercise Catalog Explorer by difficulty and category dropdowns', async () => {
+    vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValueOnce(mockPlan);
+    vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
+    vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
+
+    render(
+      <MemoryRouter initialEntries={['/workout']}>
+        <AppShell>
+          <WorkoutOverviewPage />
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/Database Catalog Explorer/i)).toBeInTheDocument();
+
+    const selects = screen.getAllByRole('combobox');
+    // Select 0 is Muscle, Select 1 is Difficulty, Select 2 is Category
+    const difficultySelect = selects[1];
+    const categorySelect = selects[2];
+
+    fireEvent.change(difficultySelect, { target: { value: 'intermediate' } });
+    fireEvent.change(categorySelect, { target: { value: 'strength' } });
+
+    await waitFor(() => {
+      expect(workoutApi.getExercisesApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          difficulty: 'intermediate',
+          category: 'strength',
+        }),
+      );
+    });
+  });
+
   it('displays workout log history and allows inspecting session details', async () => {
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([mockLog]);
     vi.mocked(workoutApi.getWorkoutLogByIdApi).mockResolvedValueOnce(mockLog);
@@ -201,6 +234,21 @@ describe('Phase 3C — Workout Session Completion & Catalog Explorer', () => {
       expect(workoutApi.getWorkoutLogByIdApi).toHaveBeenCalledWith('log-1');
       expect(screen.getByText(/Logged Sets & Load Performance/i)).toBeInTheDocument();
     });
+  });
+
+  it('displays empty history state when no workout sessions exist', async () => {
+    vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
+
+    render(
+      <MemoryRouter initialEntries={['/workout/history']}>
+        <AppShell>
+          <WorkoutHistoryPage />
+        </AppShell>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/No Workout Logs Recorded/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Start First Workout →/i })).toBeInTheDocument();
   });
 
   it('displays Exercise Specification detail page for a valid exercise ID', async () => {
