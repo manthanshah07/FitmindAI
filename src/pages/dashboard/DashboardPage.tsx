@@ -6,25 +6,29 @@ import { Badge } from '../../components/ui/Badge';
 import { getProfileApi } from '../../lib/api/profile';
 import { getActiveGoalApi } from '../../lib/api/goals';
 import { getActiveWorkoutPlanApi } from '../../lib/api/workout';
+import { getTodayNutritionSummaryApi } from '../../lib/api/nutrition';
 import { calculateTDEE } from '../../utils/tdeeCalculator';
 import type { Profile } from '../../types/profile';
 import type { Goal } from '../../types/goal';
 import type { WorkoutPlan } from '../../types/workout';
+import type { DailyNutritionSummary } from '../../types/nutrition';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [goal, setGoal] = useState<Goal | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
+  const [nutritionSummary, setNutritionSummary] = useState<DailyNutritionSummary | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const [profileData, goalData, workoutData] = await Promise.allSettled([
+        const [profileData, goalData, workoutData, nutritionData] = await Promise.allSettled([
           getProfileApi(),
           getActiveGoalApi(),
           getActiveWorkoutPlanApi(),
+          getTodayNutritionSummaryApi(),
         ]);
 
         if (profileData.status === 'fulfilled') {
@@ -35,6 +39,9 @@ export const DashboardPage: React.FC = () => {
         }
         if (workoutData.status === 'fulfilled') {
           setWorkoutPlan(workoutData.value);
+        }
+        if (nutritionData.status === 'fulfilled') {
+          setNutritionSummary(nutritionData.value);
         }
       } catch {
         // Fallback to local store user
@@ -195,17 +202,24 @@ export const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Module 2: Nutrition Module Placeholder */}
-        <Card className="p-6 flex flex-col justify-between border-dashed">
+        {/* Module 2: Nutrition Module (Live Integration) */}
+        <Card className="p-6 flex flex-col justify-between border-solid">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-                <span>🥗</span> Nutrition Module
+                <span>🥗</span> Nutrition System
               </span>
-              <Badge variant="faded">Phase 4</Badge>
+              <Badge variant="olive">Phase 4 Active</Badge>
             </div>
-            <p className="text-xs text-charcoal">
-              Daily food logging, macro breakdown, and hydration tracking will be built in Phase 4.
+            <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+              {nutritionSummary
+                ? `${nutritionSummary.consumed.calories} / ${nutritionSummary.targets.calories} kcal Consumed`
+                : 'Nutrition Progress'}
+            </h3>
+            <p className="text-xs text-charcoal font-sans">
+              {nutritionSummary
+                ? `Protein: ${nutritionSummary.consumed.protein_g}g / ${nutritionSummary.targets.protein_g}g • ${nutritionSummary.remaining.calories} kcal remaining`
+                : 'Log meal sessions, track portion sizes, and monitor protein/carbs/fat targets.'}
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
@@ -214,7 +228,7 @@ export const DashboardPage: React.FC = () => {
               to="/nutrition"
               className="font-mono text-xs uppercase font-bold text-olive hover:underline"
             >
-              View Module →
+              Open Nutrition Module →
             </NavLink>
           </div>
         </Card>

@@ -11,6 +11,11 @@ from app.models.workout import (
     WorkoutLog,
     WorkoutLogExercise,
 )
+from app.models.nutrition import (
+    Food,
+    MealLog,
+    MealLogItem,
+)
 
 __all__ = [
     "Base",
@@ -23,4 +28,7 @@ __all__ = [
     "WorkoutPlanExercise",
     "WorkoutLog",
     "WorkoutLogExercise",
+    "Food",
+    "MealLog",
+    "MealLogItem",
 ]

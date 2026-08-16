@@ -14,6 +14,9 @@ import { WorkoutOverviewPage } from './pages/workout/WorkoutOverviewPage';
 import { WorkoutSessionPage } from './pages/workout/WorkoutSessionPage';
 import { WorkoutHistoryPage } from './pages/workout/WorkoutHistoryPage';
 import { ExerciseDetailPage } from './pages/workout/ExerciseDetailPage';
+import { NutritionOverviewPage } from './pages/nutrition/NutritionOverviewPage';
+import { FoodLoggerPage } from './pages/nutrition/FoodLoggerPage';
+import { NutritionHistoryPage } from './pages/nutrition/NutritionHistoryPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import Footer from './sections/Footer';
@@ -105,15 +108,31 @@ function App() {
             }
           />
           <Route
-            path="/nutrition/*"
+            path="/nutrition"
             element={
               <ProtectedRoute>
                 <AppShell>
-                  <div className="border border-borderLine p-8 text-center bg-bone">
-                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 4 Module</span>
-                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Nutrition Dashboard & Logger</h2>
-                    <p className="text-sm text-charcoal mt-2">Food logging, calorie tracking, and macro targets will be built in Phase 4.</p>
-                  </div>
+                  <NutritionOverviewPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/nutrition/log"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <FoodLoggerPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/nutrition/history"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <NutritionHistoryPage />
                 </AppShell>
               </ProtectedRoute>
             }
