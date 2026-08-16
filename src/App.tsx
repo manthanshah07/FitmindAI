@@ -7,6 +7,7 @@ import TechnologyPage from './pages/TechnologyPage';
 import AboutPage from './pages/AboutPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { SignupPage } from './pages/auth/SignupPage';
+import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import Footer from './sections/Footer';
 
@@ -25,19 +26,27 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route
-            path="/onboarding"
+            path="/onboarding/*"
+            element={
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8 bg-bone">
                   <div className="text-center border border-borderLine p-16 max-w-md w-full">
                     <span className="text-[9px] font-mono text-olive uppercase tracking-widest block mb-4">
-                      Phase 1C-C Destination
+                      Phase 2 Destination
                     </span>
                     <h2 className="text-3xl font-bold tracking-tighter uppercase mb-4">
-                      Onboarding Flow
+                      Dashboard
                     </h2>
                     <p className="text-charcoal text-sm font-medium">
-                      Authentication verified. Onboarding wizard will be implemented in Phase 1C-C.
+                      Onboarding complete. Personalized Dashboard is ready for Phase 2 implementation.
                     </p>
                   </div>
                 </div>

@@ -24,7 +24,10 @@
 **PHASE 1C-C — PROFILE BACKEND & ONBOARDING PERSISTENCE**  
 **Status: COMPLETE**
 
-**PHASE 1C-D — ONBOARDING WIZARD & APPSHELL UI**  
+**PHASE 1C-D — ONBOARDING WIZARD UI**  
+**Status: COMPLETE**
+
+**PHASE 2 — DASHBOARD & CORE APPSHELL**  
 **Status: READY TO IMPLEMENT**
 
 ---
@@ -102,13 +105,21 @@
 - [x] Client-side route registration (`/login`, `/signup`, protected `/onboarding` target) in `src/App.tsx`
 - [x] Vitest test suite (`src/tests/ui_auth.test.tsx` 100% passing)
 
-### User Profile & Onboarding Backend (Phase 1C-C)
+### User Profile & Goals Backend (Phase 1C-C)
 - [x] `profiles` SQLAlchemy ORM model (`backend/app/models/profile.py`)
-- [x] Pydantic profile/onboarding schemas (`backend/app/schemas/profile.py`) with strict validation (gender, activity_level, diet_preference, height range)
-- [x] Decoupled service layer (`backend/app/services/profile_service.py`) supporting idempotent onboarding completion
-- [x] Protected Profile endpoints (`GET /api/v1/profile`, `PUT /api/v1/profile`, `POST /api/v1/profile/onboarding`) in `backend/app/api/v1/profile.py`
-- [x] Alembic migration script (`backend/alembic/versions/2026_08_16_0002_create_profiles.py`)
-- [x] Shared test fixture environment (`backend/tests/conftest.py`) and pytest suite (`backend/tests/test_profile.py` 100% passing)
+- [x] `goals` SQLAlchemy ORM model (`backend/app/models/goal.py`)
+- [x] Pydantic schemas (`backend/app/schemas/profile.py`, `backend/app/schemas/goal.py`)
+- [x] Decoupled service layers (`backend/app/services/profile_service.py`, `backend/app/services/goal_service.py`)
+- [x] Protected endpoints (`GET/PUT /api/v1/profile`, `POST /api/v1/profile/onboarding`, `GET/POST /api/v1/goals`)
+- [x] Alembic migration scripts (`2026_08_16_0002_create_profiles.py`, `2026_08_16_0003_create_goals.py`)
+- [x] Comprehensive pytest suite (`backend/tests/test_profile.py`, `backend/tests/test_goals.py` 100% passing)
+
+### Onboarding Wizard UI (Phase 1C-D)
+- [x] Select UI primitive (`src/components/ui/Select.tsx`) matching FitMind design system
+- [x] 5-Step Onboarding Wizard component (`src/pages/onboarding/OnboardingPage.tsx`) handling Personal Info, Goals, Activity Level, Preferences, and Initial Baseline Assessment
+- [x] Client-side validation per step, Back/Next navigation, local wizard state persistence across steps
+- [x] Integration with backend `createGoalApi` and `completeOnboardingApi`
+- [x] Vitest test suite (`src/tests/onboarding.test.tsx` 100% passing)
 
 ---
 
@@ -120,9 +131,9 @@
 | Authentication (Backend API) | Phase 1B | COMPLETE |
 | Frontend Auth Infrastructure | Phase 1C-A | COMPLETE |
 | Login & Signup UI | Phase 1C-B | COMPLETE |
-| Profile & Onboarding Backend | Phase 1C-C | COMPLETE |
-| Onboarding Wizard UI | Phase 1C-D | Not Started |
-| AppShell & Layout Components | Phase 1C-D | Not Started |
+| Profile & Goals Backend | Phase 1C-C | COMPLETE |
+| Onboarding Wizard UI | Phase 1C-D | COMPLETE |
+| Core AppShell & Layout Components | Phase 2 | Not Started |
 | Dashboard | Phase 2 | Not Started |
 | Workout module | Phase 3 | Not Started |
 | Nutrition module | Phase 4 | Not Started |
@@ -131,7 +142,7 @@
 | AI Coach | Phase 7 | Not Started |
 | Memory system | Phase 7–8 | Not Started |
 | Reports | Phase 9 | Not Started |
-| Testing suite | Phase 10 | In Progress (Backend & Frontend tests complete) |
+| Testing suite | Phase 10 | In Progress (26 Backend + 25 Frontend tests complete) |
 | Deployment | Phase 11 | Not Started |
 
 ---
