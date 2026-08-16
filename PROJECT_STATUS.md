@@ -18,7 +18,13 @@
 **PHASE 1C-A — FRONTEND AUTHENTICATION INFRASTRUCTURE**  
 **Status: COMPLETE**
 
-**PHASE 1C-B — AUTHENTICATION & ONBOARDING UI**  
+**PHASE 1C-B — AUTHENTICATION UI**  
+**Status: COMPLETE**
+
+**PHASE 1C-C — PROFILE BACKEND & ONBOARDING PERSISTENCE**  
+**Status: COMPLETE**
+
+**PHASE 1C-D — ONBOARDING WIZARD & APPSHELL UI**  
 **Status: READY TO IMPLEMENT**
 
 ---
@@ -89,6 +95,21 @@
 - [x] Client-side route guard (`src/components/layout/ProtectedRoute.tsx`)
 - [x] Vitest test suite (`src/tests/auth.test.tsx` 100% passing)
 
+### Authentication UI (Phase 1C-B)
+- [x] Design system UI primitives: `Button` (`src/components/ui/Button.tsx`), `Input` (`src/components/ui/Input.tsx`), `Card` (`src/components/ui/Card.tsx`), `Badge` (`src/components/ui/Badge.tsx`)
+- [x] Login page (`src/pages/auth/LoginPage.tsx`) with `react-hook-form` + `zod` validation and `useAuthStore` integration
+- [x] Signup page (`src/pages/auth/SignupPage.tsx`) with `react-hook-form` + `zod` validation and automatic post-registration authentication
+- [x] Client-side route registration (`/login`, `/signup`, protected `/onboarding` target) in `src/App.tsx`
+- [x] Vitest test suite (`src/tests/ui_auth.test.tsx` 100% passing)
+
+### User Profile & Onboarding Backend (Phase 1C-C)
+- [x] `profiles` SQLAlchemy ORM model (`backend/app/models/profile.py`)
+- [x] Pydantic profile/onboarding schemas (`backend/app/schemas/profile.py`) with strict validation (gender, activity_level, diet_preference, height range)
+- [x] Decoupled service layer (`backend/app/services/profile_service.py`) supporting idempotent onboarding completion
+- [x] Protected Profile endpoints (`GET /api/v1/profile`, `PUT /api/v1/profile`, `POST /api/v1/profile/onboarding`) in `backend/app/api/v1/profile.py`
+- [x] Alembic migration script (`backend/alembic/versions/2026_08_16_0002_create_profiles.py`)
+- [x] Shared test fixture environment (`backend/tests/conftest.py`) and pytest suite (`backend/tests/test_profile.py` 100% passing)
+
 ---
 
 ## What Is NOT Started
@@ -98,9 +119,10 @@
 | Backend Foundation | Phase 1A | COMPLETE |
 | Authentication (Backend API) | Phase 1B | COMPLETE |
 | Frontend Auth Infrastructure | Phase 1C-A | COMPLETE |
-| Login & Signup UI | Phase 1C-B | Not Started |
-| Onboarding Wizard UI | Phase 1C-B | Not Started |
-| AppShell & Layout Components | Phase 1C-B | Not Started |
+| Login & Signup UI | Phase 1C-B | COMPLETE |
+| Profile & Onboarding Backend | Phase 1C-C | COMPLETE |
+| Onboarding Wizard UI | Phase 1C-D | Not Started |
+| AppShell & Layout Components | Phase 1C-D | Not Started |
 | Dashboard | Phase 2 | Not Started |
 | Workout module | Phase 3 | Not Started |
 | Nutrition module | Phase 4 | Not Started |
@@ -109,7 +131,7 @@
 | AI Coach | Phase 7 | Not Started |
 | Memory system | Phase 7–8 | Not Started |
 | Reports | Phase 9 | Not Started |
-| Testing suite | Phase 10 | In Progress (Backend + Frontend Auth Infra tests complete) |
+| Testing suite | Phase 10 | In Progress (Backend & Frontend tests complete) |
 | Deployment | Phase 11 | Not Started |
 
 ---

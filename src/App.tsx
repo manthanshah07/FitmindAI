@@ -5,6 +5,9 @@ import MarketingPage from './pages/MarketingPage';
 import HowItWorksPage from './pages/HowItWorksPage';
 import TechnologyPage from './pages/TechnologyPage';
 import AboutPage from './pages/AboutPage';
+import { LoginPage } from './pages/auth/LoginPage';
+import { SignupPage } from './pages/auth/SignupPage';
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import Footer from './sections/Footer';
 
 function App() {
@@ -19,25 +22,28 @@ function App() {
           <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/technology" element={<TechnologyPage />} />
           <Route path="/about" element={<AboutPage />} />
-          {/* Auth routes — placeholder until Phase 1 */}
-          <Route path="/login" element={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center border border-borderLine p-16">
-                <span className="text-[9px] font-mono text-olive uppercase tracking-widest block mb-4">Coming in Phase 1</span>
-                <h2 className="text-4xl font-bold tracking-tighter uppercase mb-4">Login</h2>
-                <p className="text-charcoal font-medium">Authentication is in active development.</p>
-              </div>
-            </div>
-          } />
-          <Route path="/signup" element={
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center border border-borderLine p-16">
-                <span className="text-[9px] font-mono text-olive uppercase tracking-widest block mb-4">Coming in Phase 1</span>
-                <h2 className="text-4xl font-bold tracking-tighter uppercase mb-4">Sign Up</h2>
-                <p className="text-charcoal font-medium">Registration is in active development.</p>
-              </div>
-            </div>
-          } />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-8 bg-bone">
+                  <div className="text-center border border-borderLine p-16 max-w-md w-full">
+                    <span className="text-[9px] font-mono text-olive uppercase tracking-widest block mb-4">
+                      Phase 1C-C Destination
+                    </span>
+                    <h2 className="text-3xl font-bold tracking-tighter uppercase mb-4">
+                      Onboarding Flow
+                    </h2>
+                    <p className="text-charcoal text-sm font-medium">
+                      Authentication verified. Onboarding wizard will be implemented in Phase 1C-C.
+                    </p>
+                  </div>
+                </div>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
       <Footer />
