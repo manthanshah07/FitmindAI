@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { calculateTDEE, calculateAgeFromDOB } from '../utils/tdeeCalculator';
 
 describe('tdeeCalculator', () => {
-  it('calculates age from DOB correctly', () => {
+  it('calculates age from DOB correctly and handles edge cases', () => {
     expect(calculateAgeFromDOB('1990-01-01')).toBeGreaterThanOrEqual(35);
+    expect(calculateAgeFromDOB('2000-02-29')).toBeGreaterThanOrEqual(25); // Leap day
+    expect(calculateAgeFromDOB('2099-01-01')).toBeNull(); // Future date
     expect(calculateAgeFromDOB('')).toBeNull();
     expect(calculateAgeFromDOB(null)).toBeNull();
   });

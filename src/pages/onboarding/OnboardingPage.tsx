@@ -6,8 +6,8 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { completeOnboardingApi } from '../../lib/api/profile';
-import { createGoalApi } from '../../lib/api/goals';
+import { completeOnboardingApi, getProfileApi } from '../../lib/api/profile';
+import { createGoalApi, getActiveGoalApi } from '../../lib/api/goals';
 import { getErrorMessage } from '../../utils/apiError';
 import { calculateTDEE } from '../../utils/tdeeCalculator';
 import type { Gender, ActivityLevel, DietPreference } from '../../types/profile';
@@ -68,6 +68,52 @@ export const OnboardingPage: React.FC = () => {
     equipment: ['bodyweight'],
     medical_notes: '',
   });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadExistingData() {
+      try {
+        const [existingProfile, existingGoal] = await Promise.allSettled([
+          getProfileApi(),
+          getActiveGoalApi(),
+        ]);
+
+        if (isMounted) {
+          if (existingProfile.status === 'fulfilled' && existingProfile.value) {
+            const p = existingProfile.value;
+            setFormData((prev) => ({
+              ...prev,
+              full_name: p.full_name || prev.full_name,
+              date_of_birth: p.date_of_birth ? p.date_of_birth.split('T')[0] : prev.date_of_birth,
+              gender: (p.gender as Gender) || prev.gender,
+              height_cm: p.height_cm ? String(p.height_cm) : prev.height_cm,
+              weight_kg: p.weight_kg ? String(p.weight_kg) : prev.weight_kg,
+              activity_level: (p.activity_level as ActivityLevel) || prev.activity_level,
+              diet_preference: (p.diet_preference as DietPreference) || prev.diet_preference,
+              equipment: p.equipment && p.equipment.length > 0 ? p.equipment : prev.equipment,
+              medical_notes: p.medical_notes || prev.medical_notes,
+            }));
+          }
+
+          if (existingGoal.status === 'fulfilled' && existingGoal.value) {
+            const g = existingGoal.value;
+            setFormData((prev) => ({
+              ...prev,
+              goal_type: (g.goal_type as GoalType) || prev.goal_type,
+              target_weight_kg: g.target_weight_kg ? String(g.target_weight_kg) : prev.target_weight_kg,
+              target_date: g.target_date ? g.target_date.split('T')[0] : prev.target_date,
+            }));
+          }
+        }
+      } catch {
+        // Silently ignore initial fetch errors
+      }
+    }
+    loadExistingData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.full_name) {
