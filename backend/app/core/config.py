@@ -17,11 +17,14 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000"]
     
-    # Placeholders for future phases (Not required for startup)
-    OPENAI_API_KEY: str | None = None
-    OPENAI_MODEL: str = "gpt-4o-mini"
+    # AI Provider Settings (Gemini Developer API Free Tier)
+    GEMINI_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    GEMINI_TIMEOUT_SECONDS: float = 30.0
     SUPABASE_URL: str | None = None
     SUPABASE_SERVICE_KEY: str | None = None
+
+
 
     @model_validator(mode="after")
     def validate_production_jwt_secret(self) -> "Settings":
