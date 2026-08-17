@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
+from fastapi import HTTPException, status
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.goal import Goal
@@ -42,10 +43,8 @@ class WorkoutService:
     def generate_workout_plan(
         db: Session, user: User, data: Optional[WorkoutPlanCreate] = None
     ) -> WorkoutPlanResponse:
-        # Ensure default exercises are seeded
         ExerciseService.seed_default_exercises(db)
 
-        # Deactivate previous active plans for user
         db.query(WorkoutPlan).filter(
             WorkoutPlan.user_id == user.id, WorkoutPlan.is_active == True
         ).update({"is_active": False})
@@ -69,7 +68,6 @@ class WorkoutService:
         db.add(new_plan)
         db.flush()
 
-        # Find matching exercises in DB based on available equipment
         available_exercises = db.query(Exercise).all()
         selected_exercises = []
 
@@ -81,7 +79,6 @@ class WorkoutService:
         if not selected_exercises:
             selected_exercises = available_exercises[:4]
 
-        # Add exercises to plan across days
         for idx, ex in enumerate(selected_exercises[:6]):
             day = (idx % days) + 1
             plan_ex = WorkoutPlanExercise(
@@ -97,7 +94,6 @@ class WorkoutService:
 
         db.commit()
 
-        # Fetch fully loaded plan
         created_plan = (
             db.query(WorkoutPlan)
             .options(
@@ -111,6 +107,30 @@ class WorkoutService:
 
     @staticmethod
     def log_workout_session(db: Session, user: User, data: WorkoutLogCreate) -> WorkoutLogResponse:
+        # Never accept a plan belonging to another user. Without this check a caller
+        # could attach their workout log to another user's plan by UUID.
+        if data.plan_id is not None:
+            owned_plan = (
+                db.query(WorkoutPlan.id)
+                .filter(WorkoutPlan.id == data.plan_id, WorkoutPlan.user_id == user.id)
+                .first()
+            )
+            if owned_plan is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Workout plan not found",
+                )
+
+        exercise_ids = {item.exercise_id for item in data.logged_exercises}
+        existing_exercise_ids = {
+            row[0] for row in db.query(Exercise.id).filter(Exercise.id.in_(exercise_ids)).all()
+        }
+        if len(existing_exercise_ids) != len(exercise_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="One or more exercises do not exist",
+            )
+
         log = WorkoutLog(
             user_id=user.id,
             plan_id=data.plan_id,
