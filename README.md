@@ -203,9 +203,9 @@ Schema changes are version-controlled in Git using Alembic DDL migrations (`back
 
 Both application tiers are covered by automated test suites:
 
-* **Frontend Unit & UI Tests (Vitest):** **41 passed** across 6 test files (`auth.test.tsx`, `ui_auth.test.tsx`, `onboarding.test.tsx`, `appshell.test.tsx`, `profile.test.tsx`, `tdeeCalculator.test.ts`).
-* **Backend Integration Tests (Pytest):** **32 passed** across 6 test modules (`test_auth.py`, `test_profile.py`, `test_goals.py`, `test_calculations.py`, `test_health.py`, `test_workout.py`).
-* **Static Analysis:** Oxlint passes with **0 warnings and 0 errors** across 66 files.
+* **Frontend Unit & UI Tests (Vitest):** **63 passed** across 11 test files (`auth.test.tsx`, `ui_auth.test.tsx`, `onboarding.test.tsx`, `appshell.test.tsx`, `profile.test.tsx`, `tdeeCalculator.test.ts`, `workout.test.tsx`, `nutrition.test.tsx`, `progress.test.tsx`, `fitnessScore.test.tsx`, `unitConversion.test.ts`).
+* **Backend Integration Tests (Pytest):** **83 passed** across 11 test modules (`test_auth.py`, `test_profile.py`, `test_goals.py`, `test_calculations.py`, `test_health.py`, `test_workout.py`, `test_nutrition.py`, `test_progress.py`, `test_fitness_score.py`, `test_config.py`, `test_adversarial_verification.py`).
+* **Static Analysis:** Oxlint passes with **0 warnings and 0 errors** across 90 files.
 
 ```bash
 # Run Frontend Test Suite
@@ -223,12 +223,12 @@ cd backend && .venv/bin/pytest
 - [x] **Phase 0 — Pre-Development Setup & Architecture Lock:** System documentation, API contracts, database schema, design system.
 - [x] **Phase 1 — Auth & Onboarding:** JWT authentication, user registration/login, 5-step onboarding wizard.
 - [x] **Phase 2 — Application Shell, Dashboard & Profile:** AppShell layout, baseline TDEE dashboard, interactive profile settings (`/profile`), production cloud deployment.
+- [x] **Phase 3 — Workout System:** Active workout plan view, exercise catalog search, live session execution logger with sets/reps/weight/RPE.
+- [x] **Phase 4 — Nutrition Module:** Meal logging (breakfast, lunch, dinner, snack), target date summaries, macro breakdown tracking.
+- [x] **Phase 5 — Progress Analytics:** Body weight history charts, body measurement tracking in inches (cm canonical DB storage).
+- [x] **Phase 6 — Fitness Score Engine:** Weekly 0-100 deterministic fitness score calculation based on workout volume, protein adherence, logging consistency, and recovery.
 
 ### Next Phases
-- [ ] **Phase 3 — Workout System:** Active workout plan view, exercise catalog search, live session execution logger.
-- [ ] **Phase 4 — Nutrition Module:** Meal logging, NLP food parser, macro breakdown tracking.
-- [ ] **Phase 5 — Progress Analytics:** Body weight history charts, body measurement tracking, progress photo storage.
-- [ ] **Phase 6 — Fitness Score Engine:** Weekly deterministic fitness score calculation based on logged workout volume and adherence.
 - [ ] **Phase 7 — AI Coach:** Interactive chat interface with persistent memory retrieval (RAG) and proactive coaching tips.
 
 ---
