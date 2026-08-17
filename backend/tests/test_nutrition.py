@@ -245,3 +245,19 @@ class TestNutritionAPI:
         res_target_date_b = client.get("/api/v1/nutrition/today?target_date=2026-08-16", headers=headers_b)
         assert res_target_date_b.status_code == 200
         assert res_target_date_b.json()["consumed"]["calories"] == 0.0
+
+    def test_meal_logging_nonexistent_food_id_rejected(self):
+        headers = get_auth_headers("invalid_food_user@example.com")
+        client.post("/api/v1/foods/seed", headers=headers)
+
+        fake_food_id = "00000000-0000-0000-0000-000000000000"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        log_payload = {
+            "meal_type": "lunch",
+            "logged_at": now_iso,
+            "items": [{"food_id": fake_food_id, "quantity_grams": 100.0}],
+        }
+
+        res = client.post("/api/v1/nutrition/log", json=log_payload, headers=headers)
+        assert res.status_code == 400
+        assert "do not exist" in res.json()["detail"]

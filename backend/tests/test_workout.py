@@ -166,3 +166,55 @@ class TestWorkoutAPI:
         for ex in res_chest.json():
             assert "Chest" in ex["primary_muscle"]
 
+    def test_workout_log_cross_user_plan_id_rejected(self):
+        # User A creates plan
+        headers_a = get_auth_headers("user_plan_a@example.com")
+        client.post("/api/v1/exercises/seed", headers=headers_a)
+        res_plan_a = client.post("/api/v1/workout/plan", json={"name": "User A Plan"}, headers=headers_a)
+        plan_id_a = res_plan_a.json()["id"]
+
+        # User B attempts to log workout using User A's plan_id
+        headers_b = get_auth_headers("user_plan_b@example.com")
+        res_ex_b = client.get("/api/v1/exercises", headers=headers_b)
+        exercise_id_b = res_ex_b.json()[0]["id"]
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        log_payload = {
+            "plan_id": plan_id_a,
+            "started_at": now_iso,
+            "logged_exercises": [
+                {
+                    "exercise_id": exercise_id_b,
+                    "set_number": 1,
+                    "reps_completed": 10,
+                    "weight_kg": 50.0,
+                }
+            ],
+        }
+
+        res = client.post("/api/v1/workout/logs", json=log_payload, headers=headers_b)
+        assert res.status_code == 404
+        assert "not found or does not belong" in res.json()["detail"]
+
+    def test_workout_log_invalid_exercise_id_rejected(self):
+        headers = get_auth_headers("invalid_ex_user@example.com")
+        client.post("/api/v1/exercises/seed", headers=headers)
+
+        fake_ex_id = "00000000-0000-0000-0000-000000000000"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        log_payload = {
+            "started_at": now_iso,
+            "logged_exercises": [
+                {
+                    "exercise_id": fake_ex_id,
+                    "set_number": 1,
+                    "reps_completed": 10,
+                    "weight_kg": 50.0,
+                }
+            ],
+        }
+
+        res = client.post("/api/v1/workout/logs", json=log_payload, headers=headers)
+        assert res.status_code == 400
+        assert "do not exist" in res.json()["detail"]
+

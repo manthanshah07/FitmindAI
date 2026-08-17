@@ -80,6 +80,27 @@ class TestOnboardingPersistence:
         assert data["diet_preference"] == "vegan"
         assert data["activity_level"] == "moderate"
 
+    def test_clearing_optional_profile_fields(self):
+        headers = get_auth_headers("clearfieldsuser@example.com")
+        # 1. Set optional fields
+        set_payload = {
+            "diet_preference": "vegan",
+            "medical_notes": "Asthma",
+            "activity_level": "moderate"
+        }
+        res1 = client.put("/api/v1/profile", json=set_payload, headers=headers)
+        assert res1.status_code == 200
+        assert res1.json()["medical_notes"] == "Asthma"
+        assert res1.json()["diet_preference"] == "vegan"
+
+        # 2. Explicitly clear medical_notes to null while omitting diet_preference
+        clear_payload = {"medical_notes": None}
+        res2 = client.put("/api/v1/profile", json=clear_payload, headers=headers)
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["medical_notes"] is None
+        assert data2["diet_preference"] == "vegan"  # Omitted field preserved
+
 
 class TestAuthorizationAndValidation:
     def test_users_cannot_access_other_profiles(self):
