@@ -17,6 +17,7 @@ import { ExerciseDetailPage } from './pages/workout/ExerciseDetailPage';
 import { NutritionOverviewPage } from './pages/nutrition/NutritionOverviewPage';
 import { FoodLoggerPage } from './pages/nutrition/FoodLoggerPage';
 import { NutritionHistoryPage } from './pages/nutrition/NutritionHistoryPage';
+import { ProgressOverviewPage } from './pages/progress/ProgressOverviewPage';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AppShell } from './components/layout/AppShell';
 import Footer from './sections/Footer';
@@ -138,15 +139,21 @@ function App() {
             }
           />
           <Route
-            path="/progress/*"
+            path="/progress"
             element={
               <ProtectedRoute>
                 <AppShell>
-                  <div className="border border-borderLine p-8 text-center bg-bone">
-                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 5 Module</span>
-                    <h2 className="text-2xl font-bold uppercase tracking-tighter">Progress & Measurement Tracking</h2>
-                    <p className="text-sm text-charcoal mt-2">Weight history graphs and body measurement logs will be built in Phase 5.</p>
-                  </div>
+                  <ProgressOverviewPage />
+                </AppShell>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/progress/measurements"
+            element={
+              <ProtectedRoute>
+                <AppShell>
+                  <ProgressOverviewPage />
                 </AppShell>
               </ProtectedRoute>
             }

@@ -7,11 +7,13 @@ import { getProfileApi } from '../../lib/api/profile';
 import { getActiveGoalApi } from '../../lib/api/goals';
 import { getActiveWorkoutPlanApi } from '../../lib/api/workout';
 import { getTodayNutritionSummaryApi } from '../../lib/api/nutrition';
+import { getProgressSummaryApi } from '../../lib/api/progress';
 import { calculateTDEE } from '../../utils/tdeeCalculator';
 import type { Profile } from '../../types/profile';
 import type { Goal } from '../../types/goal';
 import type { WorkoutPlan } from '../../types/workout';
 import type { DailyNutritionSummary } from '../../types/nutrition';
+import type { ProgressSummary } from '../../types/progress';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -19,16 +21,18 @@ export const DashboardPage: React.FC = () => {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [workoutPlan, setWorkoutPlan] = useState<WorkoutPlan | null>(null);
   const [nutritionSummary, setNutritionSummary] = useState<DailyNutritionSummary | null>(null);
+  const [progressSummary, setProgressSummary] = useState<ProgressSummary | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function loadDashboardData() {
       try {
-        const [profileData, goalData, workoutData, nutritionData] = await Promise.allSettled([
+        const [profileData, goalData, workoutData, nutritionData, progressData] = await Promise.allSettled([
           getProfileApi(),
           getActiveGoalApi(),
           getActiveWorkoutPlanApi(),
           getTodayNutritionSummaryApi(),
+          getProgressSummaryApi(),
         ]);
 
         if (profileData.status === 'fulfilled') {
@@ -42,6 +46,9 @@ export const DashboardPage: React.FC = () => {
         }
         if (nutritionData.status === 'fulfilled') {
           setNutritionSummary(nutritionData.value);
+        }
+        if (progressData.status === 'fulfilled') {
+          setProgressSummary(progressData.value);
         }
       } catch {
         // Fallback to local store user
@@ -233,17 +240,24 @@ export const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Module 3: Progress Module Placeholder */}
-        <Card className="p-6 flex flex-col justify-between border-dashed">
+        {/* Module 3: Progress Module (Live Integration) */}
+        <Card className="p-6 flex flex-col justify-between border-solid">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
                 <span>📈</span> Progress Tracking
               </span>
-              <Badge variant="faded">Phase 5</Badge>
+              <Badge variant="olive">Phase 5 Active</Badge>
             </div>
-            <p className="text-xs text-charcoal">
-              Weight history charts, body measurement logs, and progress photos will be built in Phase 5.
+            <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+              {progressSummary?.latest_weight_kg
+                ? `Latest Weight: ${progressSummary.latest_weight_kg} kg`
+                : 'Body Composition'}
+            </h3>
+            <p className="text-xs text-charcoal font-sans">
+              {progressSummary && progressSummary.total_entries > 0
+                ? `${progressSummary.total_entries} records • Trend: ${progressSummary.trend_direction.toUpperCase()} (${progressSummary.weight_change_kg !== null && progressSummary.weight_change_kg !== undefined ? `${progressSummary.weight_change_kg > 0 ? '+' : ''}${progressSummary.weight_change_kg} kg` : '0 kg'})`
+                : 'Log body weight, chest, waist, hips, and bicep measurements.'}
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
@@ -252,7 +266,7 @@ export const DashboardPage: React.FC = () => {
               to="/progress"
               className="font-mono text-xs uppercase font-bold text-olive hover:underline"
             >
-              View Module →
+              Open Progress Module →
             </NavLink>
           </div>
         </Card>
