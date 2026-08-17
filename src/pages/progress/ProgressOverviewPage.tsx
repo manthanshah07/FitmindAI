@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/Badge';
 import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
 import { getProgressSummaryApi, createMeasurementApi } from '../../lib/api/progress';
 import { getErrorMessage } from '../../utils/apiError';
+import { inchesToCm, formatInches } from '../../utils/unitConversion';
 import type { ProgressSummary } from '../../types/progress';
 
 export const ProgressOverviewPage: React.FC = () => {
@@ -16,14 +17,14 @@ export const ProgressOverviewPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Form State
+  // Form State (User inputs circumferences in Inches)
   const [measuredAt, setMeasuredAt] = useState<string>(new Date().toISOString().split('T')[0]);
   const [weightKg, setWeightKg] = useState<string>('');
-  const [chestCm, setChestCm] = useState<string>('');
-  const [waistCm, setWaistCm] = useState<string>('');
-  const [hipsCm, setHipsCm] = useState<string>('');
-  const [bicepCm, setBicepCm] = useState<string>('');
-  const [thighCm, setThighCm] = useState<string>('');
+  const [chestIn, setChestIn] = useState<string>('');
+  const [waistIn, setWaistIn] = useState<string>('');
+  const [hipsIn, setHipsIn] = useState<string>('');
+  const [bicepIn, setBicepIn] = useState<string>('');
+  const [thighIn, setThighIn] = useState<string>('');
   const [bodyFatPct, setBodyFatPct] = useState<string>('');
 
   const loadSummary = async () => {
@@ -48,11 +49,11 @@ export const ProgressOverviewPage: React.FC = () => {
     setFormError(null);
 
     const weightVal = weightKg ? parseFloat(weightKg) : undefined;
-    const chestVal = chestCm ? parseFloat(chestCm) : undefined;
-    const waistVal = waistCm ? parseFloat(waistCm) : undefined;
-    const hipsVal = hipsCm ? parseFloat(hipsCm) : undefined;
-    const bicepVal = bicepCm ? parseFloat(bicepCm) : undefined;
-    const thighVal = thighCm ? parseFloat(thighCm) : undefined;
+    const chestVal = chestIn ? parseFloat(chestIn) : undefined;
+    const waistVal = waistIn ? parseFloat(waistIn) : undefined;
+    const hipsVal = hipsIn ? parseFloat(hipsIn) : undefined;
+    const bicepVal = bicepIn ? parseFloat(bicepIn) : undefined;
+    const thighVal = thighIn ? parseFloat(thighIn) : undefined;
     const fatVal = bodyFatPct ? parseFloat(bodyFatPct) : undefined;
 
     if (
@@ -70,25 +71,27 @@ export const ProgressOverviewPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
+
+      // Convert user-entered Inches to canonical Centimeters for backend API & DB storage
       await createMeasurementApi({
         measured_at: measuredAt,
         weight_kg: weightVal,
-        chest_cm: chestVal,
-        waist_cm: waistVal,
-        hips_cm: hipsVal,
-        bicep_cm: bicepVal,
-        thigh_cm: thighVal,
+        chest_cm: inchesToCm(chestVal),
+        waist_cm: inchesToCm(waistVal),
+        hips_cm: inchesToCm(hipsVal),
+        bicep_cm: inchesToCm(bicepVal),
+        thigh_cm: inchesToCm(thighVal),
         body_fat_pct: fatVal,
       });
 
       setShowModal(false);
       // Reset form
       setWeightKg('');
-      setChestCm('');
-      setWaistCm('');
-      setHipsCm('');
-      setBicepCm('');
-      setThighCm('');
+      setChestIn('');
+      setWaistIn('');
+      setHipsIn('');
+      setBicepIn('');
+      setThighIn('');
       setBodyFatPct('');
 
       // Reload summary
@@ -150,7 +153,7 @@ export const ProgressOverviewPage: React.FC = () => {
             Progress & Fitness Score
           </h1>
           <p className="text-sm text-charcoal font-sans mt-1">
-            Track your 0-100 deterministic weekly fitness score, body weight history, and circumference trends.
+            Track your 0-100 deterministic weekly fitness score, body weight history, and circumference trends in inches.
           </p>
         </div>
 
@@ -247,7 +250,7 @@ export const ProgressOverviewPage: React.FC = () => {
             )}
           </Card>
 
-          {/* Historical Log Entries */}
+          {/* Historical Log Entries (Displaying Inches to User) */}
           <Card className="p-6 md:p-8 flex flex-col gap-6">
             <div className="border-b border-borderLine pb-4">
               <h2 className="font-mono text-base font-bold uppercase text-graphite">
@@ -266,12 +269,12 @@ export const ProgressOverviewPage: React.FC = () => {
                     <span className="text-olive">{record.weight_kg ? `${record.weight_kg} kg` : 'Metrics logged'}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-1 text-[11px] text-charcoal pt-1">
-                    {record.chest_cm && <span>Chest: {record.chest_cm}cm</span>}
-                    {record.waist_cm && <span>Waist: {record.waist_cm}cm</span>}
-                    {record.hips_cm && <span>Hips: {record.hips_cm}cm</span>}
-                    {record.bicep_cm && <span>Arms: {record.bicep_cm}cm</span>}
-                    {record.thigh_cm && <span>Thigh: {record.thigh_cm}cm</span>}
-                    {record.body_fat_pct && <span>Body Fat: {record.body_fat_pct}%</span>}
+                    {record.chest_cm != null && <span>Chest: {formatInches(record.chest_cm)}</span>}
+                    {record.waist_cm != null && <span>Waist: {formatInches(record.waist_cm)}</span>}
+                    {record.hips_cm != null && <span>Hips: {formatInches(record.hips_cm)}</span>}
+                    {record.bicep_cm != null && <span>Arms: {formatInches(record.bicep_cm)}</span>}
+                    {record.thigh_cm != null && <span>Thigh: {formatInches(record.thigh_cm)}</span>}
+                    {record.body_fat_pct != null && <span>Body Fat: {record.body_fat_pct}%</span>}
                   </div>
                 </div>
               ))}
@@ -338,53 +341,53 @@ export const ProgressOverviewPage: React.FC = () => {
               </div>
 
               <span className="font-mono text-xs uppercase font-bold text-graphite tracking-widest pt-2 border-t border-borderLine">
-                Body Circumferences (Optional)
+                Body Circumferences (in inches)
               </span>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
-                  label="Chest (cm)"
+                  label="Chest (in)"
                   type="number"
                   step="0.1"
-                  placeholder="e.g. 100.0"
-                  value={chestCm}
-                  onChange={(e) => setChestCm(e.target.value)}
+                  placeholder="e.g. 40.0"
+                  value={chestIn}
+                  onChange={(e) => setChestIn(e.target.value)}
                   disabled={isSubmitting}
                 />
                 <Input
-                  label="Waist (cm)"
+                  label="Waist (in)"
                   type="number"
                   step="0.1"
-                  placeholder="e.g. 82.0"
-                  value={waistCm}
-                  onChange={(e) => setWaistCm(e.target.value)}
+                  placeholder="e.g. 32.0"
+                  value={waistIn}
+                  onChange={(e) => setWaistIn(e.target.value)}
                   disabled={isSubmitting}
                 />
                 <Input
-                  label="Hips (cm)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 96.0"
-                  value={hipsCm}
-                  onChange={(e) => setHipsCm(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label="Arms/Bicep (cm)"
+                  label="Hips (in)"
                   type="number"
                   step="0.1"
                   placeholder="e.g. 38.0"
-                  value={bicepCm}
-                  onChange={(e) => setBicepCm(e.target.value)}
+                  value={hipsIn}
+                  onChange={(e) => setHipsIn(e.target.value)}
                   disabled={isSubmitting}
                 />
                 <Input
-                  label="Thigh (cm)"
+                  label="Arms/Bicep (in)"
                   type="number"
                   step="0.1"
-                  placeholder="e.g. 56.0"
-                  value={thighCm}
-                  onChange={(e) => setThighCm(e.target.value)}
+                  placeholder="e.g. 15.0"
+                  value={bicepIn}
+                  onChange={(e) => setBicepIn(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                <Input
+                  label="Thigh (in)"
+                  type="number"
+                  step="0.1"
+                  placeholder="e.g. 22.0"
+                  value={thighIn}
+                  onChange={(e) => setThighIn(e.target.value)}
                   disabled={isSubmitting}
                 />
               </div>
@@ -409,3 +412,4 @@ export const ProgressOverviewPage: React.FC = () => {
     </div>
   );
 };
+

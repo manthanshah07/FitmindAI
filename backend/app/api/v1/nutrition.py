@@ -27,6 +27,7 @@ def get_today_nutrition_summary(
 
 
 @router.get("/logs", response_model=List[MealLogResponse])
+@router.get("/history", response_model=List[MealLogResponse])
 def get_meal_logs(
     limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0),

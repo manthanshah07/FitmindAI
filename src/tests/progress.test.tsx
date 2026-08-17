@@ -71,7 +71,7 @@ describe('Phase 5 — Progress & Measurement Tracking Frontend Module', () => {
     expect(await screen.findByText(/Progress & Fitness Score/i)).toBeInTheDocument();
     expect(screen.getAllByText(/78.5 kg/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Body Weight History Trend/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chest: 102cm/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chest: 40.2 in/i)).toBeInTheDocument();
   });
 
   it('allows opening measurement modal and submitting a new weight entry', async () => {

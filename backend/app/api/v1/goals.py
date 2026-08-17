@@ -12,6 +12,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=Optional[GoalResponse])
+@router.get("/me", response_model=Optional[GoalResponse])
 def get_active_goal(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -21,6 +22,9 @@ def get_active_goal(
 
 
 @router.post("", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/me", response_model=GoalResponse, status_code=status.HTTP_201_CREATED)
+@router.put("", response_model=GoalResponse)
+@router.put("/me", response_model=GoalResponse)
 def create_or_update_goal(
     req: GoalCreate,
     current_user: User = Depends(get_current_user),

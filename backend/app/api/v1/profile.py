@@ -21,6 +21,9 @@ def get_current_user_profile(
 
 
 @router.put("", response_model=ProfileResponse)
+@router.put("/me", response_model=ProfileResponse)
+@router.patch("", response_model=ProfileResponse)
+@router.patch("/me", response_model=ProfileResponse)
 def update_current_user_profile(
     req: ProfileUpdate,
     current_user: User = Depends(get_current_user),

@@ -32,6 +32,20 @@ def seed_foods(
     return FoodService.seed_default_foods(db)
 
 
+@router.get("/search", response_model=List[FoodResponse])
+def search_foods(
+    query: Optional[str] = Query(None, alias="q", description="Search food catalog by name"),
+    search: Optional[str] = Query(None, description="Search food catalog by name"),
+    limit: int = Query(50, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> List[FoodResponse]:
+    """Search food database catalog by query or search parameter."""
+    term = query or search
+    return FoodService.get_foods(db, search=term, limit=limit, skip=skip)
+
+
 @router.get("/{food_id}", response_model=FoodResponse)
 def get_food_by_id(
     food_id: UUID,

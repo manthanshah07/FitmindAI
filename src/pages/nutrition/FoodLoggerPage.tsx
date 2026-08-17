@@ -59,7 +59,7 @@ export const FoodLoggerPage: React.FC = () => {
       try {
         const data = await getFoodsApi({ search: searchQuery || undefined });
         setFoods(data);
-        if (data.length > 0 && !selectedFood) {
+        if (data.length > 0) {
           setSelectedFood(data[0]);
         }
       } catch {
@@ -72,7 +72,7 @@ export const FoodLoggerPage: React.FC = () => {
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, selectedFood]);
+  }, [searchQuery]);
 
   // Live Calculated Macro Preview
   const previewCals = selectedFood

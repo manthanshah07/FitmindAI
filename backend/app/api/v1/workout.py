@@ -37,6 +37,7 @@ def create_or_generate_workout_plan(
 
 
 @router.get("/logs", response_model=List[WorkoutLogResponse])
+@router.get("/history", response_model=List[WorkoutLogResponse])
 def get_workout_logs(
     limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0),
@@ -48,6 +49,8 @@ def get_workout_logs(
 
 
 @router.post("/logs", response_model=WorkoutLogResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/session", response_model=WorkoutLogResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/sessions", response_model=WorkoutLogResponse, status_code=status.HTTP_201_CREATED)
 def log_workout_session(
     req: WorkoutLogCreate,
     current_user: User = Depends(get_current_user),
