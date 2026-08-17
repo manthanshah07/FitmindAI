@@ -170,18 +170,33 @@ class FitnessScoreService:
                 period_end=period_end,
             )
             db.add(score_record)
+            is_new = True
+        else:
+            is_new = False
 
-        score_record.score = total_score
-        score_record.workout_adherence_pct = round(workout_adherence_pct, 2)
-        score_record.nutrition_score = round(nutrition_score, 2)
-        score_record.protein_score = round(protein_score, 2)
-        score_record.sleep_score = round(sleep_score, 2)
-        score_record.recovery_score = round(recovery_score, 2)
-        score_record.consistency_score = round(consistency_score, 2)
-        score_record.calculated_at = datetime.now(timezone.utc)
+        is_changed = (
+            is_new
+            or score_record.score != total_score
+            or float(score_record.workout_adherence_pct or 0) != round(workout_adherence_pct, 2)
+            or float(score_record.nutrition_score or 0) != round(nutrition_score, 2)
+            or float(score_record.protein_score or 0) != round(protein_score, 2)
+            or float(score_record.sleep_score or 0) != round(sleep_score, 2)
+            or float(score_record.recovery_score or 0) != round(recovery_score, 2)
+            or float(score_record.consistency_score or 0) != round(consistency_score, 2)
+        )
 
-        db.commit()
-        db.refresh(score_record)
+        if is_changed:
+            score_record.score = total_score
+            score_record.workout_adherence_pct = round(workout_adherence_pct, 2)
+            score_record.nutrition_score = round(nutrition_score, 2)
+            score_record.protein_score = round(protein_score, 2)
+            score_record.sleep_score = round(sleep_score, 2)
+            score_record.recovery_score = round(recovery_score, 2)
+            score_record.consistency_score = round(consistency_score, 2)
+            score_record.calculated_at = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(score_record)
+
         return FitnessScoreItem.model_validate(score_record)
 
     @staticmethod

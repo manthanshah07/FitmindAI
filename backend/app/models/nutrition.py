@@ -23,6 +23,7 @@ class Food(Base):
 
 class MealLog(Base):
     __tablename__ = "meal_logs"
+    __table_args__ = (Index("ix_meal_logs_user_logged", "user_id", "logged_at"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, JSON
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
@@ -97,6 +97,7 @@ class WorkoutPlanExercise(Base):
 
 class WorkoutLog(Base):
     __tablename__ = "workout_logs"
+    __table_args__ = (Index("ix_workout_logs_user_started", "user_id", "started_at"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),

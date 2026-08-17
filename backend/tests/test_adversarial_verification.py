@@ -323,3 +323,35 @@ class TestAdversarialDateBoundaries:
         res_17 = client.get("/api/v1/nutrition/today?target_date=2026-08-17", headers=headers)
         assert res_17.status_code == 200
         assert len(res_17.json()["meals_by_type"]["snack"]) == 0
+
+    def test_ist_timezone_boundary_attribution(self):
+        headers = get_auth_headers("ist_user@example.com")
+        client.post("/api/v1/foods/seed", headers=headers)
+        food_id = client.get("/api/v1/foods", headers=headers).json()[0]["id"]
+
+        # Meal 1 logged at 2026-08-18 00:30 IST (+05:30) -> equivalent to 2026-08-17 19:00:00 UTC
+        ist_early = "2026-08-18T00:30:00+05:30"
+        # Meal 2 logged at 2026-08-18 23:30 IST (+05:30) -> equivalent to 2026-08-18 18:00:00 UTC
+        ist_late = "2026-08-18T23:30:00+05:30"
+
+        client.post(
+            "/api/v1/nutrition/log",
+            json={"meal_type": "breakfast", "logged_at": ist_early, "items": [{"food_id": food_id, "quantity_grams": 100.0}]},
+            headers=headers,
+        )
+        client.post(
+            "/api/v1/nutrition/log",
+            json={"meal_type": "dinner", "logged_at": ist_late, "items": [{"food_id": food_id, "quantity_grams": 100.0}]},
+            headers=headers,
+        )
+
+        # Under the system's UTC date indexing convention:
+        # Meal 1 (00:30 IST = 19:00 Aug 17 UTC) is assigned to UTC Date 2026-08-17
+        res_aug17 = client.get("/api/v1/nutrition/today?target_date=2026-08-17", headers=headers)
+        assert res_aug17.status_code == 200
+        assert len(res_aug17.json()["meals_by_type"]["breakfast"]) == 1
+
+        # Meal 2 (23:30 IST = 18:00 Aug 18 UTC) is assigned to UTC Date 2026-08-18
+        res_aug18 = client.get("/api/v1/nutrition/today?target_date=2026-08-18", headers=headers)
+        assert res_aug18.status_code == 200
+        assert len(res_aug18.json()["meals_by_type"]["dinner"]) == 1

@@ -87,10 +87,16 @@ class NutritionService:
                 detail="One or more food items do not exist",
             )
 
+        logged_at_utc = data.logged_at
+        if logged_at_utc.tzinfo is not None:
+            logged_at_utc = logged_at_utc.astimezone(timezone.utc)
+        else:
+            logged_at_utc = logged_at_utc.replace(tzinfo=timezone.utc)
+
         meal_log = MealLog(
             user_id=user.id,
             meal_type=data.meal_type.lower(),
-            logged_at=data.logged_at,
+            logged_at=logged_at_utc,
             notes=data.notes,
         )
         db.add(meal_log)
