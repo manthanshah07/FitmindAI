@@ -95,6 +95,7 @@ Response includes: today's workouts, meals, calories, protein, fitness score, AI
 | GET | `/progress/photos` | Yes | List progress photos |
 | POST | `/progress/photos` | Yes | Upload a progress photo |
 | GET | `/progress/fitness-score` | Yes | Current and historical fitness scores |
+| POST | `/progress/fitness-score/recalculate` | Yes | Immediately recalculate and persist fitness score for period |
 
 ---
 
