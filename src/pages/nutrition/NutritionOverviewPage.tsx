@@ -161,7 +161,7 @@ export const NutritionOverviewPage: React.FC = () => {
               <span>{consumed.fat_g} / {targets.fat_g}g</span>
             </div>
             <div className="w-full bg-bone border border-borderLine h-2.5">
-              <div className="bg-olive h-full transition-all" style={{ width: `${fatPct}%` }} />
+              <div className="bg-accent h-full transition-all" style={{ width: `${fatPct}%` }} />
             </div>
           </div>
         </div>

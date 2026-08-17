@@ -313,7 +313,7 @@ export const WorkoutSessionPage: React.FC = () => {
               </div>
 
               {/* Sets Header Table */}
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-3 text-center font-mono text-[10px] uppercase text-faded mb-2 font-bold">
+              <div className="grid grid-cols-4 gap-1 sm:gap-3 text-center font-mono text-[9px] sm:text-[10px] uppercase text-faded mb-2 font-bold">
                 <span>Set</span>
                 <span>Reps</span>
                 <span>Weight (kg)</span>
@@ -321,51 +321,60 @@ export const WorkoutSessionPage: React.FC = () => {
               </div>
 
               {/* Set Inputs */}
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 sm:gap-3">
                 {Array.from({ length: targetSets }).map((_, sIdx) => {
                   const setNum = sIdx + 1;
                   const key = `${item.exercise_id}_${setNum}`;
                   const currentEntry = setValues[key] || { reps: 10, weight: 0, rpe: 8 };
 
                   return (
-                    <div key={setNum} className="grid grid-cols-4 gap-1.5 sm:gap-3 items-center">
-                      <div className="font-mono text-center text-xs font-bold text-graphite bg-bone/80 p-2.5 border border-borderLine">
+                    <div key={setNum} className="grid grid-cols-4 gap-1 sm:gap-3 items-center min-w-0">
+                      <div className="font-mono text-center text-xs font-bold text-graphite bg-bone/80 py-2 px-1 sm:p-2.5 border border-borderLine truncate">
                         Set {setNum}
                       </div>
 
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={currentEntry.reps}
-                        onChange={(e) =>
-                          handleSetChange(item.exercise_id, setNum, 'reps', parseInt(e.target.value, 10))
-                        }
-                        disabled={isSubmitting}
-                      />
+                      <div className="min-w-0">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={currentEntry.reps}
+                          onChange={(e) =>
+                            handleSetChange(item.exercise_id, setNum, 'reps', parseInt(e.target.value, 10))
+                          }
+                          disabled={isSubmitting}
+                          className="px-1.5 sm:px-3 text-center"
+                        />
+                      </div>
 
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min={0}
-                        max={500}
-                        value={currentEntry.weight}
-                        onChange={(e) =>
-                          handleSetChange(item.exercise_id, setNum, 'weight', parseFloat(e.target.value))
-                        }
-                        disabled={isSubmitting}
-                      />
+                      <div className="min-w-0">
+                        <Input
+                          type="number"
+                          step="0.5"
+                          min={0}
+                          max={500}
+                          value={currentEntry.weight}
+                          onChange={(e) =>
+                            handleSetChange(item.exercise_id, setNum, 'weight', parseFloat(e.target.value))
+                          }
+                          disabled={isSubmitting}
+                          className="px-1.5 sm:px-3 text-center"
+                        />
+                      </div>
 
-                      <Input
-                        type="number"
-                        min={1}
-                        max={10}
-                        value={currentEntry.rpe}
-                        onChange={(e) =>
-                          handleSetChange(item.exercise_id, setNum, 'rpe', parseInt(e.target.value, 10))
-                        }
-                        disabled={isSubmitting}
-                      />
+                      <div className="min-w-0">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={currentEntry.rpe}
+                          onChange={(e) =>
+                            handleSetChange(item.exercise_id, setNum, 'rpe', parseInt(e.target.value, 10))
+                          }
+                          disabled={isSubmitting}
+                          className="px-1.5 sm:px-3 text-center"
+                        />
+                      </div>
                     </div>
                   );
                 })}
