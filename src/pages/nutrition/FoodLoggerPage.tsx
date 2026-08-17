@@ -60,7 +60,14 @@ export const FoodLoggerPage: React.FC = () => {
         const data = await getFoodsApi({ search: searchQuery || undefined });
         setFoods(data);
         if (data.length > 0) {
-          setSelectedFood(data[0]);
+          setSelectedFood((prev) => {
+            if (prev && data.some((f) => f.id === prev.id)) {
+              return prev;
+            }
+            return data[0];
+          });
+        } else {
+          setSelectedFood(null);
         }
       } catch {
         // Soft error fallback
