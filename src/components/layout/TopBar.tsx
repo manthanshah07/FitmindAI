@@ -52,7 +52,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onMenuToggle }) => {
       {/* Right: Badge & Profile / Logout */}
       <div className="flex items-center gap-3">
         <Badge variant="olive" className="hidden sm:inline-block">
-          Phase 2 Core App
+          FitMind AI
         </Badge>
         <span className="font-mono text-xs text-graphite font-bold hidden md:inline-block">
           {user?.full_name || user?.email}

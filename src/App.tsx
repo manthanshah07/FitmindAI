@@ -10,6 +10,7 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { WorkoutOverviewPage } from './pages/workout/WorkoutOverviewPage';
 import { WorkoutSessionPage } from './pages/workout/WorkoutSessionPage';
 import { WorkoutHistoryPage } from './pages/workout/WorkoutHistoryPage';
@@ -60,9 +61,9 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <div className="border border-borderLine p-8 text-center bg-bone">
-                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 7 Module</span>
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">AI Assistant</span>
                     <h2 className="text-2xl font-bold uppercase tracking-tighter">AI Coach Engine</h2>
-                    <p className="text-sm text-charcoal mt-2">Conversational AI and persistent user memory will launch in Phase 7.</p>
+                    <p className="text-sm text-charcoal mt-2">Conversational AI coaching and persistent user memory assistant coming soon.</p>
                   </div>
                 </AppShell>
               </ProtectedRoute>
@@ -164,9 +165,9 @@ function App() {
               <ProtectedRoute>
                 <AppShell>
                   <div className="border border-borderLine p-8 text-center bg-bone">
-                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Phase 9 Module</span>
+                    <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Analytics & Summaries</span>
                     <h2 className="text-2xl font-bold uppercase tracking-tighter">Reports Archive</h2>
-                    <p className="text-sm text-charcoal mt-2">Weekly and monthly fitness summaries will be archived here in Phase 9.</p>
+                    <p className="text-sm text-charcoal mt-2">Weekly and monthly fitness summaries will be archived here.</p>
                   </div>
                 </AppShell>
               </ProtectedRoute>
@@ -182,6 +183,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       <Footer />

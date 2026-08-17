@@ -244,10 +244,10 @@ export const DashboardPage: React.FC = () => {
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
                 <span>🤖</span> AI Coach
               </span>
-              <Badge variant="faded">Phase 7</Badge>
+              <Badge variant="faded">Upcoming</Badge>
             </div>
             <p className="text-xs text-charcoal">
-              Persistent user memory, proactive coaching tips, and chat interface will launch in Phase 7.
+              Conversational AI coaching assistant, proactive guidance, and persistent user memory.
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">

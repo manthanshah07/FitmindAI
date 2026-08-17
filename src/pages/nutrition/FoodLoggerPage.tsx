@@ -198,7 +198,7 @@ export const FoodLoggerPage: React.FC = () => {
                     key={food.id}
                     type="button"
                     onClick={() => setSelectedFood(food)}
-                    className={`p-3 text-left border transition-all text-xs font-mono flex items-center justify-between ${
+                    className={`p-3 text-left border transition-all text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 ${
                       isSelected
                         ? 'border-olive bg-olive/10 font-bold text-graphite'
                         : 'border-borderLine bg-bone hover:border-graphite text-charcoal'

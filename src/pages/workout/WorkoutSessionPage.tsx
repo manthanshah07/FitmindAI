@@ -313,7 +313,7 @@ export const WorkoutSessionPage: React.FC = () => {
               </div>
 
               {/* Sets Header Table */}
-              <div className="grid grid-cols-4 gap-3 text-center font-mono text-[10px] uppercase text-faded mb-2 font-bold">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3 text-center font-mono text-[10px] uppercase text-faded mb-2 font-bold">
                 <span>Set</span>
                 <span>Reps</span>
                 <span>Weight (kg)</span>
@@ -328,7 +328,7 @@ export const WorkoutSessionPage: React.FC = () => {
                   const currentEntry = setValues[key] || { reps: 10, weight: 0, rpe: 8 };
 
                   return (
-                    <div key={setNum} className="grid grid-cols-4 gap-3 items-center">
+                    <div key={setNum} className="grid grid-cols-4 gap-1.5 sm:gap-3 items-center">
                       <div className="font-mono text-center text-xs font-bold text-graphite bg-bone/80 p-2.5 border border-borderLine">
                         Set {setNum}
                       </div>

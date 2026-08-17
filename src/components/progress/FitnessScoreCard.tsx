@@ -98,11 +98,11 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
             Adherence: Workouts {current_score.workout_adherence_pct}% • Nutrition {current_score.nutrition_score}% • Consistency {current_score.consistency_score}%
           </p>
         </div>
-        <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
+        <div className="mt-6 pt-4 border-t border-borderLine flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <span className="font-mono text-[10px] text-faded uppercase">
             Period: {current_score.period_start} to {current_score.period_end}
           </span>
-          <Button variant="secondary" onClick={handleRecalculate} isLoading={isRecalculating}>
+          <Button variant="secondary" onClick={handleRecalculate} isLoading={isRecalculating} className="self-start sm:self-auto">
             Recalculate ↻
           </Button>
         </div>
@@ -125,8 +125,8 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="text-right">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-left sm:text-right">
             <span className="text-4xl font-bold font-mono text-graphite tracking-tighter block">
               {current_score.score}
               <span className="text-sm font-normal text-faded">/100</span>

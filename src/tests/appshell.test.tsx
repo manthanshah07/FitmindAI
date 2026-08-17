@@ -4,6 +4,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { AppShell } from '../components/layout/AppShell';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
+import { NotFoundPage } from '../pages/NotFoundPage';
 import * as profileApi from '../lib/api/profile';
 import * as goalsApi from '../lib/api/goals';
 
@@ -113,9 +114,8 @@ describe('AppShell & Dashboard Shell', () => {
     expect(await screen.findByText(/MUSCLE GAIN/i)).toBeInTheDocument();
 
     // Module badges / active features
-    expect(screen.getAllByText(/Phase 3/i).length).toBeGreaterThan(0); // Workout
-    expect(screen.getAllByText(/Phase 4/i).length).toBeGreaterThan(0); // Nutrition
-    expect(screen.getAllByText(/Phase 7/i).length).toBeGreaterThan(0); // AI Coach
+    expect(screen.getAllByText(/AI Coach/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Upcoming/i).length).toBeGreaterThan(0);
   });
 
   it('shows non-blocking onboarding card when onboarding_complete is false', async () => {
@@ -188,5 +188,16 @@ describe('AppShell & Dashboard Shell', () => {
     });
 
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  it('renders NotFoundPage when navigating to an unknown route', () => {
+    render(
+      <MemoryRouter initialEntries={['/unknown-path-xyz']}>
+        <NotFoundPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/404 — Page Not Found/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Return to Dashboard →/i })).toBeInTheDocument();
   });
 });

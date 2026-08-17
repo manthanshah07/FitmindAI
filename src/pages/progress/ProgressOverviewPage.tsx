@@ -316,7 +316,7 @@ export const ProgressOverviewPage: React.FC = () => {
                 disabled={isSubmitting}
               />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Body Weight (kg)"
                   type="number"
@@ -341,7 +341,7 @@ export const ProgressOverviewPage: React.FC = () => {
                 Body Circumferences (Optional)
               </span>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   label="Chest (cm)"
                   type="number"

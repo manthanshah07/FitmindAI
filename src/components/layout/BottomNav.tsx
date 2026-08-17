@@ -3,9 +3,9 @@ import { NavLink } from 'react-router-dom';
 
 const MOBILE_NAV_ITEMS = [
   { path: '/dashboard', label: 'Dash', icon: '📊' },
-  { path: '/coach', label: 'Coach', icon: '🤖' },
   { path: '/workout', label: 'Workout', icon: '🏋️' },
   { path: '/nutrition', label: 'Nutrition', icon: '🥗' },
+  { path: '/progress', label: 'Progress', icon: '📈' },
   { path: '/profile', label: 'Profile', icon: '👤' },
 ];
 

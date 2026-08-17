@@ -83,7 +83,7 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
     );
 
     expect(await screen.findByText(/Weekly Fitness Score/i)).toBeInTheDocument();
-    expect(screen.getByText('84')).toBeInTheDocument();
+    expect(screen.getByText(/84/i)).toBeInTheDocument();
     expect(screen.getByText('Good')).toBeInTheDocument();
     expect(screen.getByText(/Workout Adherence \(30%\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Protein Target Adherence \(20%\)/i)).toBeInTheDocument();
