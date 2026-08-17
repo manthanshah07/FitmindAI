@@ -124,8 +124,22 @@ class NutritionService:
             .all()
         )
 
-        # Filter logs for target date in python
-        today_logs = [l for l in logs if l.logged_at.date() == target_date]
+        def extract_log_date(val) -> Optional[date]:
+            if val is None:
+                return None
+            if isinstance(val, date) and not isinstance(val, datetime):
+                return val
+            if isinstance(val, datetime):
+                return val.date()
+            if isinstance(val, str):
+                try:
+                    return date.fromisoformat(val.split("T")[0].split(" ")[0])
+                except Exception:
+                    return None
+            return None
+
+        # Filter logs for target date safely
+        today_logs = [l for l in logs if extract_log_date(l.logged_at) == target_date]
 
         consumed_cals = 0.0
         consumed_protein = 0.0
