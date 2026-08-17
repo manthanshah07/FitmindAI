@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta, timezone
-from typing import Optional
-from sqlalchemy.orm import Session
+from typing import List, Optional
+from sqlalchemy.orm import Session, joinedload
 from app.models.user import User
 from app.models.workout import WorkoutLog, WorkoutPlan
 from app.models.nutrition import MealLog, MealLogItem
@@ -41,11 +41,25 @@ class FitnessScoreService:
         period_end = target_date or date.today()
         period_start = period_end - timedelta(days=6)
 
-        all_workout_logs = db.query(WorkoutLog).filter(WorkoutLog.user_id == user.id).all()
+        start_dt = datetime.combine(period_start, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_dt = datetime.combine(period_end, datetime.max.time()).replace(tzinfo=timezone.utc)
+
+        # -------------------------------------------------------------
+        # A. WORKOUT ADHERENCE (30%)
+        # -------------------------------------------------------------
+        period_workout_logs = (
+            db.query(WorkoutLog)
+            .filter(
+                WorkoutLog.user_id == user.id,
+                WorkoutLog.started_at >= start_dt,
+                WorkoutLog.started_at <= end_dt,
+            )
+            .all()
+        )
         workout_dates = set()
-        for log in all_workout_logs:
+        for log in period_workout_logs:
             d = extract_date(log.started_at)
-            if d and period_start <= d <= period_end:
+            if d:
                 workout_dates.add(d)
 
         completed_workout_days = len(workout_dates)
@@ -68,14 +82,27 @@ class FitnessScoreService:
         target_cals = max(1.0, float(user_targets.calories))
         target_protein = max(1.0, float(user_targets.protein_g))
 
-        all_meal_logs = db.query(MealLog).filter(MealLog.user_id == user.id).all()
+        period_meal_logs = (
+            db.query(MealLog)
+            .options(joinedload(MealLog.items))
+            .filter(
+                MealLog.user_id == user.id,
+                MealLog.logged_at >= start_dt,
+                MealLog.logged_at <= end_dt,
+            )
+            .all()
+        )
+
+        # Aggregate daily cals and protein for meals in period
         daily_cals = {}
         daily_protein = {}
-        for meal in all_meal_logs:
+        for meal in period_meal_logs:
             m_date = extract_date(meal.logged_at)
-            if m_date and period_start <= m_date <= period_end:
-                daily_cals.setdefault(m_date, 0.0)
-                daily_protein.setdefault(m_date, 0.0)
+            if m_date:
+                if m_date not in daily_cals:
+                    daily_cals[m_date] = 0.0
+                    daily_protein[m_date] = 0.0
+
                 for item in meal.items:
                     daily_cals[m_date] += float(item.calculated_calories)
                     daily_protein[m_date] += float(item.calculated_protein)
@@ -91,11 +118,22 @@ class FitnessScoreService:
             avg_protein = sum(daily_protein.values()) / float(len(meal_dates))
             protein_score = min(100.0, (avg_protein / target_protein) * 100.0)
 
-        all_measurements = db.query(Measurement).filter(Measurement.user_id == user.id).all()
+        # -------------------------------------------------------------
+        # D. LOGGING CONSISTENCY (15%)
+        # -------------------------------------------------------------
+        period_measurements = (
+            db.query(Measurement)
+            .filter(
+                Measurement.user_id == user.id,
+                Measurement.measured_at >= period_start,
+                Measurement.measured_at <= period_end,
+            )
+            .all()
+        )
         measurement_dates = set()
-        for m in all_measurements:
+        for m in period_measurements:
             d = extract_date(m.measured_at)
-            if d and period_start <= d <= period_end:
+            if d:
                 measurement_dates.add(d)
 
         active_logging_days = len(workout_dates | meal_dates | measurement_dates)
@@ -159,6 +197,7 @@ class FitnessScoreService:
             db, user, target_date=p_end
         )
 
+        # Fetch score history sorted desc
         history_records = (
             db.query(FitnessScore)
             .filter(FitnessScore.user_id == user.id)
