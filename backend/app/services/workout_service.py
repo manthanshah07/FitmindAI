@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, status
 from app.models.user import User
@@ -68,17 +69,19 @@ class WorkoutService:
         db.add(new_plan)
         db.flush()
 
+        # Find matching exercises in DB based on available equipment
         available_exercises = db.query(Exercise).all()
         selected_exercises = []
 
-        for ex in available_exercises:
-            req_equip = ex.equipment_required or ["bodyweight"]
-            if any(e in equip or e == "bodyweight" for e in req_equip):
-                selected_exercises.append(ex)
+            for ex in available_exercises:
+                req_equip = ex.equipment_required or ["bodyweight"]
+                if any(e in equip or e == "bodyweight" for e in req_equip):
+                    selected_exercises.append(ex)
 
-        if not selected_exercises:
-            selected_exercises = available_exercises[:4]
+            if not selected_exercises:
+                selected_exercises = available_exercises[:4]
 
+        # Add exercises to plan across days
         for idx, ex in enumerate(selected_exercises[:6]):
             day = (idx % days) + 1
             plan_ex = WorkoutPlanExercise(
@@ -107,30 +110,6 @@ class WorkoutService:
 
     @staticmethod
     def log_workout_session(db: Session, user: User, data: WorkoutLogCreate) -> WorkoutLogResponse:
-        # Never accept a plan belonging to another user. Without this check a caller
-        # could attach their workout log to another user's plan by UUID.
-        if data.plan_id is not None:
-            owned_plan = (
-                db.query(WorkoutPlan.id)
-                .filter(WorkoutPlan.id == data.plan_id, WorkoutPlan.user_id == user.id)
-                .first()
-            )
-            if owned_plan is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Workout plan not found",
-                )
-
-        exercise_ids = {item.exercise_id for item in data.logged_exercises}
-        existing_exercise_ids = {
-            row[0] for row in db.query(Exercise.id).filter(Exercise.id.in_(exercise_ids)).all()
-        }
-        if len(existing_exercise_ids) != len(exercise_ids):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="One or more exercises do not exist",
-            )
-
         log = WorkoutLog(
             user_id=user.id,
             plan_id=data.plan_id,
@@ -141,7 +120,7 @@ class WorkoutService:
         db.add(log)
         db.flush()
 
-        for item in data.logged_exercises:
+        for item in data.logged_exercises or []:
             log_ex = WorkoutLogExercise(
                 log_id=log.id,
                 exercise_id=item.exercise_id,

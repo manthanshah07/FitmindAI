@@ -1,6 +1,7 @@
 from datetime import datetime, date, timezone
 from typing import List, Optional
 from uuid import UUID
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from app.models.user import User
 from app.models.profile import Profile
@@ -68,6 +69,24 @@ class NutritionService:
         # Ensure foods database is seeded
         FoodService.seed_default_foods(db)
 
+        if not data.items:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Meal log must contain at least one food item",
+            )
+
+        # Validate all foods exist beforehand
+        requested_food_ids = [item.food_id for item in data.items]
+        unique_food_ids = set(requested_food_ids)
+        existing_foods = db.query(Food).filter(Food.id.in_(unique_food_ids)).all()
+        food_map = {f.id: f for f in existing_foods}
+
+        if len(food_map) < len(unique_food_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="One or more food items do not exist",
+            )
+
         meal_log = MealLog(
             user_id=user.id,
             meal_type=data.meal_type.lower(),
@@ -78,10 +97,7 @@ class NutritionService:
         db.flush()
 
         for item in data.items:
-            food = db.query(Food).filter(Food.id == item.food_id).first()
-            if not food:
-                continue
-
+            food = food_map[item.food_id]
             q = float(item.quantity_grams)
             cals = round(float(food.calories_per_100g) * q / 100.0, 2)
             prot = round(float(food.protein_per_100g) * q / 100.0, 2)
@@ -116,30 +132,20 @@ class NutritionService:
 
         targets = NutritionService.calculate_user_targets(db, user)
 
-        # Query all meal logs for target date
-        logs = (
+        # Database-side filtering with start/end boundaries for target_date
+        start_dt = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_dt = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+
+        today_logs = (
             db.query(MealLog)
             .options(joinedload(MealLog.items).joinedload(MealLogItem.food))
-            .filter(MealLog.user_id == user.id)
+            .filter(
+                MealLog.user_id == user.id,
+                MealLog.logged_at >= start_dt,
+                MealLog.logged_at <= end_dt,
+            )
             .all()
         )
-
-        def extract_log_date(val) -> Optional[date]:
-            if val is None:
-                return None
-            if isinstance(val, date) and not isinstance(val, datetime):
-                return val
-            if isinstance(val, datetime):
-                return val.date()
-            if isinstance(val, str):
-                try:
-                    return date.fromisoformat(val.split("T")[0].split(" ")[0])
-                except Exception:
-                    return None
-            return None
-
-        # Filter logs for target date safely
-        today_logs = [l for l in logs if extract_log_date(l.logged_at) == target_date]
 
         consumed_cals = 0.0
         consumed_protein = 0.0
