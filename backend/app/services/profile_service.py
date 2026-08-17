@@ -1,6 +1,4 @@
-from typing import Optional
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
 
 from app.models.user import User
 from app.models.profile import Profile
@@ -32,10 +30,10 @@ class ProfileService:
     def update_profile(db: Session, user: User, data: ProfileUpdate) -> ProfileResponse:
         profile = ProfileService.get_or_create_profile(db, user)
 
+        # Omitted fields remain unchanged; explicit null values clear optional fields.
         update_data = data.model_dump(exclude_unset=True)
         for key, value in update_data.items():
-            if value is not None:
-                setattr(profile, key, value)
+            setattr(profile, key, value)
 
         db.commit()
         db.refresh(profile)
