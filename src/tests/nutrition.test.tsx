@@ -171,9 +171,9 @@ describe('Phase 4 — Nutrition Frontend Module', () => {
     );
 
     expect(await screen.findByText(/Meal Log History/i)).toBeInTheDocument();
-    expect(screen.getByText(/LUNCH/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/LUNCH/i).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText(/LUNCH/i));
+    fireEvent.click(screen.getAllByText(/LUNCH/i)[0]);
 
     await waitFor(() => {
       expect(nutritionApi.getMealLogByIdApi).toHaveBeenCalledWith('log-1');

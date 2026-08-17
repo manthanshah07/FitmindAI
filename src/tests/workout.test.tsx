@@ -226,9 +226,9 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
     );
 
     expect(await screen.findByText(/Completed Workout Sessions/i)).toBeInTheDocument();
-    expect(screen.getByText(/Felt strong today!/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Felt strong today!/i).length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText(/Felt strong today!/i));
+    fireEvent.click(screen.getAllByText(/Felt strong today!/i)[0]);
 
     await waitFor(() => {
       expect(workoutApi.getWorkoutLogByIdApi).toHaveBeenCalledWith('log-1');

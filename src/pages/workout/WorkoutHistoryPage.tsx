@@ -21,6 +21,9 @@ export const WorkoutHistoryPage: React.FC = () => {
         setError(null);
         const data = await getWorkoutLogsApi(30, 0);
         setLogs(data);
+        if (data.length > 0) {
+          setSelectedLog(data[0]);
+        }
       } catch (err) {
         setError(getErrorMessage(err));
       } finally {

@@ -21,6 +21,9 @@ export const NutritionHistoryPage: React.FC = () => {
         setError(null);
         const data = await getMealLogsApi(30, 0);
         setLogs(data);
+        if (data.length > 0) {
+          setSelectedLog(data[0]);
+        }
       } catch (err) {
         setError(getErrorMessage(err));
       } finally {
