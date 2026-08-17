@@ -35,5 +35,8 @@ api_v1_router.include_router(nutrition_router, prefix="/nutrition", tags=["Nutri
 # Include progress endpoints
 api_v1_router.include_router(progress_router, prefix="/progress", tags=["Progress"])
 api_v1_router.include_router(fitness_score_router, prefix="/progress", tags=["Fitness Score"])
-
-
+# Health endpoint under /api/v1/health
+@api_v1_router.get("/health", tags=["Health"])
+def versioned_health_check():
+    """Versioned API health check endpoint."""
+    return {"status": "ok"}

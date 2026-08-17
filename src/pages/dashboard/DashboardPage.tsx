@@ -74,7 +74,7 @@ export const DashboardPage: React.FC = () => {
             Welcome, {profile?.full_name || user?.full_name || 'Athlete'}
           </h1>
           <p className="text-sm text-charcoal font-sans mt-1">
-            Your personal baseline metrics and module placeholders.
+            Your personal fitness metrics and active coaching modules.
           </p>
         </div>
 
@@ -159,29 +159,29 @@ export const DashboardPage: React.FC = () => {
               Baseline Calibrated
             </span>
             <p className="text-xs text-charcoal mt-2">
-              Fitness score tracking will activate after your first logged workout session.
+              Fitness score tracking evaluates workout, nutrition, and consistency targets.
             </p>
           </div>
           <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Phase 6 Fitness Score Engine Pending
+            Evaluation Engine Active
           </div>
         </Card>
       </div>
 
-      {/* Grid Row 2: Structural Module Placeholders (Honest Display) */}
+      {/* Grid Row 2: Core Application Modules */}
       <h2 className="text-xl font-bold tracking-tighter uppercase text-graphite font-mono pt-4 border-t border-borderLine">
         Core Application Modules
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Module 1: Workout Module (Live Integration) */}
+        {/* Module 1: Workout Module */}
         <Card className="p-6 flex flex-col justify-between border-solid">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
                 <span>🏋️</span> Workout System
               </span>
-              <Badge variant="olive">Phase 3 Active</Badge>
+              <Badge variant="olive">Active</Badge>
             </div>
             <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
               {workoutPlan ? workoutPlan.name : 'Routine Ready'}
@@ -193,7 +193,7 @@ export const DashboardPage: React.FC = () => {
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">Endpoint: /api/v1/workout</span>
+            <span className="font-mono text-[10px] text-faded uppercase">Daily Workout Routine</span>
             <NavLink
               to="/workout"
               className="font-mono text-xs uppercase font-bold text-olive hover:underline"
@@ -203,14 +203,14 @@ export const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        {/* Module 2: Nutrition Module (Live Integration) */}
+        {/* Module 2: Nutrition Module */}
         <Card className="p-6 flex flex-col justify-between border-solid">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
                 <span>🥗</span> Nutrition System
               </span>
-              <Badge variant="olive">Phase 4 Active</Badge>
+              <Badge variant="olive">Active</Badge>
             </div>
             <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
               {nutritionSummary
@@ -224,7 +224,7 @@ export const DashboardPage: React.FC = () => {
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">Endpoint: /api/v1/nutrition</span>
+            <span className="font-mono text-[10px] text-faded uppercase">Daily Nutrition Tracker</span>
             <NavLink
               to="/nutrition"
               className="font-mono text-xs uppercase font-bold text-olive hover:underline"
@@ -251,7 +251,7 @@ export const DashboardPage: React.FC = () => {
             </p>
           </div>
           <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">Endpoint: /api/v1/coach</span>
+            <span className="font-mono text-[10px] text-faded uppercase">AI Fitness Assistant</span>
             <NavLink
               to="/coach"
               className="font-mono text-xs uppercase font-bold text-olive hover:underline"

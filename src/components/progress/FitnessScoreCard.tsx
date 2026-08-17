@@ -211,7 +211,7 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
             />
           </div>
           <span className="font-mono text-[10px] text-faded">
-            *Fixed 75.0% baseline score until wearable integration phase.
+            *Baseline score based on standard sleep and recovery recommendations.
           </span>
         </div>
       </div>
