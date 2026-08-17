@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.user import User
+from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
 from app.core.security import (
@@ -48,9 +49,23 @@ class AuthService:
             is_verified=False,
         )
         db.add(user)
+        db.flush()  # Obtain user.id before creating dependent Profile
+
+        # Eagerly create the user's Profile using the provided full_name.
+        # This prevents the registration full_name from being silently discarded.
+        # If no name provided, fall back to the email prefix (same as lazy creation path).
+        display_name = (req.full_name or "").strip() or normalized_email.split("@")[0].capitalize()
+        profile = Profile(
+            user_id=user.id,
+            full_name=display_name,
+            onboarding_complete=False,
+        )
+        db.add(profile)
+
         db.commit()
         db.refresh(user)
         return user
+
 
     @staticmethod
     def authenticate_user(db: Session, req: LoginRequest) -> TokenResponse:

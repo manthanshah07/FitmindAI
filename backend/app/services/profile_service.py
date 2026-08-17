@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -32,8 +33,19 @@ class ProfileService:
 
         # Omitted fields remain unchanged; explicit null values clear optional fields.
         update_data = data.model_dump(exclude_unset=True)
+        required_fields = {"full_name"}
+
         for key, value in update_data.items():
-            setattr(profile, key, value)
+            if key in required_fields:
+                if value is None or (isinstance(value, str) and not value.strip()):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Field '{key}' is required and cannot be cleared",
+                    )
+                setattr(profile, key, value.strip())
+            else:
+                # Nullable optional fields: explicitly setting None clears the stored value
+                setattr(profile, key, value)
 
         db.commit()
         db.refresh(profile)
@@ -44,9 +56,15 @@ class ProfileService:
         profile = ProfileService.get_or_create_profile(db, user)
 
         update_data = data.model_dump(exclude_unset=True)
+        required_fields = {"full_name"}
+
         for key, value in update_data.items():
-            if value is not None:
-                setattr(profile, key, value)
+            if key in required_fields:
+                if value is not None and value.strip():
+                    setattr(profile, key, value.strip())
+            else:
+                if value is not None:
+                    setattr(profile, key, value)
 
         profile.onboarding_complete = True
         db.commit()

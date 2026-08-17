@@ -73,13 +73,13 @@ class WorkoutService:
         available_exercises = db.query(Exercise).all()
         selected_exercises = []
 
-            for ex in available_exercises:
-                req_equip = ex.equipment_required or ["bodyweight"]
-                if any(e in equip or e == "bodyweight" for e in req_equip):
-                    selected_exercises.append(ex)
+        for ex in available_exercises:
+            req_equip = ex.equipment_required or ["bodyweight"]
+            if any(e in equip or e == "bodyweight" for e in req_equip):
+                selected_exercises.append(ex)
 
-            if not selected_exercises:
-                selected_exercises = available_exercises[:4]
+        if not selected_exercises:
+            selected_exercises = available_exercises[:4]
 
         # Add exercises to plan across days
         for idx, ex in enumerate(selected_exercises[:6]):
