@@ -3,6 +3,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
+import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
 import { getProgressSummaryApi, createMeasurementApi } from '../../lib/api/progress';
 import { getErrorMessage } from '../../utils/apiError';
 import type { ProgressSummary } from '../../types/progress';
@@ -143,13 +144,13 @@ export const ProgressOverviewPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
         <div>
           <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Body Composition & History
+            Body Composition & Performance
           </span>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-graphite">
-            Progress & Measurements
+            Progress & Fitness Score
           </h1>
           <p className="text-sm text-charcoal font-sans mt-1">
-            Track historical body weight, circumference measurements, and long-term trend progression.
+            Track your 0-100 deterministic weekly fitness score, body weight history, and circumference trends.
           </p>
         </div>
 
@@ -157,6 +158,9 @@ export const ProgressOverviewPage: React.FC = () => {
           + Record Measurement
         </Button>
       </div>
+
+      {/* Fitness Score Card Section */}
+      <FitnessScoreCard />
 
       {/* Summary Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">

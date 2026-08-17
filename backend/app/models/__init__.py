@@ -17,6 +17,7 @@ from app.models.nutrition import (
     MealLogItem,
 )
 from app.models.progress import Measurement
+from app.models.fitness_score import FitnessScore
 
 __all__ = [
     "Base",
@@ -33,4 +34,5 @@ __all__ = [
     "MealLog",
     "MealLogItem",
     "Measurement",
+    "FitnessScore",
 ]

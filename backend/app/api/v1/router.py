@@ -7,6 +7,7 @@ from app.api.v1.workout import router as workout_router
 from app.api.v1.foods import router as foods_router
 from app.api.v1.nutrition import router as nutrition_router
 from app.api.v1.progress import router as progress_router
+from app.api.v1.fitness_score import router as fitness_score_router
 
 api_v1_router = APIRouter()
 
@@ -33,5 +34,6 @@ api_v1_router.include_router(nutrition_router, prefix="/nutrition", tags=["Nutri
 
 # Include progress endpoints
 api_v1_router.include_router(progress_router, prefix="/progress", tags=["Progress"])
+api_v1_router.include_router(fitness_score_router, prefix="/progress", tags=["Fitness Score"])
 
 

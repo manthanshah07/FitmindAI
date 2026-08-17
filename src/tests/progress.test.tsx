@@ -68,7 +68,7 @@ describe('Phase 5 — Progress & Measurement Tracking Frontend Module', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Progress & Measurements/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Progress & Fitness Score/i)).toBeInTheDocument();
     expect(screen.getAllByText(/78.5 kg/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Body Weight History Trend/i)).toBeInTheDocument();
     expect(screen.getByText(/Chest: 102cm/i)).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('Phase 5 — Progress & Measurement Tracking Frontend Module', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Progress & Measurements/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Progress & Fitness Score/i)).toBeInTheDocument();
 
     // Click Record Measurement button
     const recordBtn = screen.getAllByRole('button', { name: /\+ Record Measurement/i })[0];

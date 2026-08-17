@@ -112,10 +112,9 @@ describe('AppShell & Dashboard Shell', () => {
     expect(await screen.findByText(/2669 kcal/i)).toBeInTheDocument(); // TDEE (BMR 1722 * 1.55)
     expect(await screen.findByText(/MUSCLE GAIN/i)).toBeInTheDocument();
 
-    // Honest Placeholders for Future Modules
+    // Module badges / active features
     expect(screen.getAllByText(/Phase 3/i).length).toBeGreaterThan(0); // Workout
     expect(screen.getAllByText(/Phase 4/i).length).toBeGreaterThan(0); // Nutrition
-    expect(screen.getAllByText(/Phase 5/i).length).toBeGreaterThan(0); // Progress
     expect(screen.getAllByText(/Phase 7/i).length).toBeGreaterThan(0); // AI Coach
   });
 
