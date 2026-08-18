@@ -50,7 +50,6 @@ def mock_gemini_response():
 def test_client_initialization_defaults_and_overrides():
     client_default = AIClient()
     assert client_default.model == settings.GEMINI_MODEL
-    assert client_default.model == "gemini-2.5-flash-lite"
     assert client_default.timeout_seconds == settings.GEMINI_TIMEOUT_SECONDS
 
     client_custom = AIClient(
@@ -105,7 +104,7 @@ def test_successful_completion_normalized(valid_request, mock_gemini_response):
         
         assert isinstance(resp, LLMCompletionResponse)
         assert resp.content == "Mocked Gemini completion output"
-        assert resp.model == "gemini-2.5-flash-lite"
+        assert resp.model == settings.GEMINI_MODEL
         assert resp.finish_reason == "STOP"
         assert resp.prompt_tokens == 12
         assert resp.completion_tokens == 20

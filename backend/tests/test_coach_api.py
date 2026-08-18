@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch, MagicMock
 import pytest
 from fastapi.testclient import TestClient
@@ -16,6 +17,20 @@ from app.core.ai_exceptions import (
 from tests.conftest import TestingSessionLocal
 
 client = TestClient(app)
+
+
+def make_mock_structured_json(answer: str = "Mock coaching answer", quality: str = "moderate") -> str:
+    return json.dumps({
+        "answer": answer,
+        "observations": [
+            {"category": "nutrition", "text": "Observed protein target.", "severity": "info"}
+        ],
+        "recommendations": [
+            {"category": "nutrition", "title": "Protein", "action": "Eat protein.", "priority": "medium"}
+        ],
+        "warnings": [],
+        "data_quality": quality
+    })
 
 
 @pytest.fixture
@@ -68,7 +83,7 @@ def auth_headers_user_b(db):
 def test_authenticated_user_can_call_endpoint(auth_headers_user_a):
     headers, _ = auth_headers_user_a
     mock_llm_resp = LLMCompletionResponse(
-        content="Hello! As your FitMind Coach, I recommend staying consistent.",
+        content=make_mock_structured_json("Hello! As your FitMind Coach, I recommend staying consistent."),
         model="gemini-2.5-flash-lite",
     )
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp):
@@ -79,8 +94,8 @@ def test_authenticated_user_can_call_endpoint(auth_headers_user_a):
         )
     assert res.status_code == 200
     data = res.json()
-    assert "message" in data
-    assert data["message"] == "Hello! As your FitMind Coach, I recommend staying consistent."
+    assert "answer" in data
+    assert data["answer"] == "Hello! As your FitMind Coach, I recommend staying consistent."
 
 
 # 2. Test Unauthenticated Request Rejected
@@ -114,7 +129,7 @@ def test_oversized_message_rejected(auth_headers_user_a):
 # 6. Test Valid Message Reaches CoachService
 def test_valid_message_reaches_coach_service(auth_headers_user_a):
     headers, user_a = auth_headers_user_a
-    mock_llm_resp = LLMCompletionResponse(content="Coach answer", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Coach answer"), model="gemini-2.5-flash-lite")
     
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         res = client.post(
@@ -139,7 +154,7 @@ def test_authenticated_user_profile_included(db, auth_headers_user_a):
         profile.activity_level = "very_active"
         db.commit()
     
-    mock_llm_resp = LLMCompletionResponse(content="Profile analysis", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Profile analysis"), model="gemini-2.5-flash-lite")
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         res = client.post(
             "/api/v1/coach/chat",
@@ -167,7 +182,7 @@ def test_authenticated_user_goal_included(db, auth_headers_user_a):
         goal.target_weight_kg = 80.0
     db.commit()
     
-    mock_llm_resp = LLMCompletionResponse(content="Goal response", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Goal response"), model="gemini-2.5-flash-lite")
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         res = client.post(
             "/api/v1/coach/chat",
@@ -193,7 +208,7 @@ def test_user_isolation_user_a_cannot_access_user_b_data(db, auth_headers_user_a
         profile_b.weight_kg = 123.45
         db.commit()
         
-    mock_llm_resp = LLMCompletionResponse(content="Isolation check", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Isolation check"), model="gemini-2.5-flash-lite")
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         res = client.post(
             "/api/v1/coach/chat",
@@ -212,7 +227,7 @@ def test_user_id_in_request_body_ignored(auth_headers_user_a, auth_headers_user_
     headers_a, _ = auth_headers_user_a
     _, user_b = auth_headers_user_b
     
-    mock_llm_resp = LLMCompletionResponse(content="User identity check", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("User identity check"), model="gemini-2.5-flash-lite")
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         # Attempt to inject user_b's UUID in payload
         res = client.post(
@@ -230,7 +245,7 @@ def test_user_id_in_request_body_ignored(auth_headers_user_a, auth_headers_user_
 # 12. Test AIClient Receives Configured Model and Request
 def test_ai_client_receives_configured_request(auth_headers_user_a):
     headers, _ = auth_headers_user_a
-    mock_llm_resp = LLMCompletionResponse(content="Config test", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Config test"), model="gemini-2.5-flash-lite")
     
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         res = client.post(
@@ -248,7 +263,7 @@ def test_ai_client_receives_configured_request(auth_headers_user_a):
 # 13. Test Successful AI Response Returned
 def test_successful_ai_response_returned(auth_headers_user_a):
     headers, _ = auth_headers_user_a
-    mock_llm_resp = LLMCompletionResponse(content="Successful coach response", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Successful coach response"), model="gemini-2.5-flash-lite")
     
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp):
         res = client.post(
@@ -257,7 +272,12 @@ def test_successful_ai_response_returned(auth_headers_user_a):
             headers=headers,
         )
         assert res.status_code == 200
-        assert res.json() == {"message": "Successful coach response"}
+        data = res.json()
+        assert data["answer"] == "Successful coach response"
+        assert "observations" in data
+        assert "recommendations" in data
+        assert "warnings" in data
+        assert "data_quality" in data
 
 
 # 14. Test Missing Profile Fields Do Not Crash Request
@@ -270,7 +290,7 @@ def test_missing_profile_fields_do_not_crash(db, auth_headers_user_a):
         profile.equipment = None
         db.commit()
         
-    mock_llm_resp = LLMCompletionResponse(content="Sparse profile response", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Sparse profile response"), model="gemini-2.5-flash-lite")
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp):
         res = client.post(
             "/api/v1/coach/chat",
@@ -286,7 +306,7 @@ def test_missing_goal_does_not_crash(db, auth_headers_user_a):
     db.query(Goal).filter(Goal.user_id == user_a.id).delete()
     db.commit()
     
-    mock_llm_resp = LLMCompletionResponse(content="No goal response", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("No goal response"), model="gemini-2.5-flash-lite")
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp):
         res = client.post(
             "/api/v1/coach/chat",
@@ -351,7 +371,7 @@ def test_empty_ai_response_becomes_http_502(auth_headers_user_a):
 # 20. Test System Message and User Message Remain Separate
 def test_system_message_and_user_message_remain_separate(auth_headers_user_a):
     headers, _ = auth_headers_user_a
-    mock_llm_resp = LLMCompletionResponse(content="Role check", model="gemini-2.5-flash-lite")
+    mock_llm_resp = LLMCompletionResponse(content=make_mock_structured_json("Role check"), model="gemini-2.5-flash-lite")
     
     with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
         res = client.post(

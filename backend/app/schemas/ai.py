@@ -12,6 +12,7 @@ class LLMCompletionRequest(BaseModel):
     model: Optional[str] = Field(None, description="Optional override for model name")
     temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
     max_tokens: Optional[int] = Field(None, gt=0, description="Max tokens to generate")
+    response_mime_type: Optional[str] = Field(None, description="Optional response format MIME type, e.g., 'application/json'")
 
 
 class LLMCompletionResponse(BaseModel):

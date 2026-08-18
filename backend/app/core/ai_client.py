@@ -112,6 +112,8 @@ class AIClient:
             config_kwargs["temperature"] = request.temperature
         if request.max_tokens is not None:
             config_kwargs["max_output_tokens"] = request.max_tokens
+        if request.response_mime_type is not None:
+            config_kwargs["response_mime_type"] = request.response_mime_type
 
         config = types.GenerateContentConfig(**config_kwargs) if config_kwargs else None
 

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
+from app.schemas.coach_response import CoachResponseStructured
 
 
 class CoachChatRequest(BaseModel):
@@ -16,5 +17,9 @@ class CoachChatRequest(BaseModel):
         return value.strip()
 
 
-class CoachChatResponse(BaseModel):
-    message: str = Field(..., description="The AI Coach's response message")
+class CoachChatResponse(CoachResponseStructured):
+    """
+    Authenticated response model for AI Coach chat endpoint.
+    Inherits structured coaching response format (answer, observations, recommendations, warnings, data_quality).
+    """
+    pass

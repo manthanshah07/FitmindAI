@@ -25,6 +25,7 @@ const NutritionOverviewPage = lazy(() => import('./pages/nutrition/NutritionOver
 const FoodLoggerPage = lazy(() => import('./pages/nutrition/FoodLoggerPage').then((m) => ({ default: m.FoodLoggerPage })));
 const NutritionHistoryPage = lazy(() => import('./pages/nutrition/NutritionHistoryPage').then((m) => ({ default: m.NutritionHistoryPage })));
 const ProgressOverviewPage = lazy(() => import('./pages/progress/ProgressOverviewPage').then((m) => ({ default: m.ProgressOverviewPage })));
+const CoachPage = lazy(() => import('./pages/coach/CoachPage').then((m) => ({ default: m.CoachPage })));
 
 const PageLoadingFallback = () => (
   <div className="min-h-[50vh] flex items-center justify-center p-8 bg-bone">
@@ -98,16 +99,7 @@ function App() {
             <Route path="/nutrition/history" element={<NutritionHistoryPage />} />
             <Route path="/progress" element={<ProgressOverviewPage />} />
             <Route path="/progress/measurements" element={<ProgressOverviewPage />} />
-            <Route
-              path="/coach"
-              element={
-                <div className="border border-borderLine p-8 text-center bg-bone">
-                  <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">AI Assistant</span>
-                  <h2 className="text-2xl font-bold uppercase tracking-tighter">AI Coach Engine</h2>
-                  <p className="text-sm text-charcoal mt-2">Conversational AI coaching and persistent user memory assistant coming soon.</p>
-                </div>
-              }
-            />
+            <Route path="/coach" element={<CoachPage />} />
             <Route
               path="/reports/*"
               element={
