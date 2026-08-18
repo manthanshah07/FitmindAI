@@ -5,8 +5,6 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.models.profile import Profile
-from app.models.goal import Goal
 from app.core.ai_client import ai_client
 from app.core.ai_exceptions import (
     AIException,
@@ -19,6 +17,7 @@ from app.core.ai_exceptions import (
 )
 from app.schemas.ai import LLMMessage, LLMCompletionRequest
 from app.schemas.coach import CoachChatRequest, CoachChatResponse
+from app.services.context_builder import ContextBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -40,59 +39,14 @@ Rules:
 
 class CoachService:
     @staticmethod
-    def _build_minimal_user_context(db: Session, user: User) -> Dict[str, Any]:
-        """
-        Retrieves a minimal trusted subset of the user's data (Profile + Active Goal).
-        Does NOT retrieve full workout, nutrition, or measurement logs.
-        All database queries are scoped strictly by user.id.
-        """
-        profile = db.query(Profile).filter(Profile.user_id == user.id).first()
-        active_goal = (
-            db.query(Goal)
-            .filter(Goal.user_id == user.id, Goal.is_active == True)
-            .first()
-        )
-
-        context: Dict[str, Any] = {}
-
-        if profile:
-            if profile.full_name:
-                context["full_name"] = profile.full_name
-            if profile.height_cm is not None:
-                context["height_cm"] = float(profile.height_cm)
-            if profile.weight_kg is not None:
-                context["weight_kg"] = float(profile.weight_kg)
-            if profile.activity_level:
-                context["activity_level"] = profile.activity_level
-            if profile.diet_preference:
-                context["diet_preference"] = profile.diet_preference
-            if profile.equipment:
-                context["equipment"] = profile.equipment
-
-        if active_goal:
-            if active_goal.goal_type:
-                context["primary_goal"] = active_goal.goal_type
-            if active_goal.target_weight_kg is not None:
-                context["target_weight_kg"] = float(active_goal.target_weight_kg)
-            if active_goal.target_date is not None:
-                context["target_date"] = active_goal.target_date.isoformat()
-
-        return context
-
-    @staticmethod
     def get_coach_response(db: Session, user: User, req: CoachChatRequest) -> CoachChatResponse:
         """
         Main entry point for handling Coach chat requests.
-        Authenticates user via injected User model, fetches minimal trusted context,
-        constructs LLM messages, calls AIClient, and maps low-level AI errors to HTTP status codes.
+        Authenticates user via injected User model, fetches structured fitness context
+        via ContextBuilder, constructs LLM messages, calls AIClient, and maps AI errors to HTTP status codes.
         """
-        context_dict = CoachService._build_minimal_user_context(db, user)
-
-        context_json_str = (
-            json.dumps(context_dict, indent=2)
-            if context_dict
-            else "No profile or goal context available yet."
-        )
+        fitness_context = ContextBuilder.build_fitness_context(db, user)
+        context_json_str = fitness_context.model_dump_json(exclude_none=True, indent=2)
 
         user_content_payload = (
             f"USER CONTEXT:\n{context_json_str}\n\n"
