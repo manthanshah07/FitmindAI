@@ -22,6 +22,8 @@ from app.schemas.fitness_context import (
 )
 from app.services.fitness_score_service import FitnessScoreService
 
+from app.services.analytics_service import AnalyticsService
+
 logger = logging.getLogger(__name__)
 
 
@@ -226,6 +228,15 @@ class ContextBuilder:
         except Exception as e:
             logger.warning("Could not calculate fitness score summary for context: %s", e)
 
+        # 7. Deterministic Analytics Context
+        analytics_ctx = None
+        try:
+            analytics_ctx = AnalyticsService.calculate_analytics(
+                db, user, timeframe_days=measurement_days
+            )
+        except Exception as e:
+            logger.warning("Could not calculate fitness analytics for context: %s", e)
+
         return FitnessContext(
             profile=profile_ctx,
             active_goal=goal_ctx,
@@ -233,4 +244,5 @@ class ContextBuilder:
             recent_nutrition=nutrition_contexts,
             recent_measurements=measurement_contexts,
             fitness_score=score_ctx,
+            analytics=analytics_ctx,
         )

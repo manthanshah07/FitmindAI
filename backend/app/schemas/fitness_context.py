@@ -2,6 +2,8 @@ from datetime import date
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from app.schemas.fitness_analytics import FitnessAnalytics
+
 
 class ProfileContext(BaseModel):
     full_name: Optional[str] = None
@@ -73,3 +75,4 @@ class FitnessContext(BaseModel):
     recent_nutrition: List[DailyNutritionContext] = Field(default_factory=list)
     recent_measurements: List[MeasurementContext] = Field(default_factory=list)
     fitness_score: Optional[FitnessScoreComponentContext] = None
+    analytics: Optional[FitnessAnalytics] = None
