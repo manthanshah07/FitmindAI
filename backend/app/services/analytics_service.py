@@ -275,6 +275,7 @@ class AnalyticsService:
 
         workout_logs = (
             db.query(WorkoutLog)
+            .options(joinedload(WorkoutLog.logged_exercises))
             .filter(
                 WorkoutLog.user_id == user.id,
                 WorkoutLog.started_at >= cutoff_dt,
@@ -318,12 +319,27 @@ class AnalyticsService:
                 status = "inactive"
             else:
                 status = "insufficient_data"
+        total_vol = 0.0
+        has_volume = False
+        for log in workout_logs:
+            for item in log.logged_exercises or []:
+                if (
+                    item.weight_kg is not None
+                    and item.weight_kg > 0
+                    and item.reps_completed is not None
+                    and item.reps_completed > 0
+                ):
+                    total_vol += float(item.weight_kg) * float(item.reps_completed)
+                    has_volume = True
+
+        total_volume_kg = round(total_vol, 1) if has_volume else None
 
         return WorkoutAnalytics(
             total_sessions_30d=total_sessions,
             weekly_avg_sessions=weekly_avg,
             target_days_per_week=target_days,
             adherence_pct=adherence_pct,
+            total_volume_kg=total_volume_kg,
             consistency_status=status,
         )
 

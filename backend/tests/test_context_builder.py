@@ -482,3 +482,11 @@ def test_context_json_serialization(db, user_a):
     json_output = context.model_dump_json(exclude_none=True)
     assert isinstance(json_output, str)
     assert "{" in json_output
+    assert "analytics" in json_output
+
+
+# 21. Context Builder Includes Analytics
+def test_context_builder_includes_analytics(db, user_a):
+    context = ContextBuilder.build_fitness_context(db, user_a)
+    assert context.analytics is not None
+    assert context.analytics.data_completeness is not None

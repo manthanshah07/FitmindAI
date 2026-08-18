@@ -443,3 +443,41 @@ def test_user_a_analytics_isolated_from_user_b(db, user_analytics_a, user_analyt
     # Assert User A does NOT receive User B's weight trend
     assert analytics_a.weight_trend.latest_weight_kg != 140.0
     assert analytics_b.weight_trend.latest_weight_kg == 140.0
+
+
+# =====================================================================
+# 9. WORKOUT VOLUME & SERIALIZATION TESTS
+# =====================================================================
+
+def test_workout_volume_calculation(db, user_analytics_a):
+    db.query(WorkoutLog).filter(WorkoutLog.user_id == user_analytics_a.id).delete()
+    db.commit()
+
+    ex = db.query(Exercise).filter(Exercise.name == "Volume Bench").first()
+    if not ex:
+        ex = Exercise(name="Volume Bench", primary_muscle="chest")
+        db.add(ex)
+        db.flush()
+
+    log = WorkoutLog(user_id=user_analytics_a.id, started_at=datetime.now(timezone.utc))
+    db.add(log)
+    db.flush()
+
+    # 3 sets of 10 reps @ 100 kg = 3000 kg volume
+    for s in range(1, 4):
+        item = WorkoutLogExercise(
+            log_id=log.id, exercise_id=ex.id, set_number=s, reps_completed=10, weight_kg=100.0
+        )
+        db.add(item)
+    db.commit()
+
+    res = AnalyticsService._compute_workout_analytics(db, user_analytics_a)
+    assert res.total_volume_kg == 3000.0
+
+
+def test_serialization_of_complete_fitness_analytics(db, user_analytics_a):
+    analytics = AnalyticsService.calculate_analytics(db, user_analytics_a)
+    json_str = analytics.model_dump_json(exclude_none=True)
+    assert isinstance(json_str, str)
+    assert "weight_trend" in json_str
+    assert "data_completeness" in json_str

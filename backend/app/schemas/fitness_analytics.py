@@ -29,6 +29,7 @@ class WorkoutAnalytics(BaseModel):
     weekly_avg_sessions: float = 0.0
     target_days_per_week: Optional[int] = None
     adherence_pct: Optional[float] = None
+    total_volume_kg: Optional[float] = None
     consistency_status: str = "insufficient_data"  # 'consistent', 'irregular', 'inactive', 'insufficient_data'
 
 
