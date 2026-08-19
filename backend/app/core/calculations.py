@@ -17,14 +17,15 @@ def calculate_tdee(
     gender: Optional[str] = None,
     activity_level: Optional[str] = None,
 ) -> Dict[str, Any]:
-    height_used = height_cm if height_cm and height_cm > 0 else 175.0
+    height_used = float(height_cm) if height_cm and float(height_cm) > 0 else 175.0
 
     is_weight_defaulted = False
-    if weight_kg and weight_kg > 0:
-        weight_used = weight_kg
+    if weight_kg and float(weight_kg) > 0:
+        weight_used = float(weight_kg)
     else:
         weight_used = 70.0
         is_weight_defaulted = True
+
 
     computed_age = calculate_age_from_dob(date_of_birth)
     if computed_age is not None:
