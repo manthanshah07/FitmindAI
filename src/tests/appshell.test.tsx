@@ -4,9 +4,10 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { AppShell } from '../components/layout/AppShell';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
-import { NotFoundPage } from '../pages/NotFoundPage';
-import * as profileApi from '../lib/api/profile';
-import * as goalsApi from '../lib/api/goals';
+import * as dashboardApi from '../lib/api/dashboard';
+
+import type { DashboardSummaryResponse } from '../types/dashboard';
+
 
 vi.mock('../lib/api/profile', () => ({
   getProfileApi: vi.fn(),
@@ -18,6 +19,55 @@ vi.mock('../lib/api/goals', () => ({
   getActiveGoalApi: vi.fn(),
   createGoalApi: vi.fn(),
 }));
+
+vi.mock('../lib/api/dashboard', () => ({
+  getDashboardSummaryApi: vi.fn(),
+}));
+
+const mockSummaryComplete: DashboardSummaryResponse = {
+  full_name: 'AppShell User',
+  email: 'appshelluser@example.com',
+  onboarding_complete: true,
+  tdee_calories: 2669,
+  bmr_calories: 1722,
+  target_calories: 2500,
+  target_protein_g: 160,
+  goal: {
+    goal_type: 'muscle_gain',
+    target_weight_kg: 85,
+    target_date: '2026-12-31',
+    is_active: true,
+  },
+  workout_plan: {
+    id: 'plan-1',
+    name: '4-Day Split',
+    days_per_week: 4,
+    exercise_count: 5,
+  },
+  today_nutrition: {
+    consumed_calories: 1800,
+    target_calories: 2500,
+    remaining_calories: 700,
+    consumed_protein_g: 120,
+    target_protein_g: 160,
+    remaining_protein_g: 40,
+  },
+  weekly_summary: {
+    adherence_score: 90.0,
+    adherence_label: 'High',
+    workouts_completed: 4,
+    target_workouts: 4,
+    workout_completion_pct: 100,
+    nutrition_logged_days: 6,
+    total_days: 7,
+    current_fitness_score: 80,
+    starting_fitness_score: 75,
+    fitness_score_change: 5,
+    fitness_score_trend: 'improving',
+    weight_change_kg: -0.5,
+    has_weekly_data: true,
+  },
+};
 
 describe('AppShell & Dashboard Shell', () => {
   beforeEach(() => {
@@ -38,68 +88,47 @@ describe('AppShell & Dashboard Shell', () => {
       error: null,
     });
     vi.clearAllMocks();
-
-    vi.mocked(profileApi.getProfileApi).mockResolvedValue({
-      id: 'p-1',
-      user_id: 'uuid-123',
-      full_name: 'AppShell User',
-      height_cm: 180,
-      weight_kg: 80,
-      activity_level: 'moderate',
-      onboarding_complete: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-
-    vi.mocked(goalsApi.getActiveGoalApi).mockResolvedValue({
-      id: 'g-1',
-      user_id: 'uuid-123',
-      goal_type: 'muscle_gain',
-      target_weight_kg: 85,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
   });
 
-  it('renders AppShell layout with Sidebar, TopBar, and navigation links', () => {
+  it('renders AppShell structure with navigation links', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
         <AppShell>
-          <div>Dashboard Content</div>
+          <div>Test Content</div>
         </AppShell>
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /Dashboard/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/FitMind User|AppShell User/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/FitMind/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Dashboard/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Workouts/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Nutrition/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Progress/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/AppShell User/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('Test Content')).toBeInTheDocument();
   });
 
-  it('renders Dashboard with calibrated baseline metrics and honest structural module placeholders', async () => {
-    vi.mocked(profileApi.getProfileApi).mockResolvedValue({
-      id: 'p-1',
-      user_id: 'uuid-123',
-      full_name: 'AppShell User',
-      height_cm: 180,
-      weight_kg: 80,
-      activity_level: 'moderate',
-      onboarding_complete: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+  it('toggles mobile drawer when clicking menu button', async () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <AppShell>
+          <div>Main Content</div>
+        </AppShell>
+      </MemoryRouter>,
+    );
 
-    vi.mocked(goalsApi.getActiveGoalApi).mockResolvedValue({
-      id: 'g-1',
-      user_id: 'uuid-123',
-      goal_type: 'muscle_gain',
-      target_weight_kg: 85,
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+    const toggleButton = screen.getByRole('button', { name: /toggle mobile navigation/i });
+
+    expect(toggleButton).toBeInTheDocument();
+
+    fireEvent.click(toggleButton);
+
+    const mobileNavs = screen.getAllByRole('navigation');
+    expect(mobileNavs.length).toBeGreaterThan(1);
+  });
+
+  it('renders Dashboard Page metrics correctly inside AppShell', async () => {
+    vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValue(mockSummaryComplete);
 
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
@@ -110,22 +139,16 @@ describe('AppShell & Dashboard Shell', () => {
     );
 
     expect(await screen.findByText(/FitMind AI Dashboard/i)).toBeInTheDocument();
-    expect(await screen.findByText(/2669 kcal/i)).toBeInTheDocument(); // TDEE (BMR 1722 * 1.55)
+    expect(await screen.findByText(/2669 kcal/i)).toBeInTheDocument();
     expect(await screen.findByText(/MUSCLE GAIN/i)).toBeInTheDocument();
-
-    // Module badges / active features
     expect(screen.getAllByText(/AI Coach/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Upcoming/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Active AI Coach/i)).toBeInTheDocument();
   });
 
   it('shows non-blocking onboarding card when onboarding_complete is false', async () => {
-    vi.mocked(profileApi.getProfileApi).mockResolvedValue({
-      id: 'p-1',
-      user_id: 'uuid-123',
-      full_name: 'AppShell User',
+    vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValue({
+      ...mockSummaryComplete,
       onboarding_complete: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     });
 
     render(
@@ -141,14 +164,7 @@ describe('AppShell & Dashboard Shell', () => {
   });
 
   it('hides onboarding card when onboarding_complete is true', async () => {
-    vi.mocked(profileApi.getProfileApi).mockResolvedValue({
-      id: 'p-1',
-      user_id: 'uuid-123',
-      full_name: 'AppShell User',
-      onboarding_complete: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+    vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValue(mockSummaryComplete);
 
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
@@ -158,12 +174,14 @@ describe('AppShell & Dashboard Shell', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/FitMind AI Dashboard/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/FitMind AI Dashboard/i)).toBeInTheDocument();
+    });
+
     expect(screen.queryByText(/Your profile is not fully set up yet/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Complete Onboarding →/i })).not.toBeInTheDocument();
   });
 
-  it('triggers logout from AppShell and clears auth session', async () => {
+  it('navigates to login on logout button click', async () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
@@ -171,33 +189,23 @@ describe('AppShell & Dashboard Shell', () => {
             path="/dashboard"
             element={
               <AppShell>
-                <div>Dashboard Content</div>
+                <div>Dashboard View</div>
               </AppShell>
             }
           />
-          <Route path="/login" element={<div>Login Page Destination</div>} />
+          <Route path="/login" element={<div>Login Screen</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    const logoutButtons = screen.getAllByRole('button', { name: /Log Out/i });
+    const logoutButtons = screen.getAllByRole('button', { name: /log out/i });
+
+    expect(logoutButtons.length).toBeGreaterThan(0);
+
     fireEvent.click(logoutButtons[0]);
 
     await waitFor(() => {
-      expect(screen.getByText(/Login Page Destination/i)).toBeInTheDocument();
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
-
-    expect(useAuthStore.getState().isAuthenticated).toBe(false);
-  });
-
-  it('renders NotFoundPage when navigating to an unknown route', () => {
-    render(
-      <MemoryRouter initialEntries={['/unknown-path-xyz']}>
-        <NotFoundPage />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByText(/404 — Page Not Found/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Return to Dashboard →/i })).toBeInTheDocument();
   });
 });

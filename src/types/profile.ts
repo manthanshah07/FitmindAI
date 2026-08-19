@@ -23,6 +23,9 @@ export interface Profile {
   diet_preference?: DietPreference | null;
   equipment?: string[] | null;
   medical_notes?: string | null;
+  timezone: string;
+  preferred_workout_duration_minutes?: number | null;
+  target_workout_days_per_week?: number | null;
   onboarding_complete: boolean;
   created_at: string;
   updated_at: string;
@@ -38,6 +41,9 @@ export interface ProfileUpdate {
   diet_preference?: DietPreference;
   equipment?: string[];
   medical_notes?: string;
+  timezone?: string;
+  preferred_workout_duration_minutes?: number;
+  target_workout_days_per_week?: number;
 }
 
 export interface OnboardingCreate {
@@ -50,4 +56,7 @@ export interface OnboardingCreate {
   diet_preference?: DietPreference;
   equipment?: string[];
   medical_notes?: string;
+  timezone?: string;
+  preferred_workout_duration_minutes?: number;
+  target_workout_days_per_week?: number;
 }

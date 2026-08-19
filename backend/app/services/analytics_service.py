@@ -22,6 +22,8 @@ from app.schemas.fitness_analytics import (
 )
 from app.services.nutrition_service import NutritionService
 from app.services.fitness_score_service import FitnessScoreService
+from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+
 
 logger = logging.getLogger(__name__)
 
@@ -269,9 +271,10 @@ class AnalyticsService:
 
     @staticmethod
     def _compute_workout_analytics(db: Session, user: User) -> WorkoutAnalytics:
-        cutoff_dt = datetime.combine(
-            date.today() - timedelta(days=30), datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+        user_tz = user.profile.timezone if (user and user.profile and user.profile.timezone) else "UTC"
+
+        today_date = get_user_today_date(user_tz)
+        cutoff_dt, _ = get_timezone_aware_range(today_date - timedelta(days=30), today_date, user_tz)
 
         workout_logs = (
             db.query(WorkoutLog)
@@ -293,13 +296,17 @@ class AnalyticsService:
         )
 
         target_days: Optional[int] = None
-        adherence_pct: Optional[float] = None
-
         if active_plan and active_plan.days_per_week and active_plan.days_per_week > 0:
             target_days = active_plan.days_per_week
+        elif user.profile and user.profile.target_workout_days_per_week:
+            target_days = user.profile.target_workout_days_per_week
+
+        adherence_pct: Optional[float] = None
+        if target_days and target_days > 0:
             adherence_pct = min(
                 100.0, round((weekly_avg / float(target_days)) * 100.0, 1)
             )
+
 
         if adherence_pct is not None:
             if adherence_pct >= 80.0:
@@ -345,9 +352,10 @@ class AnalyticsService:
 
     @staticmethod
     def _compute_nutrition_trends(db: Session, user: User) -> NutritionTrendAnalytics:
-        cutoff_dt = datetime.combine(
-            date.today() - timedelta(days=6), datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+        user_tz = user.profile.timezone if (user and user.profile and user.profile.timezone) else "UTC"
+        today_date = get_user_today_date(user_tz)
+        cutoff_dt, _ = get_timezone_aware_range(today_date - timedelta(days=6), today_date, user_tz)
+
 
         meal_logs = (
             db.query(MealLog)

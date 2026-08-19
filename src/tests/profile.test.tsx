@@ -24,10 +24,14 @@ const mockProfile = {
   diet_preference: 'omnivore' as const,
   equipment: ['dumbbells', 'barbell'],
   medical_notes: 'Mild right knee discomfort during heavy squats',
+  timezone: 'UTC',
+  preferred_workout_duration_minutes: 45,
+  target_workout_days_per_week: 4,
   onboarding_complete: true,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
+
 
 describe('Phase 2B — User Profile & Settings Screen', () => {
   beforeEach(() => {

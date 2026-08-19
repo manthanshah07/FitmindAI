@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
@@ -8,6 +9,8 @@ from app.models.progress import Measurement
 from app.models.fitness_score import FitnessScore
 from app.schemas.fitness_score import FitnessScoreItem, FitnessScoreResponse
 from app.services.nutrition_service import NutritionService
+from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+
 
 
 def extract_date(val) -> Optional[date]:
@@ -35,14 +38,19 @@ def get_score_label(score: int) -> str:
 
 class FitnessScoreService:
     @staticmethod
-    def calculate_and_save_fitness_score(
+    def calculate_fitness_score(
         db: Session, user: User, target_date: Optional[date] = None
     ) -> FitnessScoreItem:
-        period_end = target_date or date.today()
+        """
+        Pure, side-effect free calculation of fitness score for target_date.
+        Does NOT execute db.commit(), db.add(), or mutate persistent database state.
+        """
+        user_tz = user.profile.timezone if (user and user.profile and user.profile.timezone) else "UTC"
+        period_end = target_date or get_user_today_date(user_tz)
         period_start = period_end - timedelta(days=6)
 
-        start_dt = datetime.combine(period_start, datetime.min.time()).replace(tzinfo=timezone.utc)
-        end_dt = datetime.combine(period_end, datetime.max.time()).replace(tzinfo=timezone.utc)
+        start_dt, end_dt = get_timezone_aware_range(period_start, period_end, user_tz)
+
 
         # -------------------------------------------------------------
         # A. WORKOUT ADHERENCE (30%)
@@ -78,6 +86,9 @@ class FitnessScoreService:
             100.0, (completed_workout_days / float(max(1, target_days))) * 100.0
         )
 
+        # -------------------------------------------------------------
+        # B & C. NUTRITION & PROTEIN ADHERENCE (25% + 20%)
+        # -------------------------------------------------------------
         user_targets = NutritionService.calculate_user_targets(db, user)
         target_cals = max(1.0, float(user_targets.calories))
         target_protein = max(1.0, float(user_targets.protein_g))
@@ -93,7 +104,6 @@ class FitnessScoreService:
             .all()
         )
 
-        # Aggregate daily cals and protein for meals in period
         daily_cals = {}
         daily_protein = {}
         for meal in period_meal_logs:
@@ -104,8 +114,8 @@ class FitnessScoreService:
                     daily_protein[m_date] = 0.0
 
                 for item in meal.items:
-                    daily_cals[m_date] += float(item.calculated_calories)
-                    daily_protein[m_date] += float(item.calculated_protein)
+                    daily_cals[m_date] += float(item.calculated_calories or 0)
+                    daily_protein[m_date] += float(item.calculated_protein or 0)
 
         meal_dates = set(daily_cals.keys())
         if not meal_dates:
@@ -139,8 +149,6 @@ class FitnessScoreService:
         active_logging_days = len(workout_dates | meal_dates | measurement_dates)
         consistency_score = (active_logging_days / 7.0) * 100.0
 
-        # These inputs are not collected by the current product yet. Keeping them
-        # as explicit defaults is preferable to pretending they are measured.
         sleep_score = 75.0
         recovery_score = 75.0
 
@@ -153,7 +161,8 @@ class FitnessScoreService:
         )
         total_score = max(0, min(100, int(round(weighted_score))))
 
-        score_record = (
+        # Check existing DB record ID/timestamps if present (without mutating)
+        existing_record = (
             db.query(FitnessScore)
             .filter(
                 FitnessScore.user_id == user.id,
@@ -163,39 +172,63 @@ class FitnessScoreService:
             .first()
         )
 
-        if not score_record:
-            score_record = FitnessScore(
-                user_id=user.id,
-                period_start=period_start,
-                period_end=period_end,
-            )
-            db.add(score_record)
-            is_new = True
-        else:
-            is_new = False
+        record_id = existing_record.id if existing_record else uuid.uuid4()
+        calc_at = existing_record.calculated_at if existing_record else datetime.now(timezone.utc)
 
-        is_changed = (
-            is_new
-            or score_record.score != total_score
-            or float(score_record.workout_adherence_pct or 0) != round(workout_adherence_pct, 2)
-            or float(score_record.nutrition_score or 0) != round(nutrition_score, 2)
-            or float(score_record.protein_score or 0) != round(protein_score, 2)
-            or float(score_record.sleep_score or 0) != round(sleep_score, 2)
-            or float(score_record.recovery_score or 0) != round(recovery_score, 2)
-            or float(score_record.consistency_score or 0) != round(consistency_score, 2)
+        return FitnessScoreItem(
+            id=record_id,
+            user_id=user.id,
+            period_start=period_start,
+            period_end=period_end,
+            score=total_score,
+            workout_adherence_pct=round(workout_adherence_pct, 2),
+            nutrition_score=round(nutrition_score, 2),
+            protein_score=round(protein_score, 2),
+            sleep_score=round(sleep_score, 2),
+            recovery_score=round(recovery_score, 2),
+            consistency_score=round(consistency_score, 2),
+            calculated_at=calc_at,
         )
 
-        if is_changed:
-            score_record.score = total_score
-            score_record.workout_adherence_pct = round(workout_adherence_pct, 2)
-            score_record.nutrition_score = round(nutrition_score, 2)
-            score_record.protein_score = round(protein_score, 2)
-            score_record.sleep_score = round(sleep_score, 2)
-            score_record.recovery_score = round(recovery_score, 2)
-            score_record.consistency_score = round(consistency_score, 2)
-            score_record.calculated_at = datetime.now(timezone.utc)
-            db.commit()
-            db.refresh(score_record)
+    @staticmethod
+    def calculate_and_save_fitness_score(
+        db: Session, user: User, target_date: Optional[date] = None
+    ) -> FitnessScoreItem:
+        """
+        Explicit write/sync path: calculates fitness score AND persists/commits to database.
+        """
+        item = FitnessScoreService.calculate_fitness_score(db, user, target_date=target_date)
+
+        score_record = (
+            db.query(FitnessScore)
+            .filter(
+                FitnessScore.user_id == user.id,
+                FitnessScore.period_start == item.period_start,
+                FitnessScore.period_end == item.period_end,
+            )
+            .first()
+        )
+
+        if not score_record:
+            score_record = FitnessScore(
+                id=item.id,
+                user_id=user.id,
+                period_start=item.period_start,
+                period_end=item.period_end,
+            )
+            db.add(score_record)
+
+        score_record.score = item.score
+        score_record.workout_adherence_pct = item.workout_adherence_pct
+        score_record.nutrition_score = item.nutrition_score
+        score_record.protein_score = item.protein_score
+        score_record.sleep_score = item.sleep_score
+        score_record.recovery_score = item.recovery_score
+        score_record.consistency_score = item.consistency_score
+        score_record.calculated_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(score_record)
 
         return FitnessScoreItem.model_validate(score_record)
 
@@ -203,16 +236,12 @@ class FitnessScoreService:
     def get_fitness_score_summary(
         db: Session, user: User, target_date: Optional[date] = None
     ) -> FitnessScoreResponse:
+        """
+        Read-only endpoint path: calculates current period score in memory without DB side-effects.
+        """
         p_end = target_date or date.today()
+        current_item = FitnessScoreService.calculate_fitness_score(db, user, target_date=p_end)
 
-        # Recalculate the current seven-day period on every read. The score is
-        # derived from mutable workout/nutrition/progress data, so returning an
-        # existing row unchanged would make the dashboard stale after new logs.
-        current_item = FitnessScoreService.calculate_and_save_fitness_score(
-            db, user, target_date=p_end
-        )
-
-        # Fetch score history sorted desc
         history_records = (
             db.query(FitnessScore)
             .filter(FitnessScore.user_id == user.id)

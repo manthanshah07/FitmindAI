@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_LOGIN: str = "5/minute"
     RATE_LIMIT_REGISTER: str = "3/minute"
     RATE_LIMIT_COACH: str = "10/minute"
+    RATE_LIMIT_REPORTS: str = "20/minute"
+
     
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/fitmind_db"

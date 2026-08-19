@@ -26,6 +26,7 @@ const FoodLoggerPage = lazy(() => import('./pages/nutrition/FoodLoggerPage').the
 const NutritionHistoryPage = lazy(() => import('./pages/nutrition/NutritionHistoryPage').then((m) => ({ default: m.NutritionHistoryPage })));
 const ProgressOverviewPage = lazy(() => import('./pages/progress/ProgressOverviewPage').then((m) => ({ default: m.ProgressOverviewPage })));
 const CoachPage = lazy(() => import('./pages/coach/CoachPage').then((m) => ({ default: m.CoachPage })));
+const ReportsPage = lazy(() => import('./pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
 
 const PageLoadingFallback = () => (
   <div className="min-h-[50vh] flex items-center justify-center p-8 bg-bone">
@@ -35,59 +36,52 @@ const PageLoadingFallback = () => (
   </div>
 );
 
-// Public marketing layout with Navbar & Footer
-const PublicLayout = () => (
-  <>
-    <Navbar />
-    <main className="pt-16 border-x border-borderLine max-w-[1600px] mx-auto min-h-[calc(100vh-4rem)]">
-      <Outlet />
-    </main>
-    <Footer />
-  </>
-);
-
-// Authenticated application layout using AppShell (NO marketing Navbar or Footer)
-const AuthenticatedAppLayout = () => (
-  <ProtectedRoute>
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  </ProtectedRoute>
-);
-
-function App() {
+export function App() {
   return (
-    <div className="bg-bone text-graphite min-h-screen font-sans selection:bg-graphite selection:text-bone">
+    <div className="min-h-screen bg-bone text-graphite font-sans antialiased selection:bg-olive selection:text-white">
       <ScrollToTop />
-      <div className="noise-bg" />
       <Suspense fallback={<PageLoadingFallback />}>
         <Routes>
-          {/* Public Marketing Routes */}
-          <Route element={<PublicLayout />}>
+          {/* Public Marketing Layout Routes */}
+          <Route
+            element={
+              <div className="flex flex-col min-h-screen">
+                <Navbar />
+                <main className="flex-grow">
+                  <Outlet />
+                </main>
+                <Footer />
+              </div>
+            }
+          >
             <Route path="/" element={<MarketingPage />} />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/technology" element={<TechnologyPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/register" element={<Navigate to="/signup" replace />} />
-            <Route path="*" element={<NotFoundPage />} />
+            <Route path="/404" element={<NotFoundPage />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
           </Route>
 
-          {/* Authenticated Onboarding Flow (Standalone Protected View without Sidebar) */}
+          {/* Protected Onboarding Flow */}
           <Route
-            path="/onboarding/*"
+            path="/onboarding"
             element={
               <ProtectedRoute>
-                <main className="min-h-screen max-w-[1600px] mx-auto">
-                  <OnboardingPage />
-                </main>
+                <OnboardingPage />
               </ProtectedRoute>
             }
           />
 
-          {/* Authenticated Dashboard & Feature Routes (inside AppShell) */}
-          <Route element={<AuthenticatedAppLayout />}>
+          {/* Authenticated Dashboard AppShell Layout Routes */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppShell />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/workout" element={<WorkoutOverviewPage />} />
             <Route path="/workout/session" element={<WorkoutSessionPage />} />
@@ -100,16 +94,8 @@ function App() {
             <Route path="/progress" element={<ProgressOverviewPage />} />
             <Route path="/progress/measurements" element={<ProgressOverviewPage />} />
             <Route path="/coach" element={<CoachPage />} />
-            <Route
-              path="/reports/*"
-              element={
-                <div className="border border-borderLine p-8 text-center bg-bone">
-                  <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">Analytics & Summaries</span>
-                  <h2 className="text-2xl font-bold uppercase tracking-tighter">Reports Archive</h2>
-                  <p className="text-sm text-charcoal mt-2">Weekly and monthly fitness summaries will be archived here.</p>
-                </div>
-              }
-            />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/reports/*" element={<ReportsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
         </Routes>

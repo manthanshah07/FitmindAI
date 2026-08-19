@@ -251,3 +251,57 @@ class TestFitnessScoreAPI:
         # Meal logged on 1 day: nutrition and protein scores are evaluated for that day
         assert res.json()["nutrition_score"] is not None
         assert res.json()["protein_score"] is not None
+
+    def test_read_only_score_calculation_does_not_mutate_database(self):
+        from tests.conftest import TestingSessionLocal
+        from app.models.user import User
+        from app.models.fitness_score import FitnessScore
+        from app.services.fitness_score_service import FitnessScoreService
+        from app.services.auth_service import AuthService
+        from app.schemas.auth import RegisterRequest
+
+        db = TestingSessionLocal()
+        try:
+            user = db.query(User).filter(User.email == "zerouser@example.com").first()
+            if not user:
+                user = AuthService.register_user(
+                    db, RegisterRequest(email="pure_calc_user@example.com", password="Password123!", full_name="Pure Calc User")
+                )
+
+            initial_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
+
+            # Execute pure calculation
+            item = FitnessScoreService.calculate_fitness_score(db, user)
+            assert item.score >= 0
+
+            # Verify ZERO records added to DB
+            final_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
+            assert final_count == initial_count
+        finally:
+            db.close()
+
+
+    def test_report_generation_does_not_mutate_fitness_score_records(self):
+        headers = get_auth_headers("report_sideeffect_user@example.com")
+        from tests.conftest import TestingSessionLocal
+        from app.models.user import User
+        from app.models.fitness_score import FitnessScore
+
+        db = TestingSessionLocal()
+        try:
+            user = db.query(User).filter(User.email == "report_sideeffect_user@example.com").first()
+            initial_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
+
+            # Request weekly and monthly reports
+            res_w = client.get("/api/v1/reports/weekly?date=2026-08-19", headers=headers)
+            assert res_w.status_code == 200
+
+            res_m = client.get("/api/v1/reports/monthly?date=2026-08-19", headers=headers)
+            assert res_m.status_code == 200
+
+            # Verify score count remained unchanged (0 side-effect commits!)
+            final_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
+            assert final_count == initial_count
+        finally:
+            db.close()
+

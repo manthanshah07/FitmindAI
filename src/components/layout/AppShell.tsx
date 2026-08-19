@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { BottomNav } from './BottomNav';
 
 interface AppShellProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
@@ -33,7 +34,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         <TopBar onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)} />
         <main className="flex-1 p-4 md:p-8 overflow-y-auto max-w-7xl w-full mx-auto">
-          {children}
+          {children || <Outlet />}
         </main>
       </div>
 

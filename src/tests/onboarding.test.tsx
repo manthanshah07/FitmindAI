@@ -132,7 +132,9 @@ describe('OnboardingPage Wizard', () => {
       full_name: 'Prefilled Name',
       height_cm: 180,
       weight_kg: 75,
+      timezone: 'UTC',
       onboarding_complete: true,
+
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });

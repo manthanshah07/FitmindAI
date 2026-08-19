@@ -26,6 +26,8 @@ from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.services.fitness_score_service import FitnessScoreService
 from app.services.analytics_service import AnalyticsService
 from app.services.ai_memory_service import AIMemoryService
+from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+
 
 logger = logging.getLogger(__name__)
 
@@ -86,10 +88,13 @@ class ContextBuilder:
                 target_date=active_goal.target_date,
             )
 
+        user_tz = profile.timezone if (profile and profile.timezone) else "UTC"
+        today_date = get_user_today_date(user_tz)
+
         # 3. Recent Workouts Context (Bounded to last `workout_days` days)
-        workout_cutoff_dt = datetime.combine(
-            date.today() - timedelta(days=workout_days), datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+        workout_start_date = today_date - timedelta(days=workout_days)
+        workout_cutoff_dt, _ = get_timezone_aware_range(workout_start_date, today_date, user_tz)
+
 
         workout_logs = (
             db.query(WorkoutLog)
@@ -139,10 +144,9 @@ class ContextBuilder:
             )
 
         # 4. Recent Nutrition Context (Bounded to last `nutrition_days` days, daily totals)
-        nutrition_cutoff_date = date.today() - timedelta(days=nutrition_days - 1)
-        nutrition_cutoff_dt = datetime.combine(
-            nutrition_cutoff_date, datetime.min.time()
-        ).replace(tzinfo=timezone.utc)
+        nutrition_cutoff_date = today_date - timedelta(days=nutrition_days - 1)
+        nutrition_cutoff_dt, _ = get_timezone_aware_range(nutrition_cutoff_date, today_date, user_tz)
+
 
         meal_logs = (
             db.query(MealLog)

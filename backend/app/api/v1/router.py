@@ -9,11 +9,16 @@ from app.api.v1.nutrition import router as nutrition_router
 from app.api.v1.progress import router as progress_router
 from app.api.v1.fitness_score import router as fitness_score_router
 from app.api.v1.coach import router as coach_router
+from app.api.v1.reports import router as reports_router
+from app.api.v1.dashboard import router as dashboard_router
 
 api_v1_router = APIRouter()
 
 # Include auth endpoints
 api_v1_router.include_router(auth_router)
+
+# Include dashboard endpoints
+api_v1_router.include_router(dashboard_router)
 
 # Include profile endpoints
 api_v1_router.include_router(profile_router, prefix="/profile", tags=["Profile"])
@@ -40,9 +45,11 @@ api_v1_router.include_router(fitness_score_router, prefix="/progress", tags=["Fi
 # Include coach endpoints
 api_v1_router.include_router(coach_router, prefix="/coach", tags=["AI Coach"])
 
+# Include reports endpoints
+api_v1_router.include_router(reports_router)
+
 # Health endpoint under /api/v1/health
 @api_v1_router.get("/health", tags=["Health"])
 def versioned_health_check():
     """Versioned API health check endpoint."""
     return {"status": "ok"}
-

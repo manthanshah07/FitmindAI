@@ -147,3 +147,52 @@ class TestRateLimitingAndProductionSecurity:
                 JWT_SECRET="a_very_secure_production_secret_32_bytes_long!",
                 CORS_ORIGINS=["*"],
             )
+
+    @patch("app.core.ai_client.ai_client.generate")
+    def test_reports_rate_limiting_and_user_isolation(
+        self, mock_generate, client, auth_headers_user_a, auth_headers_user_b
+    ):
+        mock_generate.return_value = LLMCompletionResponse(
+            content="Mock report summary",
+            model="gemini-2.5-flash-lite",
+        )
+
+        # Reports limit is 20/minute. User A sends 22 requests.
+        user_a_responses = []
+        for i in range(22):
+            res = client.get(
+                "/api/v1/reports/weekly?date=2026-08-19",
+                headers=auth_headers_user_a,
+            )
+            user_a_responses.append(res)
+
+        user_a_statuses = [r.status_code for r in user_a_responses]
+        assert 429 in user_a_statuses
+
+        # Verify 429 response structure
+        blocked_res = next(r for r in user_a_responses if r.status_code == 429)
+        data = blocked_res.json()
+        assert data["error_code"] == "RATE_LIMIT_EXCEEDED"
+        assert "Retry-After" in blocked_res.headers
+
+        # User B requests report -> MUST succeed (200 OK) because rate limit is per user
+        res_b = client.get(
+            "/api/v1/reports/weekly?date=2026-08-19",
+            headers=auth_headers_user_b,
+        )
+        assert res_b.status_code == 200
+
+    def test_reports_ai_false_remains_rate_limited(
+        self, client, auth_headers_user_a
+    ):
+        # ai=false requests must also be rate-limited to protect DB resources
+        statuses = []
+        for i in range(22):
+            res = client.get(
+                "/api/v1/reports/monthly?date=2026-08-19&ai=false",
+                headers=auth_headers_user_a,
+            )
+            statuses.append(res.status_code)
+
+        assert 429 in statuses
+

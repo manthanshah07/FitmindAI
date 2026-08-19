@@ -2,7 +2,8 @@ from datetime import date, datetime
 from enum import Enum
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class GenderEnum(str, Enum):
@@ -30,6 +31,19 @@ class DietPreferenceEnum(str, Enum):
     OTHER = "other"
 
 
+def validate_iana_timezone(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    v_clean = v.strip()
+    if not v_clean:
+        return "UTC"
+    try:
+        ZoneInfo(v_clean)
+        return v_clean
+    except (ZoneInfoNotFoundError, ValueError, Exception):
+        raise ValueError(f"Invalid IANA timezone identifier: '{v}'")
+
+
 class ProfileResponse(BaseModel):
     id: UUID
     user_id: UUID
@@ -42,6 +56,9 @@ class ProfileResponse(BaseModel):
     diet_preference: Optional[str] = None
     equipment: Optional[List[str]] = None
     medical_notes: Optional[str] = None
+    timezone: str = "UTC"
+    preferred_workout_duration_minutes: Optional[int] = 45
+    target_workout_days_per_week: Optional[int] = 4
     onboarding_complete: bool
     created_at: datetime
     updated_at: datetime
@@ -59,6 +76,14 @@ class ProfileUpdate(BaseModel):
     diet_preference: Optional[DietPreferenceEnum] = None
     equipment: Optional[List[str]] = None
     medical_notes: Optional[str] = None
+    timezone: Optional[str] = Field(None, max_length=50)
+    preferred_workout_duration_minutes: Optional[int] = Field(None, ge=15, le=180)
+    target_workout_days_per_week: Optional[int] = Field(None, ge=1, le=7)
+
+    @field_validator("timezone")
+    @classmethod
+    def check_timezone(cls, v: Optional[str]) -> Optional[str]:
+        return validate_iana_timezone(v)
 
 
 class OnboardingCreate(BaseModel):
@@ -71,3 +96,11 @@ class OnboardingCreate(BaseModel):
     diet_preference: Optional[DietPreferenceEnum] = None
     equipment: Optional[List[str]] = None
     medical_notes: Optional[str] = None
+    timezone: Optional[str] = Field(None, max_length=50)
+    preferred_workout_duration_minutes: Optional[int] = Field(None, ge=15, le=180)
+    target_workout_days_per_week: Optional[int] = Field(None, ge=1, le=7)
+
+    @field_validator("timezone")
+    @classmethod
+    def check_timezone(cls, v: Optional[str]) -> Optional[str]:
+        return validate_iana_timezone(v)
