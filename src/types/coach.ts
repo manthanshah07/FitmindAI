@@ -36,3 +36,13 @@ export interface ChatMessage {
   isError?: boolean;
   errorMessage?: string;
 }
+
+export interface ChatMessageResponse {
+  id: string;
+  user_id: string;
+  role: 'user' | 'assistant';
+  content?: string | null;
+  response?: CoachChatResponse | null;
+  created_at: string;
+}
+

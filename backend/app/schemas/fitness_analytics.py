@@ -37,12 +37,26 @@ class NutritionTrendAnalytics(BaseModel):
     days_logged_7d: int = 0
     days_unlogged_7d: int = 7
     logging_completeness_pct: float = 0.0
-    avg_daily_calories: Optional[float] = None  # Calculated strictly across logged days!
-    avg_daily_protein_g: Optional[float] = None  # Calculated strictly across logged days!
+    avg_daily_calories_on_logged_days: Optional[float] = Field(
+        None,
+        description="Average daily calories strictly across logged days. NOT an overall 7-day average!",
+    )
+    avg_daily_protein_g_on_logged_days: Optional[float] = Field(
+        None,
+        description="Average daily protein strictly across logged days. NOT an overall 7-day average!",
+    )
     target_calories: Optional[float] = None
     target_protein_g: Optional[float] = None
     calorie_adherence_pct: Optional[float] = None
     protein_adherence_pct: Optional[float] = None
+
+    @property
+    def avg_daily_calories(self) -> Optional[float]:
+        return self.avg_daily_calories_on_logged_days
+
+    @property
+    def avg_daily_protein_g(self) -> Optional[float]:
+        return self.avg_daily_protein_g_on_logged_days
 
 
 class MeasurementTrendAnalytics(BaseModel):

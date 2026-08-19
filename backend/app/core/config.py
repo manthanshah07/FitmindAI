@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
     
+    # Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_LOGIN: str = "5/minute"
+    RATE_LIMIT_REGISTER: str = "3/minute"
+    RATE_LIMIT_COACH: str = "10/minute"
+    
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/fitmind_db"
     
@@ -24,8 +30,6 @@ class Settings(BaseSettings):
     SUPABASE_URL: str | None = None
     SUPABASE_SERVICE_KEY: str | None = None
 
-
-
     @model_validator(mode="after")
     def validate_production_jwt_secret(self) -> "Settings":
         DEFAULT_DEV_SECRET = "default_dev_secret_change_me_in_production_32_bytes"
@@ -37,6 +41,10 @@ class Settings(BaseSettings):
             if len(self.JWT_SECRET) < 32:
                 raise ValueError(
                     "JWT_SECRET must be at least 32 characters long in production mode."
+                )
+            if isinstance(self.CORS_ORIGINS, list) and "*" in self.CORS_ORIGINS:
+                raise ValueError(
+                    "CORS_ORIGINS cannot include wildcards ('*') in production mode."
                 )
         return self
 

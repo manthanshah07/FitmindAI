@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.database import Base, get_db
+from app.core.limiter import limiter
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
@@ -32,6 +33,17 @@ def setup_db():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def disable_rate_limiter_in_general_tests():
+    """
+    Disables rate limiting by default for general test execution to ensure test determinism.
+    Dedicated rate-limit tests in test_rate_limiting.py explicitly re-enable limiter.enabled.
+    """
+    limiter.enabled = False
+    yield
+    limiter.enabled = False
 
 
 @pytest.fixture

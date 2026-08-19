@@ -18,6 +18,8 @@ from app.models.nutrition import (
 )
 from app.models.progress import Measurement
 from app.models.fitness_score import FitnessScore
+from app.models.ai_memory import AIMemory
+from app.models.chat_message import ChatMessage
 
 __all__ = [
     "Base",
@@ -35,4 +37,7 @@ __all__ = [
     "MealLogItem",
     "Measurement",
     "FitnessScore",
+    "AIMemory",
+    "ChatMessage",
 ]
+

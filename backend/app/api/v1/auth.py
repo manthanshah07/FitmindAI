@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.config import settings
+from app.core.limiter import limiter
 from app.schemas.auth import (
     RegisterRequest,
     LoginRequest,
@@ -16,14 +18,16 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit(settings.RATE_LIMIT_REGISTER)
+def register(request: Request, req: RegisterRequest, db: Session = Depends(get_db)):
     """Create a new user account."""
     user = AuthService.register_user(db, req)
     return user
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(settings.RATE_LIMIT_LOGIN)
+def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate and receive access + refresh JWT tokens."""
     return AuthService.authenticate_user(db, req)
 

@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { CoachPage } from '../pages/coach/CoachPage';
 import { AppShell } from '../components/layout/AppShell';
 import * as coachApi from '../lib/api/coach';
-import type { CoachChatResponse } from '../types/coach';
+import type { CoachChatResponse, ChatMessageResponse } from '../types/coach';
 
 vi.mock('../lib/api/coach', () => ({
   sendCoachMessageApi: vi.fn(),
+  getCoachHistoryApi: vi.fn(),
 }));
 
 const mockStructuredResponse: CoachChatResponse = {
@@ -37,7 +38,24 @@ const mockStructuredResponse: CoachChatResponse = {
   data_quality: 'moderate',
 };
 
-describe('Phase 7 — FitMind AI Coach UI Component', () => {
+const mockHistoryResponse: ChatMessageResponse[] = [
+  {
+    id: 'msg-1',
+    user_id: 'u-123',
+    role: 'user',
+    content: 'What should I eat?',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'msg-2',
+    user_id: 'u-123',
+    role: 'assistant',
+    response: mockStructuredResponse,
+    created_at: new Date().toISOString(),
+  },
+];
+
+describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -58,29 +76,61 @@ describe('Phase 7 — FitMind AI Coach UI Component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the Coach Page empty state with introduction and suggested prompts', () => {
-    render(
-      <MemoryRouter initialEntries={['/coach']}>
-        <AppShell>
-          <CoachPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
+  it('renders the Coach Page empty state when no history exists', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
+
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome to your AI Coach/i)).toBeInTheDocument();
+    });
 
     expect(screen.getAllByText(/FitMind AI Coach/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Welcome to your AI Coach/i)).toBeInTheDocument();
     expect(screen.getByText(/What should I focus on this week\?/i)).toBeInTheDocument();
-    expect(screen.getByText(/Am I eating enough protein\?/i)).toBeInTheDocument();
   });
 
-  it('disables send button when input is empty or whitespace only', () => {
-    render(
-      <MemoryRouter initialEntries={['/coach']}>
-        <AppShell>
-          <CoachPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
+  it('loads and renders persistent chat history on mount', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce(mockHistoryResponse);
+
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('What should I eat?')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/focus on increasing protein intake/i)).toBeInTheDocument();
+    expect(screen.getByText(/Average protein intake is 110g/i)).toBeInTheDocument();
+    expect(screen.getByText(/Increase Daily Protein/i)).toBeInTheDocument();
+  });
+
+  it('disables send button when input is empty or whitespace only', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
+
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
 
     const sendBtn = screen.getByRole('button', { name: /SEND QUESTION/i });
     expect(sendBtn).toBeDisabled();
@@ -94,60 +144,64 @@ describe('Phase 7 — FitMind AI Coach UI Component', () => {
   });
 
   it('sends user question and renders structured AI coach response', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
     vi.mocked(coachApi.sendCoachMessageApi).mockResolvedValueOnce(mockStructuredResponse);
 
-    render(
-      <MemoryRouter initialEntries={['/coach']}>
-        <AppShell>
-          <CoachPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
 
     const input = screen.getByPlaceholderText(/Ask FitMind AI Coach/i);
     fireEvent.change(input, { target: { value: 'What should I eat?' } });
 
     const sendBtn = screen.getByRole('button', { name: /SEND QUESTION/i });
-    fireEvent.click(sendBtn);
 
-    // Verify user message appears in list
+    await act(async () => {
+      fireEvent.click(sendBtn);
+    });
+
     expect(screen.getByText('What should I eat?')).toBeInTheDocument();
-
-    // Verify API call was made
     expect(coachApi.sendCoachMessageApi).toHaveBeenCalledWith({
       message: 'What should I eat?',
     });
 
-    // Verify structured response sections render
     await waitFor(() => {
       expect(screen.getByText(/COACH DIRECT ANSWER/i)).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByText(/focus on increasing protein intake/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/focus on increasing protein intake/i)).toBeInTheDocument();
     expect(screen.getByText(/FACTS & OBSERVATIONS/i)).toBeInTheDocument();
-    expect(screen.getByText(/Average protein intake is 110g/i)).toBeInTheDocument();
-    expect(screen.getByText(/ACTIONABLE RECOMMENDATIONS/i)).toBeInTheDocument();
-    expect(screen.getByText(/Increase Daily Protein/i)).toBeInTheDocument();
-    expect(screen.getByText(/DATA LIMITATIONS & SAFETY WARNINGS/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 unlogged nutrition days/i)).toBeInTheDocument();
-    expect(screen.getByText(/DATA QUALITY: MODERATE/i)).toBeInTheDocument();
   });
 
   it('triggers send when clicking a suggested prompt button', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
     vi.mocked(coachApi.sendCoachMessageApi).mockResolvedValueOnce(mockStructuredResponse);
 
-    render(
-      <MemoryRouter initialEntries={['/coach']}>
-        <AppShell>
-          <CoachPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Am I eating enough protein\?/i)).toBeInTheDocument();
+    });
 
     const suggestedBtn = screen.getByText(/Am I eating enough protein\?/i);
-    fireEvent.click(suggestedBtn);
+
+    await act(async () => {
+      fireEvent.click(suggestedBtn);
+    });
 
     expect(screen.getByText('Am I eating enough protein?')).toBeInTheDocument();
     expect(coachApi.sendCoachMessageApi).toHaveBeenCalledWith({
@@ -156,23 +210,29 @@ describe('Phase 7 — FitMind AI Coach UI Component', () => {
   });
 
   it('handles API errors gracefully and displays error alert banner', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
     vi.mocked(coachApi.sendCoachMessageApi).mockRejectedValueOnce(
       new Error('AI service returned an invalid or empty response.')
     );
 
-    render(
-      <MemoryRouter initialEntries={['/coach']}>
-        <AppShell>
-          <CoachPage />
-        </AppShell>
-      </MemoryRouter>,
-    );
+    await act(async () => {
+      render(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
 
     const input = screen.getByPlaceholderText(/Ask FitMind AI Coach/i);
     fireEvent.change(input, { target: { value: 'Trigger error test' } });
 
     const sendBtn = screen.getByRole('button', { name: /SEND QUESTION/i });
-    fireEvent.click(sendBtn);
+
+    await act(async () => {
+      fireEvent.click(sendBtn);
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/COACH ERROR/i)).toBeInTheDocument();

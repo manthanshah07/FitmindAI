@@ -301,6 +301,8 @@ def test_nutrition_trends_unlogged_days_excluded(db, user_analytics_a):
 
     # Total calories across 3 logged days = 800 + 400 + 1200 = 2400 kcal
     # Average OVER LOGGED DAYS = 2400 / 3 = 800 kcal (NOT 2400 / 7 = 342 kcal!)
+    assert res.avg_daily_calories_on_logged_days == 800.0
+    assert res.avg_daily_protein_g_on_logged_days == 40.0
     assert res.avg_daily_calories == 800.0
     assert res.avg_daily_protein_g == 40.0
 
@@ -313,6 +315,8 @@ def test_nutrition_trends_empty(db, user_analytics_a):
     assert res.days_logged_7d == 0
     assert res.days_unlogged_7d == 7
     assert res.logging_completeness_pct == 0.0
+    assert res.avg_daily_calories_on_logged_days is None
+    assert res.avg_daily_protein_g_on_logged_days is None
     assert res.avg_daily_calories is None
     assert res.avg_daily_protein_g is None
 

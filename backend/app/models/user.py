@@ -57,3 +57,6 @@ class User(Base):
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
     workout_plans = relationship("WorkoutPlan", back_populates="user", cascade="all, delete-orphan")
     workout_logs = relationship("WorkoutLog", back_populates="user", cascade="all, delete-orphan")
+    ai_memories = relationship("AIMemory", back_populates="user", cascade="all, delete-orphan")
+    chat_messages = relationship("ChatMessage", back_populates="user", cascade="all, delete-orphan")
+

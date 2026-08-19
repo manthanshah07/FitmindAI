@@ -19,10 +19,13 @@ from app.schemas.fitness_context import (
     DailyNutritionContext,
     MeasurementContext,
     FitnessScoreComponentContext,
+    ChatMessageContext,
+    AIMemoryContext,
 )
+from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.services.fitness_score_service import FitnessScoreService
-
 from app.services.analytics_service import AnalyticsService
+from app.services.ai_memory_service import AIMemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,8 @@ class ContextBuilder:
     """
     Dedicated fitness context retrieval service.
     Assembles a structured, user-isolated snapshot of the user's FitMind data
-    (Profile, Active Goal, Recent Workouts, Daily Nutrition, Body Measurements, Fitness Score)
+    (Profile, Active Goal, Recent Workouts, Daily Nutrition, Body Measurements, Fitness Score,
+    Active AI Memories, and Bounded Recent Chat History)
     within bounded date ranges for AI prompt construction.
     """
 
@@ -237,6 +241,45 @@ class ContextBuilder:
         except Exception as e:
             logger.warning("Could not calculate fitness analytics for context: %s", e)
 
+        # 8. Active AI Memories
+        active_memories_ctx: List[AIMemoryContext] = []
+        try:
+            memories = AIMemoryService.get_active_memories(db, user)
+            for mem in memories:
+                active_memories_ctx.append(
+                    AIMemoryContext(
+                        key=mem.key,
+                        value=mem.value,
+                        memory_type=mem.memory_type,
+                    )
+                )
+        except Exception as e:
+            logger.warning("Could not fetch active AI memories for context: %s", e)
+
+        # 9. Recent Chat History Context (Bounded to last 10 messages)
+        recent_chat_ctx: List[ChatMessageContext] = []
+        try:
+            raw_chats = (
+                db.query(ChatMessageModel)
+                .filter(ChatMessageModel.user_id == user.id)
+                .order_by(ChatMessageModel.created_at.desc())
+                .limit(10)
+                .all()
+            )
+            for chat in reversed(raw_chats):
+                text_content = chat.content or ""
+                if not text_content and chat.response_json and isinstance(chat.response_json, dict):
+                    text_content = chat.response_json.get("answer", "")
+                if text_content:
+                    recent_chat_ctx.append(
+                        ChatMessageContext(
+                            role=chat.role,
+                            content=text_content,
+                        )
+                    )
+        except Exception as e:
+            logger.warning("Could not fetch recent chat history for context: %s", e)
+
         return FitnessContext(
             profile=profile_ctx,
             active_goal=goal_ctx,
@@ -245,4 +288,7 @@ class ContextBuilder:
             recent_measurements=measurement_contexts,
             fitness_score=score_ctx,
             analytics=analytics_ctx,
+            recent_chat_history=recent_chat_ctx,
+            active_memories=active_memories_ctx,
         )
+

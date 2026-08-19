@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { sendCoachMessageApi } from '../../lib/api/coach';
+import { sendCoachMessageApi, getCoachHistoryApi } from '../../lib/api/coach';
 import { getErrorMessage } from '../../utils/apiError';
 import type {
   ChatMessage,
@@ -23,6 +23,7 @@ export const CoachPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -30,6 +31,44 @@ export const CoachPage: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHistory() {
+      setIsLoadingHistory(true);
+      try {
+        const history = await getCoachHistoryApi();
+        if (isMounted && history && history.length > 0) {
+          const loadedMessages: ChatMessage[] = history.map((item) => {
+            const timeStr = item.created_at
+              ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return {
+              id: item.id,
+              sender: item.role,
+              content: item.content || undefined,
+              response: item.response || undefined,
+              timestamp: timeStr,
+            };
+          });
+          setMessages(loadedMessages);
+        }
+      } catch {
+        // Silently catch history fetch error; user can still interact with coach
+      } finally {
+        if (isMounted) {
+          setIsLoadingHistory(false);
+        }
+      }
+    }
+
+    loadHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -163,7 +202,14 @@ export const CoachPage: React.FC = () => {
       <Card variant="default" className="p-4 md:p-6 min-h-[500px] flex flex-col justify-between">
         {/* Chat Message List */}
         <div className="flex-1 overflow-y-auto max-h-[550px] space-y-6 pr-2 mb-6 scrollbar-thin">
-          {messages.length === 0 ? (
+          {isLoadingHistory ? (
+            /* Loading State */
+            <div className="py-16 text-center space-y-3">
+              <span className="font-mono text-xs text-olive uppercase tracking-widest animate-pulse font-bold block">
+                Restoring persistent conversation history...
+              </span>
+            </div>
+          ) : messages.length === 0 ? (
             /* Empty State */
             <div className="py-12 px-4 text-center space-y-6 max-w-2xl mx-auto">
               <div className="inline-block p-4 border border-borderLine bg-black/5 rounded-none">
@@ -237,13 +283,13 @@ export const CoachPage: React.FC = () => {
                       )}
 
                       {/* Answer Block */}
-                      {msg.response?.answer && (
+                      {(msg.response?.answer || msg.content) && (
                         <div className="space-y-1">
                           <h3 className="font-mono text-xs text-faded font-bold uppercase tracking-wider">
                             COACH DIRECT ANSWER
                           </h3>
                           <p className="text-sm md:text-base font-sans text-graphite leading-relaxed">
-                            {msg.response.answer}
+                            {msg.response?.answer || msg.content}
                           </p>
                         </div>
                       )}

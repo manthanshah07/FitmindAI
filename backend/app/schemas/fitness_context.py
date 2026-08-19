@@ -68,6 +68,17 @@ class FitnessScoreComponentContext(BaseModel):
     consistency_score: Optional[float] = None
 
 
+class ChatMessageContext(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
+class AIMemoryContext(BaseModel):
+    key: str
+    value: str
+    memory_type: str
+
+
 class FitnessContext(BaseModel):
     profile: Optional[ProfileContext] = None
     active_goal: Optional[GoalContext] = None
@@ -76,3 +87,6 @@ class FitnessContext(BaseModel):
     recent_measurements: List[MeasurementContext] = Field(default_factory=list)
     fitness_score: Optional[FitnessScoreComponentContext] = None
     analytics: Optional[FitnessAnalytics] = None
+    recent_chat_history: List[ChatMessageContext] = Field(default_factory=list)
+    active_memories: List[AIMemoryContext] = Field(default_factory=list)
+
