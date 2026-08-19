@@ -154,11 +154,39 @@ def run_test_subjects_seeder(db: Session = Depends(get_db)):
             "seeded_emails": seeded_emails,
         }
     except Exception as e:
-        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to seed test subjects: {str(e)}",
         )
+
+
+@router.post("/migrate", status_code=status.HTTP_200_OK)
+
+def run_database_migrations_endpoint(db: Session = Depends(get_db)):
+    """
+    Direct HTTP trigger to execute schema migrations on the connected database.
+    """
+    from sqlalchemy import text
+    try:
+        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'UTC';"))
+        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferred_workout_duration_minutes INTEGER DEFAULT 45;"))
+        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_workout_days_per_week INTEGER DEFAULT 4;"))
+        db.commit()
+
+        from app.seed_demo_data import run_db_migrations
+        run_db_migrations(db)
+
+        return {
+            "status": "success",
+            "message": "Successfully updated database schema on PostgreSQL.",
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to execute database migrations: {str(e)}",
+        )
+
 
 
 
