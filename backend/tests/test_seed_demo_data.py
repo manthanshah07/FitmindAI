@@ -203,13 +203,28 @@ def test_production_safety_check_blocks_unauthorized_execution(db: Session, monk
     assert "SAFETY BLOCK" in str(exc_info.value)
 
 
-def test_production_safety_check_allows_authorized_execution(db: Session, monkeypatch):
+def test_admin_trigger_demo_seeding_endpoint(db: Session):
+    from fastapi.testclient import TestClient
+    from app.main import app
     from app.core.config import settings
-    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
-    monkeypatch.setenv("DEMO_SEED_PRODUCTION", "true")
 
+    client = TestClient(app)
+
+    # Unauthorized without X-Admin-Secret header
+    res_no_header = client.post("/api/v1/admin/seed-demo")
+    assert res_no_header.status_code == 422  # missing header
+
+    # Invalid secret header
+    res_bad_header = client.post("/api/v1/admin/seed-demo", headers={"x-admin-secret": "WrongSecret123"})
+    assert res_bad_header.status_code == 401
+
+    # Valid secret header triggers seeding
     db.rollback()
-    emails = seed_demo_data(db)
-    assert len(emails) == 10
+    res_success = client.post("/api/v1/admin/seed-demo", headers={"x-admin-secret": settings.JWT_SECRET})
+    assert res_success.status_code == 200
+    data = res_success.json()
+    assert data["status"] == "success"
+    assert len(data["seeded_emails"]) == 10
+
 
 
