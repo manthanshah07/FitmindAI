@@ -29,10 +29,12 @@ from app.models.refresh_token import RefreshToken
 from app.services.fitness_score_service import FitnessScoreService
 from app.core.config import settings
 
-DEMO_PASSWORD_PLAIN = "FitMindDemo@2026"
+TEST_SUBJECT_PASSWORD = "FitMindDemo@2026"
+DEMO_PASSWORD_PLAIN = TEST_SUBJECT_PASSWORD
 
 
-DEMO_ACCOUNTS_CONFIG = [
+TEST_SUBJECTS_CONFIG = [
+
     {
         "email": "demo.full@fitmind.ai",
         "full_name": "Marcus Vance",
@@ -186,8 +188,11 @@ DEMO_ACCOUNTS_CONFIG = [
     },
 ]
 
+DEMO_ACCOUNTS_CONFIG = TEST_SUBJECTS_CONFIG
+
 
 def seed_exercises(db: Session) -> Dict[str, Exercise]:
+
     exercises_data = [
         {"name": "Barbell Bench Press", "primary_muscle": "Chest", "equipment_required": ["barbell"]},
         {"name": "Barbell Squat", "primary_muscle": "Quadriceps", "equipment_required": ["barbell"]},
@@ -291,10 +296,11 @@ def validate_production_seeding_safety():
             )
 
 
-def seed_demo_data(db: Session) -> List[str]:
+def seed_test_subjects(db: Session) -> List[str]:
     validate_production_seeding_safety()
     Base.metadata.create_all(bind=engine)
-    demo_emails = [cfg["email"] for cfg in DEMO_ACCOUNTS_CONFIG]
+    demo_emails = [cfg["email"] for cfg in TEST_SUBJECTS_CONFIG]
+
 
 
     # Idempotent cleanup: remove existing demo users cleanly
@@ -685,20 +691,24 @@ def seed_demo_data(db: Session) -> List[str]:
     return created_user_emails
 
 
+seed_demo_data = seed_test_subjects
+
+
 def main():
-    print("Initializing FitMind AI Demo User Seeding System...")
+    print("Initializing FitMind AI Test Subject Seeding System...")
     db = SessionLocal()
     try:
-        emails = seed_demo_data(db)
-        print(f"Successfully seeded {len(emails)} demo user accounts:")
+        emails = seed_test_subjects(db)
+        print(f"Successfully seeded {len(emails)} test subject user accounts:")
         for email in emails:
-            print(f"  - {email} (Password: {DEMO_PASSWORD_PLAIN})")
+            print(f"  - {email} (Password: {TEST_SUBJECT_PASSWORD})")
     except Exception as e:
         db.rollback()
-        print(f"Error seeding demo data: {e}", file=sys.stderr)
+        print(f"Error seeding test subjects: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
         db.close()
+
 
 
 if __name__ == "__main__":

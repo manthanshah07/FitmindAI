@@ -27,8 +27,10 @@ def db():
 
 @pytest.fixture
 def seed_db(db: Session):
+    db.rollback()
     seed_demo_data(db)
     return db
+
 
 
 def get_auth_headers(user: User) -> dict:
