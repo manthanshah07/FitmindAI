@@ -131,7 +131,12 @@ class ReportService:
             .filter(WorkoutPlan.user_id == user.id, WorkoutPlan.is_active == True)
             .first()
         )
-        days_per_week = active_plan.days_per_week if (active_plan and active_plan.days_per_week) else 4
+        days_per_week = (
+            active_plan.days_per_week
+            if (active_plan and active_plan.days_per_week)
+            else (user.profile.target_workout_days_per_week if (user and user.profile and user.profile.target_workout_days_per_week) else 4)
+        )
+
         if report_type == "weekly":
             target_workouts = days_per_week
         else:

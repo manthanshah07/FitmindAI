@@ -143,3 +143,73 @@ def test_fitness_score_service_remains_authoritative(db: Session):
 
     scores = db.query(FitnessScore).filter(FitnessScore.user_id == progress_user.id).all()
     assert len(scores) > 0
+
+
+def test_demo_full_authentication_flow(db: Session):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    seed_demo_data(db)
+    client = TestClient(app)
+
+    res = client.post("/api/v1/auth/login", json={"email": "demo.full@fitmind.ai", "password": DEMO_PASSWORD_PLAIN})
+    assert res.status_code == 200
+    data = res.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["token_type"] == "bearer"
+    assert data["user"]["email"] == "demo.full@fitmind.ai"
+
+
+def test_inactive_and_wrong_password_auth_behavior(db: Session):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    db.rollback()
+    seed_demo_data(db)
+    client = TestClient(app)
+
+
+    # Wrong password returns 401
+    bad_pw_res = client.post("/api/v1/auth/login", json={"email": "demo.full@fitmind.ai", "password": "WrongPassword123!"})
+    assert bad_pw_res.status_code == 401
+    assert bad_pw_res.json()["detail"] == "Invalid email or password"
+
+    # Inactive user returns 403
+    user = db.query(User).filter(User.email == "demo.full@fitmind.ai").first()
+    user.is_active = False
+    db.commit()
+
+    inactive_res = client.post("/api/v1/auth/login", json={"email": "demo.full@fitmind.ai", "password": DEMO_PASSWORD_PLAIN})
+    assert inactive_res.status_code == 403
+    assert inactive_res.json()["detail"] == "Account is inactive"
+
+
+def test_database_configuration_alignment():
+    from app.core.config import settings
+    from app.core.database import engine
+
+    assert str(engine.url) == settings.DATABASE_URL
+
+
+def test_production_safety_check_blocks_unauthorized_execution(db: Session, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.delenv("DEMO_SEED_PRODUCTION", raising=False)
+    monkeypatch.delenv("DEMO_SEED_ALLOW", raising=False)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        seed_demo_data(db)
+    assert "SAFETY BLOCK" in str(exc_info.value)
+
+
+def test_production_safety_check_allows_authorized_execution(db: Session, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setenv("DEMO_SEED_PRODUCTION", "true")
+
+    db.rollback()
+    emails = seed_demo_data(db)
+    assert len(emails) == 10
+
+

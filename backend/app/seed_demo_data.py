@@ -1,11 +1,21 @@
+import os
 import sys
+from pathlib import Path
+
+# Add backend directory to sys.path if not present so script runs directly or via -m
+backend_dir = Path(__file__).resolve().parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 from datetime import date, datetime, timedelta, timezone
+
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, Base, engine
 from app.core.security import hash_password
+
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.goal import Goal
@@ -15,9 +25,12 @@ from app.models.progress import Measurement
 from app.models.ai_memory import AIMemory
 from app.models.chat_message import ChatMessage
 from app.models.fitness_score import FitnessScore
+from app.models.refresh_token import RefreshToken
 from app.services.fitness_score_service import FitnessScoreService
+from app.core.config import settings
 
 DEMO_PASSWORD_PLAIN = "FitMindDemo@2026"
+
 
 DEMO_ACCOUNTS_CONFIG = [
     {
@@ -140,6 +153,7 @@ DEMO_ACCOUNTS_CONFIG = [
         "target_days": 5,
         "scenario": "User without an active WorkoutPlan to test profile preference fallback",
     },
+
     {
         "email": "demo.timezone@fitmind.ai",
         "full_name": "Aarav Sharma",
@@ -249,13 +263,64 @@ def add_meal_item(db: Session, meal_id, food: Food, grams: float):
     db.add(item)
 
 
+def validate_production_seeding_safety():
+
+    """
+    Validates safety flags before performing demo seeding against production databases.
+    If ENVIRONMENT=production or DATABASE_URL targets a non-local database,
+    requires DEMO_SEED_PRODUCTION=true or DEMO_SEED_ALLOW=true or --force-production.
+    """
+    is_prod_env = getattr(settings, "ENVIRONMENT", "development").lower() == "production"
+    db_url = getattr(settings, "DATABASE_URL", "").lower()
+    is_remote_db = bool(db_url) and not ("localhost" in db_url or "127.0.0.1" in db_url or "sqlite" in db_url)
+
+    if is_prod_env or is_remote_db:
+        allow_flag = (
+            os.getenv("DEMO_SEED_PRODUCTION", "").lower() in ("true", "1", "yes")
+            or os.getenv("DEMO_SEED_ALLOW", "").lower() in ("true", "1", "yes")
+            or "--force-production" in sys.argv
+        )
+        if not allow_flag:
+            raise RuntimeError(
+                "SAFETY BLOCK: Attempted to run demo seeding against a PRODUCTION or REMOTE database without explicit confirmation.\n"
+                f"  ENVIRONMENT: {settings.ENVIRONMENT}\n"
+                "  To authorize production demo seeding, set environment variable:\n"
+                "    DEMO_SEED_PRODUCTION=true\n"
+                "  or run with CLI flag:\n"
+                "    python -m app.seed_demo_data --force-production\n"
+            )
+
+
 def seed_demo_data(db: Session) -> List[str]:
+    validate_production_seeding_safety()
+    Base.metadata.create_all(bind=engine)
     demo_emails = [cfg["email"] for cfg in DEMO_ACCOUNTS_CONFIG]
+
 
     # Idempotent cleanup: remove existing demo users cleanly
     existing_demo_users = db.query(User).filter(User.email.in_(demo_emails)).all()
     if existing_demo_users:
         demo_user_ids = [u.id for u in existing_demo_users]
+
+        # Delete child rows first to satisfy PostgreSQL Foreign Key constraints
+        meal_logs = db.query(MealLog).filter(MealLog.user_id.in_(demo_user_ids)).all()
+        if meal_logs:
+            ml_ids = [m.id for m in meal_logs]
+            db.query(MealLogItem).filter(MealLogItem.meal_log_id.in_(ml_ids)).delete(synchronize_session=False)
+
+        workout_logs = db.query(WorkoutLog).filter(WorkoutLog.user_id.in_(demo_user_ids)).all()
+        if workout_logs:
+            wl_ids = [w.id for w in workout_logs]
+            db.query(WorkoutLogExercise).filter(WorkoutLogExercise.log_id.in_(wl_ids)).delete(synchronize_session=False)
+
+
+        workout_plans = db.query(WorkoutPlan).filter(WorkoutPlan.user_id.in_(demo_user_ids)).all()
+        if workout_plans:
+            wp_ids = [p.id for p in workout_plans]
+            db.query(WorkoutPlanExercise).filter(WorkoutPlanExercise.plan_id.in_(wp_ids)).delete(synchronize_session=False)
+
+
+        db.query(RefreshToken).filter(RefreshToken.user_id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.query(FitnessScore).filter(FitnessScore.user_id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.query(Measurement).filter(Measurement.user_id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.query(MealLog).filter(MealLog.user_id.in_(demo_user_ids)).delete(synchronize_session=False)
@@ -267,6 +332,7 @@ def seed_demo_data(db: Session) -> List[str]:
         db.query(ChatMessage).filter(ChatMessage.user_id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.query(User).filter(User.id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.commit()
+
 
     # Base catalogs
     ex_catalog = seed_exercises(db)
