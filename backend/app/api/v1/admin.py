@@ -9,15 +9,12 @@ from app.seed_demo_data import seed_test_subjects, seed_demo_data
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-@router.post("/seed-test-subjects", status_code=status.HTTP_200_OK)
-@router.post("/seed-demo", status_code=status.HTTP_200_OK)
-def trigger_test_subjects_seeding(
+def verify_admin_secret(
     x_admin_secret: str = Header(..., description="Admin authorization secret header"),
-    db: Session = Depends(get_db),
-):
+) -> str:
     """
-    Trigger production test subject data seeding via HTTP POST request.
-    Requires header `X-Admin-Secret` matching ADMIN_SEED_SECRET or JWT_SECRET.
+    Dependency that enforces admin secret header verification for all admin endpoints.
+    Requires header `X-Admin-Secret` matching ADMIN_SEED_SECRET or JWT_SECRET fallback.
     """
     expected_secret = os.getenv("ADMIN_SEED_SECRET", settings.JWT_SECRET)
     if not x_admin_secret or x_admin_secret != expected_secret:
@@ -25,8 +22,19 @@ def trigger_test_subjects_seeding(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid admin authorization secret header",
         )
+    return x_admin_secret
 
-    # Force allow production seeding for explicit admin HTTP request
+
+@router.post("/seed-demo", status_code=status.HTTP_200_OK)
+@router.post("/seed-test-subjects", status_code=status.HTTP_200_OK)
+def trigger_test_subjects_seeding(
+    admin_secret: str = Depends(verify_admin_secret),
+    db: Session = Depends(get_db),
+):
+    """
+    Trigger test subject data seeding via authenticated HTTP POST request.
+    Requires header `X-Admin-Secret`.
+    """
     os.environ["SEED_TEST_SUBJECTS_PRODUCTION"] = "true"
     os.environ["DEMO_SEED_PRODUCTION"] = "true"
 
@@ -35,7 +43,7 @@ def trigger_test_subjects_seeding(
         return {
             "status": "success",
             "message": f"Successfully seeded {len(seeded_emails)} test subject user accounts.",
-            "seeded_emails": seeded_emails,
+            "count": len(seeded_emails),
         }
     except Exception as e:
         db.rollback()
@@ -47,63 +55,46 @@ def trigger_test_subjects_seeding(
 
 @router.get("/verify-test-subjects", status_code=status.HTTP_200_OK)
 def verify_test_subjects_health(
+    admin_secret: str = Depends(verify_admin_secret),
     db: Session = Depends(get_db),
 ):
     """
-    Safe production health verification for the 10 test subject accounts.
-    Returns database connection type and verification status per test subject without exposing secrets.
+    Authenticated diagnostic endpoint verifying health of test subject accounts.
+    Requires `X-Admin-Secret` header. Returns aggregate metrics without exposing PII.
     """
     from app.models.user import User
     from app.core.security import verify_password
     from app.seed_demo_data import TEST_SUBJECTS_CONFIG, TEST_SUBJECT_PASSWORD, engine
 
     db_dialect = engine.dialect.name
-    results = []
     total_valid = 0
 
     for cfg in TEST_SUBJECTS_CONFIG:
         email = cfg["email"]
         user = db.query(User).filter(User.email == email).first()
-
         if not user:
-            results.append({
-                "email": email,
-                "exists": False,
-                "is_active": False,
-                "is_verified": False,
-                "password_verified": False,
-            })
             continue
 
         pwd_ok = verify_password(TEST_SUBJECT_PASSWORD, user.password_hash)
-
-        is_valid = user.is_active and user.is_verified and pwd_ok
-
-        if is_valid:
+        if user.is_active and user.is_verified and pwd_ok:
             total_valid += 1
-
-        results.append({
-            "email": email,
-            "exists": True,
-            "is_active": user.is_active,
-            "is_verified": user.is_verified,
-            "password_verified": pwd_ok,
-        })
 
     return {
         "status": "ok" if total_valid == len(TEST_SUBJECTS_CONFIG) else "incomplete",
         "database_type": db_dialect,
         "total_test_subjects": len(TEST_SUBJECTS_CONFIG),
         "valid_test_subjects": total_valid,
-        "subjects": results,
     }
 
 
 @router.get("/db-info", status_code=status.HTTP_200_OK)
-def get_db_diagnostic_info(db: Session = Depends(get_db)):
+def get_db_diagnostic_info(
+    admin_secret: str = Depends(verify_admin_secret),
+    db: Session = Depends(get_db),
+):
     """
-    Safe diagnostic endpoint returning DB provider, host (hostname only), table existence,
-    user count, and test subject existence without exposing credentials or secrets.
+    Authenticated diagnostic endpoint returning database metrics.
+    Requires `X-Admin-Secret` header.
     """
     from sqlalchemy import inspect
     from app.models.user import User
@@ -125,8 +116,6 @@ def get_db_diagnostic_info(db: Session = Depends(get_db)):
         demo_full_user = db.query(User).filter(User.email == "demo.full@fitmind.ai").first()
         demo_full_exists = demo_full_user is not None
 
-    seed_env_var = os.getenv("SEED_TEST_SUBJECTS_PRODUCTION") or os.getenv("DEMO_SEED_PRODUCTION")
-
     return {
         "status": "ok",
         "database_type": db_type,
@@ -135,57 +124,8 @@ def get_db_diagnostic_info(db: Session = Depends(get_db)):
         "users_table_exists": has_users_table,
         "total_users_count": total_users,
         "demo_full_exists": demo_full_exists,
-        "seed_env_var_value": seed_env_var,
     }
 
-
-@router.post("/run-seeder", status_code=status.HTTP_200_OK)
-def run_test_subjects_seeder(db: Session = Depends(get_db)):
-    """
-    Direct HTTP trigger to run test subject seeding on the connected database.
-    """
-    os.environ["SEED_TEST_SUBJECTS_PRODUCTION"] = "true"
-    os.environ["DEMO_SEED_PRODUCTION"] = "true"
-    try:
-        seeded_emails = seed_test_subjects(db)
-        return {
-            "status": "success",
-            "message": f"Successfully seeded {len(seeded_emails)} test subject user accounts.",
-            "seeded_emails": seeded_emails,
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to seed test subjects: {str(e)}",
-        )
-
-
-@router.post("/migrate", status_code=status.HTTP_200_OK)
-
-def run_database_migrations_endpoint(db: Session = Depends(get_db)):
-    """
-    Direct HTTP trigger to execute schema migrations on the connected database.
-    """
-    from sqlalchemy import text
-    try:
-        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'UTC';"))
-        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferred_workout_duration_minutes INTEGER DEFAULT 45;"))
-        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_workout_days_per_week INTEGER DEFAULT 4;"))
-        db.commit()
-
-        from app.seed_demo_data import run_db_migrations
-        run_db_migrations(db)
-
-        return {
-            "status": "success",
-            "message": "Successfully updated database schema on PostgreSQL.",
-        }
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to execute database migrations: {str(e)}",
-        )
 
 
 

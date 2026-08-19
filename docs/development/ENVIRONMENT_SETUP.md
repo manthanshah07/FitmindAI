@@ -21,7 +21,7 @@ Copy `.env.example` to `.env.local` in the project root.
 
 ## Backend Environment Variables (FastAPI)
 
-These live in the backend repository's `.env` file.
+These live in `backend/.env` (excluded from version control).
 
 | Variable | Required | Description |
 |---|---|---|
@@ -29,21 +29,23 @@ These live in the backend repository's `.env` file.
 | `JWT_SECRET` | Yes | Secret key for signing JWT tokens (min 32 chars, random) |
 | `JWT_ALGORITHM` | Yes | JWT algorithm (use `HS256`) |
 | `JWT_EXPIRE_MINUTES` | Yes | Access token expiry in minutes (e.g., `60`) |
-| `OPENAI_API_KEY` | Yes | OpenAI API key (starts with `sk-`) |
-| `OPENAI_MODEL` | Yes | Model name (e.g., `gpt-4o-mini`) |
-| `SUPABASE_URL` | Yes | Supabase project URL |
-| `SUPABASE_SERVICE_KEY` | Yes | Supabase service role key (server-side only, never expose to client) |
+| `GEMINI_API_KEY` | Yes | Google Gemini API key (server-side only, never expose to client) |
+| `GEMINI_MODEL` | Yes | Model name (e.g., `gemini-2.5-flash-lite`) |
+| `ADMIN_SEED_SECRET` | Optional | Secret key required in `X-Admin-Secret` header for admin seeding/diagnostics |
+| `SUPABASE_URL` | Optional | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Optional | Supabase service role key (server-side only) |
 | `CORS_ORIGINS` | Yes | Comma-separated list of allowed frontend origins |
 | `ENVIRONMENT` | Yes | `development` or `production` |
 
 ---
 
-## Security Rules for Environment Variables
+## Security & Secret Management Architecture
 
-1. **NEVER commit `.env` files** — `.gitignore` must exclude them
-2. `SUPABASE_SERVICE_KEY` and `JWT_SECRET` are server-side only — never expose to browser
-3. All production secrets must be set via deployment platform environment variables (Vercel, Railway)
-4. Rotate secrets immediately if accidentally committed to git
+1. **Zero Committed Secrets**: `.env` and `.env.*` files are strictly excluded from version control via `.gitignore`. Real credentials must NEVER be committed to Git.
+2. **Safe Placeholder Templates**: `.env.example` files contain safe placeholder strings only (e.g. `GEMINI_API_KEY=your_gemini_api_key_here`).
+3. **Server-Side Only Credentials**: `GEMINI_API_KEY`, `SUPABASE_SERVICE_KEY`, and `JWT_SECRET` are strictly consumed by the FastAPI backend server. They are NEVER prefixed with `VITE_` or exposed to the browser client.
+4. **Admin Endpoint Authorization**: Admin endpoints (`/api/v1/admin/*`) require explicit header verification via `X-Admin-Secret`. Schema migrations must be executed via Alembic CLI / deployment pipeline (`alembic upgrade head`), NOT via HTTP.
+5. **Secret Rotation**: Any secret accidentally exposed in any environment must be revoked immediately in the service provider console and rotated.
 
 ---
 

@@ -1,270 +1,103 @@
 # FitMind AI — Project Status
 
-> **Last Updated:** 2026-08-16
+> **Last Updated:** 2026-08-19  
+> **Status:** ACTIVE DEVELOPMENT / PORTFOLIO HARDENING
 
 ---
 
-## Current Phase
+## Phase Status Summary
 
-**PHASE 0 — PRE-DEVELOPMENT SETUP**  
-**Status: COMPLETE**
-
-**PHASE 1A — BACKEND FOUNDATION**  
-**Status: COMPLETE**
-
-**PHASE 1B — AUTHENTICATION (BACKEND)**  
-**Status: COMPLETE**
-
-**PHASE 1C-A — FRONTEND AUTHENTICATION INFRASTRUCTURE**  
-**Status: COMPLETE**
-
-**PHASE 1C-B — AUTHENTICATION UI**  
-**Status: COMPLETE**
-
-**PHASE 1C-C — PROFILE BACKEND & ONBOARDING PERSISTENCE**  
-**Status: COMPLETE**
-
-**PHASE 1C-D — ONBOARDING WIZARD UI**  
-**Status: COMPLETE**
-
-**PHASE 0 — PRE-DEVELOPMENT SETUP**  
-**Status: COMPLETE**
-
-**PHASE 1A — BACKEND FOUNDATION**  
-**Status: COMPLETE**
-
-**PHASE 1B — AUTHENTICATION (BACKEND)**  
-**Status: COMPLETE**
-
-**PHASE 1C-A — FRONTEND AUTHENTICATION INFRASTRUCTURE**  
-**Status: COMPLETE**
-
-**PHASE 1C-B — AUTHENTICATION UI**  
-**Status: COMPLETE**
-
-**PHASE 1C-C — PROFILE BACKEND & ONBOARDING PERSISTENCE**  
-**Status: COMPLETE**
-
-**PHASE 1C-D — ONBOARDING WIZARD UI**  
-**Status: COMPLETE**
-
-**PHASE 2A — APPSHELL & DASHBOARD CONTRACT**  
-**Status: COMPLETE**
-
-**PHASE 2B — USER PROFILE & ACCOUNT SETTINGS UI**  
-**Status: COMPLETE**
-
-**PHASE 3A — WORKOUT BACKEND DOMAIN & SCHEMAS**  
-**Status: COMPLETE**
-
-**PHASE 3B — WORKOUT FRONTEND & TODAY'S WORKOUT UI**  
-**Status: COMPLETE**
-
-**PHASE 3C — WORKOUT SESSION COMPLETION & CATALOG EXPLORER**  
-**Status: COMPLETE**
-
-**PHASE 4 — NUTRITION SYSTEM (CALORIE & MACRO TARGET ENGINE, FOOD CATALOG, MEAL LOGGING)**  
-**Status: COMPLETE**
-
-**PHASE 5 — PROGRESS & MEASUREMENT TRACKING**  
-**Status: COMPLETE**
-
-**PHASE 6 — FITNESS SCORE ENGINE**  
-**Status: COMPLETE**
-
-**PHASE 7 — AI COACH & PERSISTENT MEMORY**  
-**Status: COMPLETE**
-
-**PHASE 8 — AUTOMATED REPORTS MODULE**  
-**Status: COMPLETE**
-
-**CYCLE 7 — DASHBOARD INTEGRATION & METRIC CONSISTENCY**  
-**Status: COMPLETE**
-
-**CYCLE 8 — USER SETTINGS & PROFILE HARDENING**  
-**Status: COMPLETE**
-
-**CYCLE 9A/9B — DEMO USER SEEDING & DATA QUALITY AUDIT**  
-**Status: COMPLETE**
-
-
-
-
-
+| Phase | Description | Status | Verification |
+|---|---|---|---|
+| **Phase 0** | Pre-Development Setup & Architecture Lock | **COMPLETE** | System docs, API contracts, DB schema, design system locked |
+| **Phase 1** | Auth & Onboarding Infrastructure | **COMPLETE** | JWT auth, Bcrypt, refresh token rotation, 5-step wizard UI |
+| **Phase 2** | AppShell, Dashboard & User Profile UI | **COMPLETE** | AppShell layout, baseline TDEE dashboard, interactive `/profile` |
+| **Phase 3** | Workout System & Session Logger | **COMPLETE** | Exercise catalog, plan generator, live execution logger with RPE |
+| **Phase 4** | Nutrition System & Macro Target Engine | **COMPLETE** | Daily cals/macros target engine, meal logger (4 categories), food DB |
+| **Phase 5** | Progress Analytics & Measurement Tracking | **COMPLETE** | Weight history charts, measurement tracking (cm/inches) |
+| **Phase 6** | Deterministic Fitness Score Engine | **COMPLETE** | Multi-factor 0-100 score engine (consistency, workout, nutrition) |
+| **Phase 7** | AI Coach & Persistent Memory | **COMPLETE** | Gemini API (`gemini-2.5-flash-lite`), structured response validation, context builder |
+| **Phase 8** | Automated Reports Module | **COMPLETE** | Weekly/monthly automated reports, AI narrative synthesis |
+| **Remediation 1** | Security & Repository Stabilization | **COMPLETE** | Sanitized credentials, removed `/admin/migrate` & `/admin/run-seeder`, header auth |
+| **Remediation 2** | Documentation Sync & CI/CD Pipeline | **COMPLETE** | Synchronized README/status/decisions, GitHub Actions CI workflow |
 
 ---
 
-## What Is Complete
+## What Is Complete & Verified
 
-### Landing Page
-- [x] Full editorial landing page designed and implemented
-- [x] Design system locked (`src/styles/design-tokens.css`)
-- [x] All 10 sections complete (Hero, Problem, Memory, Timeline, Features, Architecture, Adaptive Coaching, Scope, Footer)
-- [x] Production build verified
-- [x] Development server running
+### 1. Core Architecture & Landing Page
+- [x] Full brutalist editorial landing page (`src/sections/`)
+- [x] Locked design system tokens (`src/styles/design-tokens.css`)
+- [x] Architecture & PRD specifications (`docs/`)
 
-### Documentation & Architecture Lock
-- [x] `docs/00_CURRENT_PROJECT_AUDIT.md`
-- [x] `docs/00_PROJECT_DECISIONS.md` (All Phase 1 architectural decisions locked)
-- [x] `docs/01_PROJECT_CONTEXT.md`
-- [x] `docs/FitMind_PRD.md` (PRD present)
-- [x] `docs/FitMind_TECH_SPEC.md` (Tech Spec present)
-- [x] `docs/architecture/SYSTEM_ARCHITECTURE.md`
-- [x] `docs/architecture/FRONTEND_ARCHITECTURE.md`
-- [x] `docs/architecture/AI_ARCHITECTURE.md`
-- [x] `docs/architecture/MEMORY_ARCHITECTURE.md`
-- [x] `docs/database/DATABASE_DESIGN.md`
-- [x] `docs/api/API_OVERVIEW.md`
-- [x] `docs/ai/AI_GUARDRAILS.md`
-- [x] `docs/ui/DESIGN_SYSTEM.md`
-- [x] `docs/ui/COMPONENT_INVENTORY.md` (Phase 1 components registered)
-- [x] `docs/product/USER_FLOWS.md`
-- [x] `docs/product/SCREEN_INVENTORY.md`
-- [x] `docs/product/EDGE_CASES.md`
-- [x] `docs/development/DEVELOPMENT_GUIDE.md`
-- [x] `docs/development/TESTING_STRATEGY.md`
-- [x] `docs/development/ENVIRONMENT_SETUP.md`
-- [x] `docs/project-management/ROADMAP.md`
-- [x] `docs/project-management/DEFINITION_OF_DONE.md`
-- [x] `AGENTS.md`
-- [x] `.env.example`
-- [x] `README.md` (updated)
+### 2. Authentication & Authorization (Phase 1)
+- [x] FastAPI JWT authentication (`POST /api/v1/auth/register`, `/login`, `/refresh`, `/logout`)
+- [x] Password hashing using Bcrypt
+- [x] Refresh token database tracking with rotation & revocation
+- [x] Zustand auth session store & Axios HTTP interceptor with 401 auto-refresh
 
-### Backend Foundation (Phase 1A)
-- [x] FastAPI application structure created under `/backend`
-- [x] Pydantic BaseSettings configuration (`backend/app/core/config.py`)
-- [x] SQLAlchemy 2.x database & DeclarativeBase setup (`backend/app/core/database.py`)
-- [x] Alembic migration configuration (`backend/alembic/`)
-- [x] Security primitives for bcrypt hashing & JWT tokens (`backend/app/core/security.py`)
-- [x] Unprotected `/health` endpoint (`GET /health` returning `{"status": "ok"}`)
-- [x] Pytest suite verified (`backend/tests/test_health.py` passing 100%)
+### 3. User Profile & Onboarding (Phase 1 & 2)
+- [x] 5-Step Onboarding Wizard UI (`/onboarding`)
+- [x] Mifflin-St Jeor TDEE & BMR calculation engines
+- [x] User Profile settings page (`/profile`) supporting demographics, physical metrics, equipment, medical notes
 
-### Authentication Backend (Phase 1B)
-- [x] `users` table model (`backend/app/models/user.py`)
-- [x] `refresh_tokens` persistence model (`backend/app/models/refresh_token.py`)
-- [x] Pydantic authentication schemas (`backend/app/schemas/auth.py`)
-- [x] Authentication service logic (`backend/app/services/auth_service.py`)
-- [x] Protected route dependency `get_current_user` (`backend/app/api/deps.py`)
-- [x] Auth endpoints (`POST /api/v1/auth/register`, `/login`, `/refresh`, `/logout`)
-- [x] Alembic migration script (`2026_08_16_0001_create_users_and_refresh_tokens.py`)
-- [x] Comprehensive pytest suite (`backend/tests/test_auth.py` 100% passing)
+### 4. Workout System (Phase 3)
+- [x] Exercise catalog browsing & search with muscle group filters (`/api/v1/exercises`)
+- [x] Workout plan generation matching user goals & available equipment (`/api/v1/workout/plan`)
+- [x] Interactive live workout session logger tracking sets, reps, weight (kg), and RPE (`/workout`)
 
-### Frontend Authentication Infrastructure (Phase 1C-A)
-- [x] TypeScript authentication interfaces (`src/types/auth.ts`)
-- [x] User-safe API error message parser (`src/utils/apiError.ts`)
-- [x] Browser token storage adapter (`src/lib/api/tokenStorage.ts`)
-- [x] Centralized Axios client with Bearer header injection & 401 refresh/retry interceptor (`src/lib/api/client.ts`)
-- [x] Typed auth API module (`src/lib/api/auth.ts`)
-- [x] Zustand auth store (`src/store/useAuthStore.ts`)
-- [x] TanStack Query setup (`src/lib/react-query.ts` & `QueryClientProvider` in `src/main.tsx`)
-- [x] Client-side route guard (`src/components/layout/ProtectedRoute.tsx`)
-- [x] Vitest test suite (`src/tests/auth.test.tsx` 100% passing)
+### 5. Nutrition Module (Phase 4)
+- [x] Macro & calorie target calculator based on TDEE and active goal
+- [x] Meal logging across Breakfast, Lunch, Dinner, Snack categories (`/nutrition`)
+- [x] Searchable food database & real-time daily summary
 
-### Authentication UI (Phase 1C-B)
-- [x] Design system UI primitives: `Button` (`src/components/ui/Button.tsx`), `Input` (`src/components/ui/Input.tsx`), `Card` (`src/components/ui/Card.tsx`), `Badge` (`src/components/ui/Badge.tsx`)
-- [x] Login page (`src/pages/auth/LoginPage.tsx`) with `react-hook-form` + `zod` validation and `useAuthStore` integration
-- [x] Signup page (`src/pages/auth/SignupPage.tsx`) with `react-hook-form` + `zod` validation and automatic post-registration authentication
-- [x] Client-side route registration (`/login`, `/signup`, protected `/onboarding` target) in `src/App.tsx`
-- [x] Vitest test suite (`src/tests/ui_auth.test.tsx` 100% passing)
+### 6. Progress Analytics (Phase 5)
+- [x] Weight history tracking and progress charts (`/progress`)
+- [x] Body measurement tracking (waist, chest, bicep, thigh, hips, body fat %) in cm and inches
 
-### User Profile & Goals Backend (Phase 1C-C)
-- [x] `profiles` SQLAlchemy ORM model (`backend/app/models/profile.py`)
-- [x] `goals` SQLAlchemy ORM model (`backend/app/models/goal.py`)
-- [x] Pydantic schemas (`backend/app/schemas/profile.py`, `backend/app/schemas/goal.py`)
-- [x] Decoupled service layers (`backend/app/services/profile_service.py`, `backend/app/services/goal_service.py`)
-- [x] Protected endpoints (`GET/PUT /api/v1/profile`, `POST /api/v1/profile/onboarding`, `GET/POST /api/v1/goals`)
-- [x] Alembic migration scripts (`2026_08_16_0002_create_profiles.py`, `2026_08_16_0003_create_goals.py`, `2026_08_16_0004_add_weight_kg_to_profiles.py`)
-- [x] Comprehensive pytest suite (`backend/tests/test_profile.py`, `backend/tests/test_goals.py`, `backend/tests/test_calculations.py` 100% passing)
+### 7. Deterministic Fitness Score Engine (Phase 6)
+- [x] Multi-factor 0–100 fitness score calculated server-side
+- [x] Factor weights: workout consistency, nutrition logging, protein adherence
+- [x] Score history tracking & grade classification
 
-### Onboarding Wizard UI (Phase 1C-D)
-- [x] Select UI primitive (`src/components/ui/Select.tsx`) matching FitMind design system
-- [x] 5-Step Onboarding Wizard component (`src/pages/onboarding/OnboardingPage.tsx`) handling Personal Info, Goals, Activity Level, Preferences, and Initial Baseline Assessment
-- [x] Mifflin-St Jeor TDEE & age calculation utility (`src/utils/tdeeCalculator.ts`)
-- [x] Client-side validation per step, Back/Next navigation, local wizard state persistence across steps
-- [x] Integration with backend `createGoalApi` and `completeOnboardingApi`
-- [x] Vitest test suite (`src/tests/onboarding.test.tsx`, `src/tests/tdeeCalculator.test.ts` 100% passing)
+### 8. AI Coach & Persistent Memory (Phase 7)
+- [x] Conversational coach powered by Google Gemini API (`gemini-2.5-flash-lite`)
+- [x] Structured response validation using Pydantic (`CoachChatResponse`)
+- [x] Context Builder aggregating user metrics, goals, and analytics into system prompts
+- [x] Deterministic preference extraction saving user diet/workout preferences to `ai_memory`
+- [x] Persistent multi-session chat history store (`chat_messages`)
 
-### AppShell & Dashboard Foundation (Phase 2A)
-- [x] AppShell container (`src/components/layout/AppShell.tsx`), Sidebar (`src/components/layout/Sidebar.tsx`), TopBar (`src/components/layout/TopBar.tsx`), BottomNav (`src/components/layout/BottomNav.tsx`)
-- [x] Protected application routing mounted under `<AppShell>` (`/dashboard`, `/coach`, `/workout`, `/nutrition`, `/progress`, `/reports`, `/profile`)
-- [x] Dashboard Page (`src/pages/dashboard/DashboardPage.tsx`) displaying real calibrated baseline metrics (TDEE, Primary Goal) and honest structural module placeholders for future backend phases
-- [x] Vitest test suite (`src/tests/appshell.test.tsx` 100% passing)
+### 9. Automated Reports Module (Phase 8)
+- [x] Weekly & monthly performance reports (`/reports`)
+- [x] Adherence breakdown, workout volume metrics, fitness score deltas
+- [x] AI narrative synthesis summarizing performance
 
-### User Profile & Account Settings UI (Phase 2B)
-- [x] Interactive User Profile view & edit screen (`src/pages/profile/ProfilePage.tsx`)
-- [x] Viewing and editing support for `full_name`, `date_of_birth`, `gender`, `height_cm`, `weight_kg`, `activity_level`, `diet_preference`, `equipment` multi-selection, and `medical_notes`
-- [x] Full validation for physical limits ($50\text{--}300\text{ cm}$ height, $30\text{--}300\text{ kg}$ weight)
-- [x] View/Edit/Save/Cancel flow with loading indicators and alert feedback
-- [x] Vitest test suite (`src/tests/profile.test.tsx` 100% passing)
-
-### Workout Backend Domain & Schemas (Phase 3A)
-- [x] `exercises`, `workout_plans`, `workout_plan_exercises`, `workout_logs`, `workout_log_exercises` ORM models (`backend/app/models/workout.py`)
-- [x] Pydantic schemas (`backend/app/schemas/workout.py`) for exercise browsing, plan generation, and workout session logging
-- [x] Exercise catalog seeding & retrieval service (`backend/app/services/exercise_service.py`)
-- [x] Workout plan generation matching user goal & equipment + session log execution service (`backend/app/services/workout_service.py`)
-- [x] Protected API routes (`GET/POST /api/v1/exercises`, `GET/POST /api/v1/workout/plan`, `GET/POST /api/v1/workout/logs`)
-- [x] Alembic migration script (`backend/alembic/versions/2026_08_16_0005_create_workout_tables.py`)
-- [x] Comprehensive pytest suite (`backend/tests/test_workout.py` 100% passing)
+### 10. Security & DevOps (Remediation 1 & 2)
+- [x] Local `.env` credential sanitization (`GEMINI_API_KEY` untracked, no secrets committed)
+- [x] Removed dangerous HTTP routes (`/admin/migrate` and `/admin/run-seeder`)
+- [x] Protected all admin routes with `X-Admin-Secret` header authorization
+- [x] Sanitized payload responses to prevent PII leakage
+- [x] GitHub Actions CI pipeline (`.github/workflows/ci.yml`)
 
 ---
 
-## What Is NOT Started
+## Planned / Deferred Scope (Future Work)
 
-| Feature | Phase | Status |
-|---|---|---|
-| Backend Foundation | Phase 1A | COMPLETE |
-| Authentication (Backend API) | Phase 1B | COMPLETE |
-| Frontend Auth Infrastructure | Phase 1C-A | COMPLETE |
-| Login & Signup UI | Phase 1C-B | COMPLETE |
-| Profile & Goals Backend | Phase 1C-C | COMPLETE |
-| Onboarding Wizard UI | Phase 1C-D | COMPLETE |
-| AppShell & Core Layout Components | Phase 2A | COMPLETE |
-| Dashboard Baseline View | Phase 2A | COMPLETE |
-| Workout Backend Domain & Schemas | Phase 3A | COMPLETE |
-| Workout Frontend Types & Today's Workout UI | Phase 3B | Not Started |
-| Workout Session Execution & Logging UI | Phase 3C | Not Started |
-| Workout History & Dashboard Integration | Phase 3D | Not Started |
-| Nutrition module | Phase 4 | Not Started |
-| Progress tracking | Phase 5 | Not Started |
-| Fitness score engine | Phase 6 | Not Started |
-| AI Coach | Phase 7 | Not Started |
-| Memory system | Phase 7–8 | Not Started |
-| Reports | Phase 9 | Not Started |
-| Testing suite | Phase 10 | In Progress (32 Backend + 31 Frontend tests complete) |
-| Deployment | Phase 11 | Not Started |
+| Feature | Phase | Status | Notes |
+|---|---|---|---|
+| Email verification flow | Post-v1.0 | DEFERRED | Account creation sets `is_verified = False` by default |
+| Vector database integration | Post-v1.0 | DEFERRED | Conversational memory currently uses PostgreSQL relational storage |
+| Barcode scanner for nutrition | Post-v1.0 | DEFERRED | Nutrition logging uses food search database |
+| Camera exercise form analysis | Post-v1.0 | DEFERRED | Future computer vision module |
+| Wearable device integration | Post-v1.0 | DEFERRED | Future sync for Apple Health / Fitbit |
 
 ---
 
-## Phase 1 Decisions Logged
+## Automated Test Coverage Summary
 
-See `docs/00_PROJECT_DECISIONS.md` for full decision log.
-
-All critical decisions for Phase 1 are **DECIDED**:
-
-1. **Authentication method (A-06):** Custom FastAPI JWT (bcrypt, short-lived access tokens, refresh tokens, Bearer header).
-2. **Repository structure (A-14):** Monorepo (`src/` at root, `/backend` for FastAPI).
-3. **Frontend State management (A-15):** Zustand (client/app state) + TanStack Query (server state).
-4. **HTTP Client (A-16):** Centralized Axios instance handling Bearer tokens and refresh logic.
-5. **Conversational Memory (AI-04):** PostgreSQL `ai_memory` table for initial memory store.
-
----
-
-## Risks & Mitigation
-
-| Risk | Severity | Mitigation |
-|---|---|---|
-| No backend structure initialized | Low | Monorepo structure confirmed (`/backend`); ready for Phase 1 initialization. |
-| Testing framework pending configuration | Low | Pytest & Vitest to be configured during Phase 1. |
-
----
-
-## Next Steps (Phase 1 Execution)
-
-> **Status: READY TO IMPLEMENT. All architectural blockers resolved.**
-
-1. Initialize `/backend` FastAPI project structure with SQLAlchemy, Alembic, and JWT auth endpoints.
-2. Build UI primitives (`Button`, `Input`, `Select`, `Card`, `Badge`) following `docs/ui/DESIGN_SYSTEM.md`.
-3. Build layout components (`AppShell`, `Sidebar`, `TopBar`, `BottomNav`, `ProtectedRoute`).
-4. Set up client-side routing & Axios HTTP client with Zustand auth store.
-5. Build `LoginPage`, `SignupPage`, and 5-step `OnboardingPage` wizard.
+- **Frontend Tests (Vitest):** 75 passed across 14 test modules
+- **Backend Tests (Pytest):** 249 passed across 26 test modules
+- **TypeScript Typecheck (`tsc`):** PASS (0 errors)
+- **CI Pipeline:** Automated on push and pull request via GitHub Actions
+inPage`, `SignupPage`, and 5-step `OnboardingPage` wizard.
 

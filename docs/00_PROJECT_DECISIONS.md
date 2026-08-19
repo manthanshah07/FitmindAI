@@ -44,24 +44,24 @@
 
 | # | Decision | Status | Notes |
 |---|---|---|---|
-| A-01 | Frontend: React + TypeScript + Vite | DECIDED | Already implemented |
-| A-02 | Styling: Tailwind CSS v3 | DECIDED | Already implemented |
-| A-03 | Animation: Framer Motion | DECIDED | Already implemented |
-| A-04 | Backend: FastAPI (Python) | DECIDED | Confirmed in project context |
-| A-05 | Database: PostgreSQL | DECIDED | Confirmed in project context |
-| A-06 | Authentication: Custom FastAPI JWT | DECIDED | Password hashing (bcrypt/Argon2), short-lived access tokens + refresh tokens, Bearer header, FastAPI dependency auth. No Firebase Auth. (2026-08-16) |
-| A-07 | File/Photo storage: Supabase Storage | DECIDED | Confirmed in project context |
-| A-08 | AI provider: OpenAI API | DECIDED | Confirmed in project context |
-| A-09 | Memory approach: RAG-based | DECIDED | Confirmed in project context |
-| A-10 | Deployment: Vercel (frontend) | DECIDED | Confirmed in project context |
-| A-11 | Deployment: Railway or Render (backend) | DECIDED | Either acceptable; final choice UNDECIDED |
-| A-12 | Backend handles all deterministic calculations | DECIDED | Core architectural principle |
+| A-01 | Frontend: React + TypeScript + Vite | DECIDED | Implemented |
+| A-02 | Styling: Tailwind CSS v3 | DECIDED | Implemented |
+| A-03 | Animation: Framer Motion | DECIDED | Implemented |
+| A-04 | Backend: FastAPI (Python) | DECIDED | Implemented under `/backend` |
+| A-05 | Database: PostgreSQL | DECIDED | Neon serverless PostgreSQL 16+ in production, SQLite for local dev/testing |
+| A-06 | Authentication: Custom FastAPI JWT | DECIDED | Password hashing (Bcrypt), short-lived access tokens, refresh token database tracking & rotation, Bearer header |
+| A-07 | File/Photo storage: Supabase Storage | DECIDED | Configured for future photo uploads |
+| A-08 | AI provider: Google Gemini API | DECIDED | Google Gemini API (`google-genai` SDK, `gemini-2.5-flash-lite` model) |
+| A-09 | Memory approach: Relational Context Assembly | DECIDED | Deterministic preference extraction (`AIMemoryService`) + PostgreSQL relational storage (`ai_memory` & `chat_messages` tables) |
+| A-10 | Deployment: Vercel (frontend) | DECIDED | Static SPA CDN hosting with `vercel.json` rewrite rules |
+| A-11 | Deployment: Render (backend) | DECIDED | FastAPI ASGI web service configured via `backend/render.yaml` |
+| A-12 | Backend handles all deterministic calculations | DECIDED | Core architectural principle (BMR, TDEE, macros, fitness score) |
 | A-13 | AI handles only reasoning, explanation, personalization | DECIDED | Core architectural principle |
-| A-14 | Monorepo structure | DECIDED | Frontend at root (`src/`), backend in `/backend`. No moving `src/` to `/frontend`. (2026-08-16) |
-| A-15 | State management | DECIDED | Zustand for client/app/UI state & auth session; TanStack Query for server state. No React Context for global state. (2026-08-16) |
-| A-16 | HTTP client | DECIDED | Axios centralized instance handling Bearer tokens and token refresh. (2026-08-16) |
-| A-17 | Vector database for semantic memory | UNDECIDED | Optional for post-Phase 8; architecture remains extensible for future vector store integration. |
-| A-18 | Relational memory vs vector memory split | DECIDED | Static, Dynamic, and Conversational memory stored in PostgreSQL for Phases 1–8. (2026-08-16) |
+| A-14 | Monorepo structure | DECIDED | Frontend at root (`src/`), backend in `/backend` |
+| A-15 | State management | DECIDED | Zustand for client/app/UI state & auth session; TanStack Query for server state |
+| A-16 | HTTP client | DECIDED | Centralized Axios instance with Bearer injection & 401 refresh interceptor |
+| A-17 | Vector database for semantic memory | DEFERRED | Post-v1.0 scope; PostgreSQL relational memory is primary for current phase |
+| A-18 | Relational memory architecture | DECIDED | Static, Dynamic, and Conversational memory stored in PostgreSQL (`profiles`, `goals`, `ai_memory`, `chat_messages`) |
 
 ---
 
@@ -69,16 +69,16 @@
 
 | # | Decision | Status | Notes |
 |---|---|---|---|
-| AI-01 | Memory system has three layers: Static, Dynamic, Conversational | DECIDED | Defined in project context |
-| AI-02 | Static memory stored in PostgreSQL | DECIDED | Fits structured nature (`profiles`, `goals`) |
-| AI-03 | Dynamic memory stored in PostgreSQL | DECIDED | Workout/meal logs/scores are structured |
-| AI-04 | Conversational memory storage (Phases 1–8) | DECIDED | PostgreSQL `ai_memory` table. Vector DB deferred but architecture remains extensible. (2026-08-16) |
-| AI-05 | Context window management strategy | UNDECIDED | How to prevent irrelevant context from reaching LLM |
-| AI-06 | Prompt architecture | UNDECIDED | System prompt structure to be designed in Phase 7 |
-| AI-07 | OpenAI model selection | DECIDED | Configured via `OPENAI_MODEL` environment variable; finalized in AI Coach phase. (2026-08-16) |
-| AI-08 | Token usage optimization | UNDECIDED | Budget not defined |
-| AI-09 | AI response validation strategy | UNDECIDED | How to detect and handle hallucinations |
-| AI-10 | Escalation behavior for medical questions | PROPOSED | Redirect to professional; decline to diagnose |
+| AI-01 | Memory system has three layers: Static, Dynamic, Conversational | DECIDED | Implemented in `ContextBuilder` |
+| AI-02 | Static memory stored in PostgreSQL | DECIDED | `profiles` & `goals` tables |
+| AI-03 | Dynamic memory stored in PostgreSQL | DECIDED | `workout_logs`, `meal_logs`, `measurements`, `fitness_scores` tables |
+| AI-04 | Conversational memory storage | DECIDED | `ai_memory` (preference keys) and `chat_messages` (chat history) tables |
+| AI-05 | Context window management strategy | DECIDED | Rolling 10-message chat history + 30d/7d aggregated analytics summaries in `ContextBuilder` |
+| AI-06 | System prompt architecture | DECIDED | `COACH_SYSTEM_PROMPT` in `coach_service.py` with strict schema validation guardrails |
+| AI-07 | AI model selection | DECIDED | Configured via `GEMINI_MODEL` (`gemini-2.5-flash-lite`) |
+| AI-08 | Token usage optimization | DECIDED | Bounded context assembly limits context window size |
+| AI-09 | AI response validation strategy | DECIDED | Pydantic schema structured JSON output parsing (`CoachChatResponse`) |
+| AI-10 | Escalation behavior for medical questions | DECIDED | System prompt instructs AI to decline medical diagnosis and advise consulting a physician |
 
 ---
 
@@ -86,13 +86,13 @@
 
 | # | Decision | Status | Notes |
 |---|---|---|---|
-| D-01 | Existing landing page is protected | DECIDED | No modifications allowed |
-| D-02 | Color palette is locked | DECIDED | Defined in design-tokens.css |
-| D-03 | Typography: Helvetica Neue + JetBrains Mono | DECIDED | Defined in design-tokens.css |
-| D-04 | Border radius: 0px (editorial/brutalist) | DECIDED | All components use sharp edges |
-| D-05 | Light mode | FUTURE SCOPE | Not to be implemented unless requested |
-| D-06 | No glassmorphism, neon, gradients | DECIDED | Explicit design prohibition |
-| D-07 | Application UI extends landing page identity | DECIDED | Same palette, type, components |
+| D-01 | Existing landing page is protected | DECIDED | No modifications allowed (`src/sections/`) |
+| D-02 | Color palette is locked | DECIDED | Defined in `design-tokens.css` |
+| D-03 | Typography: JetBrains Mono + Inter/Sans | DECIDED | Defined in `design-tokens.css` |
+| D-04 | Border radius: 0px (editorial/brutalist) | DECIDED | Sharp edges on all UI components |
+| D-05 | Light mode | DEFERRED | Not to be implemented unless requested |
+| D-06 | No glassmorphism, neon, gradients | DECIDED | Explicit design system rule |
+| D-07 | Application UI extends landing page identity | DECIDED | Same palette, typography, design primitives |
 
 ---
 
@@ -102,19 +102,18 @@
 |---|---|---|---|
 | C-01 | Authentication: JWT vs Firebase Auth | Project Context / Status | RESOLVED — Custom FastAPI JWT confirmed (Decision A-06). |
 | C-02 | PRD and Tech Spec missing claim | Audit / Status | RESOLVED — `docs/FitMind_PRD.md` and `docs/FitMind_TECH_SPEC.md` exist. |
-| C-03 | Hydration / Water Intake scope | PRD vs Tech Spec | RESOLVED — Hydration remains in score calculation spec; dedicated water logger page deferred to nutrition phase. |
+| C-03 | Hydration / Water Intake scope | PRD vs Tech Spec | RESOLVED — Hydration score component computed deterministically; dedicated logger deferred. |
+| C-04 | AI Provider: OpenAI vs Gemini | Decisions / Code | RESOLVED — Google Gemini API (`gemini-2.5-flash-lite`) confirmed in code. |
 
 ---
 
 ## OPEN DECISIONS (REMAINING FOR FUTURE PHASES)
 
-1. **A-11**: Backend deployment target (Railway vs Render — Phase 11)
-2. **AI-05**: Context window management strategy (Phase 7)
-3. **AI-06**: System prompt architecture (Phase 7)
-4. **AI-08**: Token usage budget optimization (Phase 7)
-5. **AI-09**: Response validation / hallucination detection strategy (Phase 7)
+1. **A-17**: Vector database integration (Deferred post-v1.0)
+2. **P-04 to P-09**: Advanced features (Camera food recognition, barcode scanning, wearable sync, form analysis — Deferred post-v1.0)
 
 ---
 
-*Last updated: 2026-08-16*
+*Last updated: 2026-08-19*
+
 

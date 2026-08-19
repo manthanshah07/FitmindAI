@@ -212,7 +212,7 @@ def test_admin_trigger_demo_seeding_endpoint(db: Session):
 
     # Unauthorized without X-Admin-Secret header
     res_no_header = client.post("/api/v1/admin/seed-demo")
-    assert res_no_header.status_code == 422  # missing header
+    assert res_no_header.status_code == 422  # missing required header
 
     # Invalid secret header
     res_bad_header = client.post("/api/v1/admin/seed-demo", headers={"x-admin-secret": "WrongSecret123"})
@@ -224,40 +224,59 @@ def test_admin_trigger_demo_seeding_endpoint(db: Session):
     assert res_success.status_code == 200
     data = res_success.json()
     assert data["status"] == "success"
-    assert len(data["seeded_emails"]) == 10
+    assert data["count"] == 10
+    assert "seeded_emails" not in data  # PII email list removed from response
 
 
-def test_verify_test_subjects_health_endpoint(db: Session):
+def test_verify_test_subjects_health_endpoint_requires_auth(db: Session):
     from fastapi.testclient import TestClient
     from app.main import app
+    from app.core.config import settings
 
     db.rollback()
     seed_demo_data(db)
 
     client = TestClient(app)
-    res = client.get("/api/v1/admin/verify-test-subjects")
+
+    # Unauthenticated request blocked
+    res_unauth = client.get("/api/v1/admin/verify-test-subjects")
+    assert res_unauth.status_code in (401, 422)
+
+    # Authenticated request succeeds with aggregate info
+    res = client.get("/api/v1/admin/verify-test-subjects", headers={"x-admin-secret": settings.JWT_SECRET})
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "ok"
     assert data["total_test_subjects"] == 10
     assert data["valid_test_subjects"] == 10
-    assert len(data["subjects"]) == 10
-def test_db_diagnostic_info_and_run_seeder_endpoints(db: Session):
+    assert "subjects" not in data  # Individual subject PII array removed
+
+
+def test_db_diagnostic_info_and_removed_dangerous_endpoints(db: Session):
     from fastapi.testclient import TestClient
     from app.main import app
+    from app.core.config import settings
 
     client = TestClient(app)
-    res_info = client.get("/api/v1/admin/db-info")
+
+    # Unauthenticated access to /admin/db-info blocked
+    res_unauth = client.get("/api/v1/admin/db-info")
+    assert res_unauth.status_code in (401, 422)
+
+    # Authenticated request to /admin/db-info succeeds
+    res_info = client.get("/api/v1/admin/db-info", headers={"x-admin-secret": settings.JWT_SECRET})
     assert res_info.status_code == 200
     info_data = res_info.json()
     assert info_data["status"] == "ok"
     assert info_data["users_table_exists"] is True
 
-    res_seed = client.post("/api/v1/admin/run-seeder")
-    assert res_seed.status_code == 200
-    seed_data = res_seed.json()
-    assert seed_data["status"] == "success"
-    assert len(seed_data["seeded_emails"]) == 10
+    # Dangerous unauthenticated endpoints /run-seeder and /migrate are removed (404)
+    res_run_seeder = client.post("/api/v1/admin/run-seeder")
+    assert res_run_seeder.status_code == 404
+
+    res_migrate = client.post("/api/v1/admin/migrate")
+    assert res_migrate.status_code == 404
+
 
 
 

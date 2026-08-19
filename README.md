@@ -1,6 +1,6 @@
 # FitMind AI
 
-A full-stack, personalized fitness platform built with deterministic health calculation engines, persistent profile memory, and a decoupled FastAPI / React 19 architecture.
+A full-stack, personalized fitness platform built with deterministic health calculation engines, persistent user memory, Google Gemini AI coaching, and a decoupled FastAPI / React 19 architecture.
 
 ---
 
@@ -14,18 +14,18 @@ A full-stack, personalized fitness platform built with deterministic health calc
 
 ## Repository Context
 
-FitMind AI is a engineering portfolio project demonstrating full-stack software architecture, data modeling, authentication security, and cloud deployment. 
+FitMind AI is an engineering portfolio project demonstrating full-stack software architecture, data modeling, authentication security, deterministic health computation, and AI system integration. 
 
-The application separates **deterministic calculations** (BMR/TDEE calculations, macro allocation, physical metrics) from **reasoning layers**, ensuring that numerical health data remains exact, testable, and auditable server-side.
+The application strictly separates **deterministic calculations** (BMR/TDEE calculations, macro allocation, physical metrics, 0–100 fitness scoring) from **reasoning layers**, ensuring that numerical health data remains exact, testable, and auditable server-side before passing structured context to the Google Gemini AI Coach.
 
 ---
 
 ## Currently Implemented Features
 
-* **JWT-Based Authentication System:**
+* **JWT-Based Authentication & Token Rotation:**
   * Account registration (`POST /api/v1/auth/register`) with Bcrypt password hashing.
   * User login (`POST /api/v1/auth/login`) issuing JWT access tokens (HS256 signature).
-  * Server-side refresh token database tracking (`POST /api/v1/auth/refresh`) and token revocation (`POST /api/v1/auth/logout`).
+  * Server-side refresh token database tracking (`POST /api/v1/auth/refresh`) with token rotation and revocation (`POST /api/v1/auth/logout`).
   * React client session restoration and automatic token refresh via Axios interceptors.
 
 * **5-Step Onboarding Wizard UI:**
@@ -37,7 +37,7 @@ The application separates **deterministic calculations** (BMR/TDEE calculations,
 
 * **Deterministic TDEE & Baseline Engine:**
   * Implements the Mifflin-St Jeor equation to compute Basal Metabolic Rate (BMR).
-  * Applies activity multipliers ($1.20\text{--}1.90$) to compute Total Daily Energy Expenditure (TDEE).
+  * Applies activity multipliers ($1.20\text{--}1.90$) to compute Total Daily Energy Expenditure (TDEE) server-side.
 
 * **Application Shell & Navigation:**
   * Responsive layout featuring Desktop Sidebar, Mobile TopBar Drawer, and Mobile Bottom Navigation.
@@ -48,53 +48,39 @@ The application separates **deterministic calculations** (BMR/TDEE calculations,
   * Full viewing and editing support for user demographics, physical metrics (`weight_kg`, `height_cm`), equipment, and medical constraints.
   * Client-side validation ($50\text{--}300\text{ cm}$ height, $30\text{--}300\text{ kg}$ weight) and inline feedback alerts.
 
-* **Relational Database & DDL Version Control:**
-  * Managed PostgreSQL persistence via SQLAlchemy 2.0 ORM.
-  * Version-controlled DDL migration chain using Alembic (`0001` $\rightarrow$ `0005`).
+* **Workout System (`/workout`):**
+  * Active workout plan viewer tailored to user goals and available equipment.
+  * Exercise catalog browsing and search with muscle group filtering.
+  * Interactive live workout execution logger tracking sets, reps, weight (kg), and RPE.
 
----
+* **Nutrition Module (`/nutrition`):**
+  * Daily calorie and macro target engine (protein, carbs, fat based on TDEE and goal).
+  * Meal logging with category splits (breakfast, lunch, dinner, snack).
+  * Searchable food database and real-time macro balance tracking.
 
-## Screenshots
+* **Progress & Measurement Analytics (`/progress`):**
+  * Body weight logging and historical progress trend visualization.
+  * Body measurement tracking (waist, chest, bicep, thigh, hips, body fat %) supporting both metric (cm) and imperial (inches) units.
 
-> *Placeholder: Interface screenshots of the Landing Page, 5-Step Onboarding Wizard, Dashboard, and Profile Settings screen can be added here.*
+* **Deterministic Fitness Score Engine:**
+  * Multi-factor 0–100 fitness score calculated server-side based on workout consistency, nutrition adherence, logging completeness, and progress trends.
+  * Historical score trend tracking and grade classification.
 
----
+* **AI Coach & Persistent Memory System (`/coach`):**
+  * Interactive conversational coach powered by Google Gemini API (`gemini-2.5-flash-lite`).
+  * Structured Pydantic response parsing (`answer`, `observations`, `recommendations`, `warnings`, `data_quality`).
+  * Context Builder aggregating user demographics, active goals, 30d/7d analytics, and preferences into bounded system prompts.
+  * Deterministic preference extraction extracting and persisting user workout/diet preferences to PostgreSQL `ai_memory`.
+  * Persistent chat history store with multi-session context retrieval.
 
-## System Architecture
+* **Automated Weekly & Monthly Reports (`/reports`):**
+  * Comprehensive performance summaries analyzing adherence scores, workout volume, nutrition consistency, and fitness score deltas.
+  * AI-generated narrative summaries synthesizing weekly progress.
 
-```mermaid
-graph TD
-    User([User Browser])
-    
-    subgraph Frontend ["Vercel Edge CDN"]
-        ReactApp["React 19 SPA (Vite + TypeScript)"]
-        Router["React Router v7"]
-        Store["Zustand Auth Store"]
-        ReactApp --> Router
-        ReactApp --> Store
-    end
-
-    subgraph Backend ["Render Cloud Service"]
-        FastAPI["FastAPI ASGI App (Python 3.14)"]
-        AuthMiddleware["JWT Auth Dependency"]
-        ServiceLayer["Services (Profile / Goal / Workout)"]
-        ORMLayer["SQLAlchemy 2.0 ORM"]
-        
-        FastAPI --> AuthMiddleware
-        AuthMiddleware --> ServiceLayer
-        ServiceLayer --> ORMLayer
-    end
-
-    subgraph Database ["Neon Cloud PostgreSQL"]
-        Postgres[(PostgreSQL 16+ Database)]
-        Alembic["Alembic DDL Migrations"]
-        ORMLayer -->|psycopg2 + SSL| Postgres
-        Alembic -->|Schema Revisions| Postgres
-    end
-
-    User -->|HTTPS| ReactApp
-    ReactApp -->|REST API + Bearer Token| FastAPI
-```
+* **Rate Limiting & Security Controls:**
+  * Endpoint rate limiting via `slowapi` with user-aware key functions.
+  * Secured admin diagnostic routes requiring `X-Admin-Secret` header authorization.
+  * DDL schema migrations managed strictly via Alembic CLI in deployment pipeline.
 
 ---
 
@@ -107,30 +93,12 @@ graph TD
 | **State & Routing** | Zustand 5.0, React Router v7 | Global session state management & SPA client routing |
 | **Forms & Validation** | React Hook Form, Zod 4.4 | Type-safe form validation schemas |
 | **Backend Framework** | Python 3.14, FastAPI 0.110 | Asynchronous RESTful API framework |
+| **AI Integration** | Google Gemini API (`google-genai`) | LLM reasoning & structured coaching responses |
 | **ORM & Migrations** | SQLAlchemy 2.0, Alembic 1.13 | Declarative database mapping & DDL migration history |
-| **Database** | PostgreSQL | Serverless cloud PostgreSQL database hosted on Neon |
-| **Security** | PyJWT, Passlib, Bcrypt | Signed JWT tokens & bcrypt password hashing |
+| **Database** | PostgreSQL 16+ | Serverless cloud PostgreSQL database hosted on Neon |
+| **Security & Limits** | PyJWT, Passlib, Bcrypt, Slowapi | Signed JWT tokens, bcrypt password hashing, rate limiting |
 | **Infrastructure** | Vercel, Render | Edge CDN static hosting & backend ASGI web service |
-| **Testing** | Vitest, Testing Library, Pytest | Unit & integration test runners for UI and API tiers |
-
----
-
-## Backend Architecture
-
-The backend follows a clean **Layered Architecture** separating network routing, business logic, data validation, and database operations:
-
-```
-backend/app/
-├── api/          # Routers and HTTP request endpoints (/api/v1 versioning)
-├── services/     # Business logic, calculation engines, & database transactions
-├── models/       # SQLAlchemy ORM database entities
-├── schemas/      # Pydantic data validation contracts (Request / Response)
-└── core/         # Security primitives, database connection pooling, & config
-```
-
-* **API Layer:** Handles request routing, HTTP status codes, and dependency injection (`get_current_user`, `get_db`).
-* **Service Layer:** Houses core business rules, Mifflin-St Jeor calculations, and transactional database logic.
-* **ORM Layer:** Maps Python objects to PostgreSQL relational tables using SQLAlchemy 2.0.
+| **Testing & CI** | Vitest, Pytest, GitHub Actions | Automated unit, UI, and integration test suites |
 
 ---
 
@@ -145,13 +113,12 @@ Schema changes are version-controlled in Git using Alembic DDL migrations (`back
 | `2026_08_16_0003` | Creates `goals` table |
 | `2026_08_16_0004` | Adds `weight_kg` column to `profiles` |
 | `2026_08_16_0005` | Creates `exercises`, `workout_plans`, `workout_plan_exercises`, `workout_logs`, `workout_log_exercises` |
-
-### Core Implemented Entities
-
-* **`users`:** `id (UUID)`, `email (unique)`, `hashed_password`, `is_active`, `is_verified`, `created_at`.
-* **`refresh_tokens`:** `id (UUID)`, `user_id (FK)`, `token (unique)`, `expires_at`, `is_revoked`.
-* **`profiles`:** `id (UUID)`, `user_id (FK)`, `full_name`, `date_of_birth`, `gender`, `height_cm`, `weight_kg`, `activity_level`, `diet_preference`, `equipment (JSON)`, `medical_notes`, `onboarding_complete`.
-* **`goals`:** `id (UUID)`, `user_id (FK)`, `goal_type`, `target_weight_kg`, `target_date`, `is_active`.
+| `2026_08_16_0006` | Creates `foods`, `meal_logs`, `meal_log_items` tables |
+| `2026_08_16_0007` | Creates `measurements` table |
+| `2026_08_16_0008` | Creates `fitness_scores` table |
+| `2026_08_16_0009` | Creates `ai_memory` table |
+| `2026_08_16_0010` | Creates `chat_messages` table |
+| `2026_08_16_0011` | Adds profile preferences (`timezone`, `target_workout_days_per_week`) & workout plan fields |
 
 ---
 
@@ -163,49 +130,54 @@ Schema changes are version-controlled in Git using Alembic DDL migrations (`back
 |---|---|---|---|
 | `POST` | `/api/v1/auth/register` | Register a new user account | No |
 | `POST` | `/api/v1/auth/login` | Authenticate user & return access/refresh tokens | No |
-| `POST` | `/api/v1/auth/refresh` | Issue new access token using a valid refresh token | No |
+| `POST` | `/api/v1/auth/refresh` | Issue new access token using valid refresh token | No |
 | `POST` | `/api/v1/auth/logout` | Revoke active refresh token | Yes |
 
-### User Profile (`/api/v1/profile`)
+### User Profile & Goals (`/api/v1/profile`, `/api/v1/goals`)
 
 | Method | Path | Purpose | Auth Required |
 |---|---|---|---|
-| `GET` | `/api/v1/profile` | Retrieve active user's profile | Yes |
+| `GET` | `/api/v1/profile` | Retrieve active user profile | Yes |
 | `PUT` | `/api/v1/profile` | Update profile demographics & physical metrics | Yes |
 | `POST` | `/api/v1/profile/onboarding` | Submit completed 5-step onboarding payload | Yes |
-
-### Fitness Goals (`/api/v1/goals`)
-
-| Method | Path | Purpose | Auth Required |
-|---|---|---|---|
 | `GET` | `/api/v1/goals/active` | Retrieve active fitness goal | Yes |
-| `POST` | `/api/v1/goals` | Create/update user fitness goal | Yes |
+| `POST` | `/api/v1/goals` | Create or update active fitness goal | Yes |
 
-### Health Check
+### Workout System (`/api/v1/workout`, `/api/v1/exercises`)
 
 | Method | Path | Purpose | Auth Required |
 |---|---|---|---|
-| `GET` | `/health` | System health check (`{"status": "ok"}`) | No |
+| `GET` | `/api/v1/exercises` | Browse and search exercise catalog | Yes |
+| `GET` | `/api/v1/workout/plan` | Retrieve active workout plan | Yes |
+| `POST` | `/api/v1/workout/plan/generate` | Generate workout plan based on goal & equipment | Yes |
+| `POST` | `/api/v1/workout/logs` | Log completed workout session | Yes |
+
+### Nutrition & Progress (`/api/v1/nutrition`, `/api/v1/progress`)
+
+| Method | Path | Purpose | Auth Required |
+|---|---|---|---|
+| `GET` | `/api/v1/nutrition/summary` | Retrieve daily calorie & macro summary | Yes |
+| `POST` | `/api/v1/nutrition/logs` | Log meal session | Yes |
+| `GET/POST`| `/api/v1/progress/measurements`| Retrieve weight & measurement history / Add log | Yes |
+| `GET` | `/api/v1/progress/fitness-score` | Retrieve calculated 0-100 fitness score summary | Yes |
+
+### AI Coach & Reports (`/api/v1/coach`, `/api/v1/reports`)
+
+| Method | Path | Purpose | Auth Required |
+|---|---|---|---|
+| `POST` | `/api/v1/coach/chat` | Send question to AI Coach & receive structured advice | Yes |
+| `GET` | `/api/v1/coach/history` | Retrieve persistent chat history | Yes |
+| `GET` | `/api/v1/reports/weekly` | Generate automated weekly performance report | Yes |
 
 ---
 
-## Authentication & Security
+## Testing & CI/CD
 
-* **JWT Bearer Authorization:** HTTP requests pass access tokens in `Authorization: Bearer <token>` headers.
-* **Token Expiration & Revocation:** Access tokens expire in 60 minutes. Refresh tokens are tracked in PostgreSQL with revocation capabilities (`is_revoked = True`).
-* **Bcrypt Password Security:** User passwords are salted and hashed using Bcrypt before database storage.
-* **CORS Origin Scoping:** FastAPI `CORSMiddleware` enforces origin checks configured via environment variables (`CORS_ORIGINS`).
-* **Secret Isolation:** Database connection strings, API URLs, and JWT secrets are managed via platform environment variables and excluded from version control (`.gitignore`).
+Both application tiers are covered by automated test suites integrated into GitHub Actions CI:
 
----
-
-## Testing
-
-Both application tiers are covered by automated test suites:
-
-* **Frontend Unit & UI Tests (Vitest):** **63 passed** across 11 test files (`auth.test.tsx`, `ui_auth.test.tsx`, `onboarding.test.tsx`, `appshell.test.tsx`, `profile.test.tsx`, `tdeeCalculator.test.ts`, `workout.test.tsx`, `nutrition.test.tsx`, `progress.test.tsx`, `fitnessScore.test.tsx`, `unitConversion.test.ts`).
-* **Backend Integration Tests (Pytest):** **83 passed** across 11 test modules (`test_auth.py`, `test_profile.py`, `test_goals.py`, `test_calculations.py`, `test_health.py`, `test_workout.py`, `test_nutrition.py`, `test_progress.py`, `test_fitness_score.py`, `test_config.py`, `test_adversarial_verification.py`).
-* **Static Analysis:** Oxlint passes with **0 warnings and 0 errors** across 90 files.
+* **Frontend Unit & UI Tests (Vitest):** **75 passed** across 14 test files (`auth.test.tsx`, `ui_auth.test.tsx`, `onboarding.test.tsx`, `appshell.test.tsx`, `profile.test.tsx`, `tdeeCalculator.test.ts`, `workout.test.tsx`, `nutrition.test.tsx`, `progress.test.tsx`, `fitnessScore.test.tsx`, `reports.test.tsx`, `coach.test.tsx`, `dashboard.test.tsx`, `unitConversion.test.ts`).
+* **Backend Integration Tests (Pytest):** **249 passed** across 26 test modules covering auth security, profile, goals, workout execution, nutrition logging, fitness score calculation, reports, rate limiting, and admin security.
+* **Static Analysis & Typecheck:** Oxlint passes with 0 errors; TypeScript `tsc` passes with 0 errors.
 
 ```bash
 # Run Frontend Test Suite
@@ -221,15 +193,18 @@ cd backend && .venv/bin/pytest
 
 ### Completed Phases
 - [x] **Phase 0 — Pre-Development Setup & Architecture Lock:** System documentation, API contracts, database schema, design system.
-- [x] **Phase 1 — Auth & Onboarding:** JWT authentication, user registration/login, 5-step onboarding wizard.
+- [x] **Phase 1 — Auth & Onboarding:** JWT authentication, refresh token rotation, user registration/login, 5-step onboarding wizard.
 - [x] **Phase 2 — Application Shell, Dashboard & Profile:** AppShell layout, baseline TDEE dashboard, interactive profile settings (`/profile`), production cloud deployment.
 - [x] **Phase 3 — Workout System:** Active workout plan view, exercise catalog search, live session execution logger with sets/reps/weight/RPE.
 - [x] **Phase 4 — Nutrition Module:** Meal logging (breakfast, lunch, dinner, snack), target date summaries, macro breakdown tracking.
-- [x] **Phase 5 — Progress Analytics:** Body weight history charts, body measurement tracking in inches (cm canonical DB storage).
-- [x] **Phase 6 — Fitness Score Engine:** Weekly 0-100 deterministic fitness score calculation based on workout volume, protein adherence, logging consistency, and recovery.
+- [x] **Phase 5 — Progress Analytics:** Body weight history charts, body measurement tracking in cm and inches.
+- [x] **Phase 6 — Fitness Score Engine:** Weekly 0-100 deterministic fitness score calculation based on workout volume, protein adherence, and logging consistency.
+- [x] **Phase 7 — AI Coach & Persistent Memory:** Interactive Gemini AI Coach with structured response validation, context builder, deterministic preference extraction, and chat history.
+- [x] **Phase 8 — Automated Reports Module:** Automated weekly performance reports with adherence metrics and AI narrative synthesis.
 
-### Next Phases
-- [ ] **Phase 7 — AI Coach:** Interactive chat interface with persistent memory retrieval (RAG) and proactive coaching tips.
+### Remediation & Stabilization
+- [x] **Remediation Phase 1 — Security & Repository Stabilization:** Sanitized local credentials, removed unauthenticated admin routes (`/admin/migrate`, `/admin/run-seeder`), enforced header authentication on diagnostic endpoints, sanitized response payloads.
+- [x] **Remediation Phase 2 — Documentation Sync & Baseline Realignment:** Synchronized README, PROJECT_STATUS, and decision records with implementation code; added GitHub Actions CI pipeline.
 
 ---
 
@@ -277,79 +252,14 @@ Backend API runs locally at `http://localhost:8000`. API documentation is access
 
 ---
 
-## Production Deployment Overview
+## Current Limitations & Deferred Work
 
-The application is deployed across separate production cloud environments:
-
-* **Frontend (Vercel):** Hosts the static React Single Page Application (SPA). `vercel.json` provides rewrite rules for SPA client routing.
-* **Backend (Render):** Hosts the FastAPI ASGI web service (`backend/render.yaml` defines build, migration release, and start commands).
-* **Database (Neon PostgreSQL):** Managed serverless PostgreSQL database connected via SSL.
-
-### Environment Variables
-
-#### Backend (Render Dashboard)
-```ini
-ENVIRONMENT=production
-DATABASE_URL=postgresql://<user>:<password>@<host>:5432/<dbname>?sslmode=require
-JWT_SECRET=<32_byte_random_string>
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_MINUTES=60
-CORS_ORIGINS=https://fitmind-ai-omega.vercel.app
-```
-
-#### Frontend (Vercel Dashboard)
-```ini
-VITE_API_BASE_URL=https://fitmindai-ur71.onrender.com/api/v1
-```
-
----
-
-## Repository Structure
-
-```
-FitmindAI/
-├── src/                        # React 19 Frontend Codebase
-│   ├── components/             # UI Primitives (Button, Input, Card, Select)
-│   │   └── layout/             # AppShell, Sidebar, TopBar, BottomNav
-│   ├── pages/                  # Screen pages (auth, onboarding, dashboard, profile)
-│   ├── lib/                    # Axios API client, Query setup, Token storage
-│   ├── store/                  # Zustand global auth store
-│   ├── types/                  # TypeScript domain models (Auth, Profile, Goal)
-│   ├── utils/                  # Mifflin-St Jeor TDEE calculator & error parsers
-│   └── tests/                  # Vitest UI & integration tests
-├── backend/                    # FastAPI Backend Codebase
-│   ├── app/
-│   │   ├── api/                # API controllers & route versioning (/api/v1)
-│   │   ├── core/               # App configuration, security, DB engine
-│   │   ├── models/             # SQLAlchemy ORM database models
-│   │   ├── schemas/            # Pydantic validation request/response schemas
-│   │   └── services/           # Business logic & database operations
-│   ├── alembic/                # Version-controlled DDL migration scripts
-│   └── tests/                  # Pytest backend integration test suites
-├── docs/                       # Comprehensive project documentation
-├── vercel.json                 # Vercel SPA routing rewrite rules
-└── README.md
-```
-
----
-
-## Engineering Decisions & Implementation Details
-
-* **Separation of Computation & Reasoning:** Health metrics (BMR, TDEE, macro ratios) are computed deterministically in code rather than generated by non-deterministic LLMs.
-* **Strict Decoupled Architecture:** Client communicates with the server via structured JSON payloads over REST, allowing independent scaling and maintenance of frontend and backend tiers.
-* **Database Migration Discipline:** Database schema updates are managed through version-controlled Alembic DDL scripts in Git.
-* **Zero Committed Secrets:** Credentials, JWT secrets, and connection strings are managed via platform environment variables.
-
----
-
-## Current Limitations
-
-* **Workout Execution Logging (Phase 3):** Workout ORM models and backend endpoints are complete; frontend workout logging UI is currently in progress.
-* **Rate Limiting:** Server-side API rate limiting is planned for production v1.1.
-* **Email Verification:** Account creation currently defaults `is_verified = False`; live email verification flow is planned for production v1.1.
+* **Email Verification Flow:** User registration initializes `is_verified = False`; automated email confirmation flow is deferred.
+* **Vector Store Integration:** Conversational memory uses PostgreSQL relational storage and deterministic preference extraction; vector database integration is deferred for post-v1.0.
 
 ---
 
 ## License
 
-This repository is maintained as an engineering project portfolio. Licensing details to be specified.
+This repository is maintained as an engineering project portfolio. All rights reserved.
+
