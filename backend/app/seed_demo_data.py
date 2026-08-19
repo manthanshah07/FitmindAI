@@ -298,10 +298,27 @@ def validate_production_seeding_safety():
 
 
 
+def run_db_migrations():
+    """
+    Programmatically runs Alembic migrations (alembic upgrade head) against the database
+    to ensure all table columns (such as timezone in profiles) exist before seeding.
+    """
+    try:
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        print("[Migrations] Alembic upgrade head executed successfully.")
+    except Exception as e:
+        print(f"[Migrations Warning] Programmatic migration skipped/info: {e}")
+
+
 def seed_test_subjects(db: Session) -> List[str]:
     validate_production_seeding_safety()
+    run_db_migrations()
     Base.metadata.create_all(bind=engine)
     demo_emails = [cfg["email"] for cfg in TEST_SUBJECTS_CONFIG]
+
 
 
 
