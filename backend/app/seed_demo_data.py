@@ -17,7 +17,6 @@ from app.models.chat_message import ChatMessage
 from app.models.fitness_score import FitnessScore
 from app.services.fitness_score_service import FitnessScoreService
 
-
 DEMO_PASSWORD_PLAIN = "FitMindDemo@2026"
 
 DEMO_ACCOUNTS_CONFIG = [
@@ -233,6 +232,23 @@ def seed_foods(db: Session) -> Dict[str, Food]:
     return catalog
 
 
+def add_meal_item(db: Session, meal_id, food: Food, grams: float):
+    cals = float(food.calories_per_100g) * (grams / 100.0)
+    prot = float(food.protein_per_100g) * (grams / 100.0)
+    carbs = float(food.carbs_per_100g) * (grams / 100.0)
+    fat = float(food.fat_per_100g) * (grams / 100.0)
+    item = MealLogItem(
+        meal_log_id=meal_id,
+        food_id=food.id,
+        quantity_grams=grams,
+        calculated_calories=cals,
+        calculated_protein=prot,
+        calculated_carbs=carbs,
+        calculated_fat=fat,
+    )
+    db.add(item)
+
+
 def seed_demo_data(db: Session) -> List[str]:
     demo_emails = [cfg["email"] for cfg in DEMO_ACCOUNTS_CONFIG]
 
@@ -251,7 +267,6 @@ def seed_demo_data(db: Session) -> List[str]:
         db.query(ChatMessage).filter(ChatMessage.user_id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.query(User).filter(User.id.in_(demo_user_ids)).delete(synchronize_session=False)
         db.commit()
-
 
     # Base catalogs
     ex_catalog = seed_exercises(db)
@@ -312,7 +327,6 @@ def seed_demo_data(db: Session) -> List[str]:
             db.add(active_plan)
             db.flush()
 
-            # Attach plan exercises
             bench = ex_catalog["Barbell Bench Press"]
             squat = ex_catalog["Barbell Squat"]
             rdl = ex_catalog["Romanian Deadlift"]
@@ -328,14 +342,36 @@ def seed_demo_data(db: Session) -> List[str]:
 
         # Seed Workout Logs according to scenario
         user_tz = ZoneInfo(cfg["timezone"])
-        if email in ("demo.full@fitmind.ai", "demo.athlete@fitmind.ai", "demo.bulking@fitmind.ai", "demo.cutting@fitmind.ai", "demo.progress@fitmind.ai", "demo.timezone@fitmind.ai", "demo.ai@fitmind.ai"):
+        if email == "demo.athlete@fitmind.ai":
+            # 5 workouts per week for 4 weeks (20 total sessions)
+            weeks = 4
+            for w in range(weeks):
+                for d_idx in [0, 1, 2, 4, 5]:
+                    log_date = ref_today - timedelta(days=(w * 7) + d_idx)
+                    start_local = datetime.combine(log_date, datetime.min.time().replace(hour=7, minute=0), tzinfo=user_tz)
+                    start_utc = start_local.astimezone(timezone.utc)
+                    end_utc = start_utc + timedelta(minutes=60)
+                    log = WorkoutLog(
+                        user_id=user.id,
+                        plan_id=active_plan.id,
+                        started_at=start_utc,
+                        ended_at=end_utc,
+                        notes=f"Athlete session week {w+1} day {d_idx+1}",
+                    )
+                    db.add(log)
+                    db.flush()
+                    db.add_all([
+                        WorkoutLogExercise(log_id=log.id, exercise_id=ex_catalog["Barbell Squat"].id, set_number=1, reps_completed=8, weight_kg=85.0, rpe=8),
+                        WorkoutLogExercise(log_id=log.id, exercise_id=ex_catalog["Barbell Bench Press"].id, set_number=1, reps_completed=10, weight_kg=60.0, rpe=8),
+                    ])
+
+        elif email in ("demo.full@fitmind.ai", "demo.bulking@fitmind.ai", "demo.cutting@fitmind.ai", "demo.progress@fitmind.ai", "demo.timezone@fitmind.ai", "demo.ai@fitmind.ai"):
             weeks = 3
             days_per_week = cfg["target_days"]
             for w in range(weeks):
                 for d_offset in range(days_per_week):
                     log_date = ref_today - timedelta(days=(w * 7) + (d_offset * 2))
                     if email == "demo.timezone@fitmind.ai":
-                        # Log near IST midnight: 23:30 local time
                         start_local = datetime.combine(log_date, datetime.min.time().replace(hour=23, minute=30), tzinfo=user_tz)
                     else:
                         start_local = datetime.combine(log_date, datetime.min.time().replace(hour=10, minute=0), tzinfo=user_tz)
@@ -352,27 +388,12 @@ def seed_demo_data(db: Session) -> List[str]:
                     )
                     db.add(log)
                     db.flush()
-
-                    log_ex1 = WorkoutLogExercise(
-                        log_id=log.id,
-                        exercise_id=ex_catalog["Barbell Bench Press"].id,
-                        set_number=1,
-                        reps_completed=10,
-                        weight_kg=70.0 if email != "demo.bulking@fitmind.ai" else 90.0,
-                        rpe=8,
-                    )
-                    log_ex2 = WorkoutLogExercise(
-                        log_id=log.id,
-                        exercise_id=ex_catalog["Barbell Squat"].id,
-                        set_number=1,
-                        reps_completed=8,
-                        weight_kg=95.0 if email != "demo.bulking@fitmind.ai" else 120.0,
-                        rpe=8,
-                    )
-                    db.add_all([log_ex1, log_ex2])
+                    db.add_all([
+                        WorkoutLogExercise(log_id=log.id, exercise_id=ex_catalog["Barbell Bench Press"].id, set_number=1, reps_completed=10, weight_kg=70.0 if email != "demo.bulking@fitmind.ai" else 95.0, rpe=8),
+                        WorkoutLogExercise(log_id=log.id, exercise_id=ex_catalog["Barbell Squat"].id, set_number=1, reps_completed=8, weight_kg=95.0 if email != "demo.bulking@fitmind.ai" else 125.0, rpe=8),
+                    ])
 
         elif email == "demo.inconsistent@fitmind.ai":
-            # Only 3 sessions over 3 weeks
             for days_back in [2, 12, 19]:
                 log_date = ref_today - timedelta(days=days_back)
                 start_utc = datetime.combine(log_date, datetime.min.time().replace(hour=14, minute=0), tzinfo=timezone.utc)
@@ -389,7 +410,6 @@ def seed_demo_data(db: Session) -> List[str]:
                 db.add(WorkoutLogExercise(log_id=log.id, exercise_id=ex_catalog["Barbell Bench Press"].id, set_number=1, reps_completed=8, weight_kg=60.0, rpe=7))
 
         elif email == "demo.beginner@fitmind.ai":
-            # 1 workout session
             log_date = ref_today - timedelta(days=2)
             start_utc = datetime.combine(log_date, datetime.min.time().replace(hour=11, minute=0), tzinfo=timezone.utc)
             end_utc = start_utc + timedelta(minutes=30)
@@ -404,53 +424,73 @@ def seed_demo_data(db: Session) -> List[str]:
             db.flush()
             db.add(WorkoutLogExercise(log_id=log.id, exercise_id=ex_catalog["Pull-Up"].id, set_number=1, reps_completed=5, weight_kg=0.0, rpe=9))
 
-        # Seed Nutrition Logs
-        if email in ("demo.full@fitmind.ai", "demo.athlete@fitmind.ai", "demo.bulking@fitmind.ai", "demo.cutting@fitmind.ai", "demo.progress@fitmind.ai", "demo.timezone@fitmind.ai", "demo.ai@fitmind.ai"):
-            logged_days_count = 7 if email == "demo.athlete@fitmind.ai" else 6
+        # Seed Nutrition Logs according to scenario
+        chick = food_catalog["Chicken Breast (Cooked)"]
+        rice = food_catalog["Brown Rice (Cooked)"]
+        oats = food_catalog["Oatmeal (Raw)"]
+        whey = food_catalog["Whey Protein Powder"]
+        eggs = food_catalog["Whole Eggs (Scrambled)"]
+        yogurt = food_catalog["Greek Yogurt (0% Fat)"]
+        salmon = food_catalog["Atlantic Salmon (Cooked)"]
+        sweet_pot = food_catalog["Sweet Potato (Baked)"]
+        broc = food_catalog["Steamed Broccoli"]
+
+        if email == "demo.athlete@fitmind.ai":
+            # 7 days of complete, high-protein athlete nutrition (~2,200 kcal/day)
+            for d in range(7):
+                meal_date = ref_today - timedelta(days=d)
+                logged_at_utc = datetime.combine(meal_date, datetime.min.time().replace(hour=12, minute=30), tzinfo=user_tz).astimezone(timezone.utc)
+                meal = MealLog(user_id=user.id, meal_type="lunch", logged_at=logged_at_utc)
+                db.add(meal)
+                db.flush()
+                add_meal_item(db, meal.id, chick, 200.0)
+                add_meal_item(db, meal.id, rice, 150.0)
+                add_meal_item(db, meal.id, whey, 40.0)
+                add_meal_item(db, meal.id, yogurt, 200.0)
+
+        elif email == "demo.bulking@fitmind.ai":
+            # Caloric Surplus (~3,200 kcal/day)
+            for d in range(6):
+                meal_date = ref_today - timedelta(days=d)
+                logged_at_utc = datetime.combine(meal_date, datetime.min.time().replace(hour=13, minute=0), tzinfo=user_tz).astimezone(timezone.utc)
+                meal = MealLog(user_id=user.id, meal_type="lunch", logged_at=logged_at_utc)
+                db.add(meal)
+                db.flush()
+                add_meal_item(db, meal.id, oats, 150.0)
+                add_meal_item(db, meal.id, whey, 50.0)
+                add_meal_item(db, meal.id, eggs, 250.0)
+                add_meal_item(db, meal.id, chick, 250.0)
+                add_meal_item(db, meal.id, rice, 250.0)
+
+        elif email == "demo.cutting@fitmind.ai":
+            # Caloric Deficit (~1,650 kcal/day, high protein 145g)
+            for d in range(6):
+                meal_date = ref_today - timedelta(days=d)
+                logged_at_utc = datetime.combine(meal_date, datetime.min.time().replace(hour=12, minute=0), tzinfo=user_tz).astimezone(timezone.utc)
+                meal = MealLog(user_id=user.id, meal_type="lunch", logged_at=logged_at_utc)
+                db.add(meal)
+                db.flush()
+                add_meal_item(db, meal.id, chick, 200.0)
+                add_meal_item(db, meal.id, yogurt, 200.0)
+                add_meal_item(db, meal.id, broc, 200.0)
+                add_meal_item(db, meal.id, salmon, 150.0)
+
+        elif email in ("demo.full@fitmind.ai", "demo.progress@fitmind.ai", "demo.timezone@fitmind.ai", "demo.ai@fitmind.ai"):
+            logged_days_count = 6
             for d in range(logged_days_count):
                 meal_date = ref_today - timedelta(days=d)
                 if email == "demo.timezone@fitmind.ai":
-                    # Local IST 00:30 (19:00 UTC previous day)
                     logged_at_local = datetime.combine(meal_date, datetime.min.time().replace(hour=0, minute=30), tzinfo=user_tz)
                 else:
                     logged_at_local = datetime.combine(meal_date, datetime.min.time().replace(hour=12, minute=30), tzinfo=user_tz)
 
                 logged_at_utc = logged_at_local.astimezone(timezone.utc)
-
-                meal = MealLog(
-                    user_id=user.id,
-                    meal_type="lunch",
-                    logged_at=logged_at_utc,
-                    notes="Deterministic demo meal log",
-                )
+                meal = MealLog(user_id=user.id, meal_type="lunch", logged_at=logged_at_utc)
                 db.add(meal)
                 db.flush()
-
-                c_qty = 250.0 if email == "demo.bulking@fitmind.ai" else 150.0
-                r_qty = 200.0 if email == "demo.bulking@fitmind.ai" else 100.0
-
-                chick = food_catalog["Chicken Breast (Cooked)"]
-                rice = food_catalog["Brown Rice (Cooked)"]
-
-                item1 = MealLogItem(
-                    meal_log_id=meal.id,
-                    food_id=chick.id,
-                    quantity_grams=c_qty,
-                    calculated_calories=float(chick.calories_per_100g) * (c_qty / 100.0),
-                    calculated_protein=float(chick.protein_per_100g) * (c_qty / 100.0),
-                    calculated_carbs=0.0,
-                    calculated_fat=float(chick.fat_per_100g) * (c_qty / 100.0),
-                )
-                item2 = MealLogItem(
-                    meal_log_id=meal.id,
-                    food_id=rice.id,
-                    quantity_grams=r_qty,
-                    calculated_calories=float(rice.calories_per_100g) * (r_qty / 100.0),
-                    calculated_protein=float(rice.protein_per_100g) * (r_qty / 100.0),
-                    calculated_carbs=float(rice.carbs_per_100g) * (r_qty / 100.0),
-                    calculated_fat=float(rice.fat_per_100g) * (r_qty / 100.0),
-                )
-                db.add_all([item1, item2])
+                add_meal_item(db, meal.id, chick, 200.0)
+                add_meal_item(db, meal.id, rice, 150.0)
+                add_meal_item(db, meal.id, whey, 35.0)
 
         elif email == "demo.inconsistent@fitmind.ai":
             for d in [1, 4]:
@@ -459,45 +499,74 @@ def seed_demo_data(db: Session) -> List[str]:
                 meal = MealLog(user_id=user.id, meal_type="lunch", logged_at=logged_at_utc)
                 db.add(meal)
                 db.flush()
-                chick = food_catalog["Chicken Breast (Cooked)"]
-                db.add(MealLogItem(
-                    meal_log_id=meal.id,
-                    food_id=chick.id,
-                    quantity_grams=150.0,
-                    calculated_calories=247.5,
-                    calculated_protein=46.5,
-                    calculated_carbs=0.0,
-                    calculated_fat=5.4,
-                ))
+                add_meal_item(db, meal.id, chick, 150.0)
 
         # Seed Measurements
         if email == "demo.progress@fitmind.ai":
-            # 6 measurements over 60 days showing steady weight loss
-            weights = [68.5, 67.2, 66.0, 65.1, 64.4, 64.0]
-            for i, w in enumerate(weights):
-                m_date = ref_today - timedelta(days=50 - (i * 10))
+            # 6 measurements over 60 days showing steady, realistic weight loss progression
+            weights = [68.5, 67.2, 66.0, 65.0, 64.4, 64.0]
+            offsets = [60, 45, 30, 15, 7, 0]
+            for w, off in zip(weights, offsets):
+                m_date = ref_today - timedelta(days=off)
                 db.add(Measurement(
                     user_id=user.id,
                     measured_at=m_date,
                     weight_kg=w,
-                    waist_cm=82.0 - (i * 0.8),
-                    body_fat_pct=22.0 - (i * 0.6),
+                    waist_cm=82.0 - ((60 - off) * 0.08),
+                    body_fat_pct=22.0 - ((60 - off) * 0.06),
                 ))
         elif email == "demo.bulking@fitmind.ai":
-            weights = [82.1, 83.0, 84.0]
-            for i, w in enumerate(weights):
-                m_date = ref_today - timedelta(days=20 - (i * 10))
-                db.add(Measurement(user_id=user.id, measured_at=m_date, weight_kg=w))
+            weights = [80.0, 81.5, 82.8, 84.0]
+            offsets = [60, 40, 20, 0]
+            for w, off in zip(weights, offsets):
+                db.add(Measurement(user_id=user.id, measured_at=ref_today - timedelta(days=off), weight_kg=w))
         elif email == "demo.cutting@fitmind.ai":
-            weights = [71.0, 69.8, 68.5]
-            for i, w in enumerate(weights):
-                m_date = ref_today - timedelta(days=20 - (i * 10))
-                db.add(Measurement(user_id=user.id, measured_at=m_date, weight_kg=w))
+            weights = [72.5, 71.0, 69.8, 68.5]
+            offsets = [60, 40, 20, 0]
+            for w, off in zip(weights, offsets):
+                db.add(Measurement(user_id=user.id, measured_at=ref_today - timedelta(days=off), weight_kg=w))
         elif email != "demo.beginner@fitmind.ai":
             db.add(Measurement(user_id=user.id, measured_at=ref_today, weight_kg=cfg["weight_kg"]))
 
         # Seed AI Memories and Chat History for demo.full and demo.ai
-        if email in ("demo.full@fitmind.ai", "demo.ai@fitmind.ai"):
+        if email == "demo.ai@fitmind.ai":
+            mem1 = AIMemory(
+                user_id=user.id,
+                memory_type="conversational",
+                key="training_preference",
+                value="Prefers hypertrophy rep ranges (8-12 reps) with 90-second rest periods.",
+                source="conversation",
+                is_active=True,
+            )
+            mem2 = AIMemory(
+                user_id=user.id,
+                memory_type="conversational",
+                key="schedule_preference",
+                value="Trains in the evening at 6:30 PM after work.",
+                source="conversation",
+                is_active=True,
+            )
+            mem3 = AIMemory(
+                user_id=user.id,
+                memory_type="conversational",
+                key="dietary_preference",
+                value="Follows a high-protein vegan diet utilizing soy protein, pea protein, and legumes.",
+                source="conversation",
+                is_active=True,
+            )
+            db.add_all([mem1, mem2, mem3])
+
+            chats = [
+                ChatMessage(user_id=user.id, role="user", content="What is the best way to structure my vegan protein intake for muscle growth?"),
+                ChatMessage(user_id=user.id, role="assistant", content="Target 1.8-2.2g of protein per kg of body weight (around 105-125g daily). Combine complementary sources like soy, pea protein, and lentils across 3-4 meals."),
+                ChatMessage(user_id=user.id, role="user", content="How often should I increase weights on Barbell Squats?"),
+                ChatMessage(user_id=user.id, role="assistant", content="Aim for progressive overload every 1-2 weeks. When you complete all prescribed sets with clean form, add 2.5 kg to the bar."),
+                ChatMessage(user_id=user.id, role="user", content="Should I do cardio on my lifting days or rest days?"),
+                ChatMessage(user_id=user.id, role="assistant", content="Either works well! If doing cardio on lifting days, complete it after weight training or separated by 6+ hours so it doesn't fatigue your primary lifts."),
+            ]
+            db.add_all(chats)
+
+        elif email == "demo.full@fitmind.ai":
             mem1 = AIMemory(
                 user_id=user.id,
                 memory_type="conversational",
@@ -516,21 +585,33 @@ def seed_demo_data(db: Session) -> List[str]:
             )
             db.add_all([mem1, mem2])
 
-            chat1 = ChatMessage(
-                user_id=user.id,
-                role="user",
-                content="How should I adjust my protein intake for my muscle gain goal?",
-            )
-            chat2 = ChatMessage(
-                user_id=user.id,
-                role="assistant",
-                content="Based on your profile (78.5 kg, muscle gain goal), aim for approximately 1.6-2.2g of protein per kg of body weight (around 125-170g daily). Spread your protein across 3-4 meals for optimal muscle protein synthesis.",
-            )
+            chat1 = ChatMessage(user_id=user.id, role="user", content="How should I adjust my protein intake for my muscle gain goal?")
+            chat2 = ChatMessage(user_id=user.id, role="assistant", content="Based on your profile (78.5 kg, muscle gain goal), aim for approximately 1.6-2.2g of protein per kg of body weight (around 125-170g daily).")
             db.add_all([chat1, chat2])
 
         db.flush()
 
-        # Persist Fitness Score using FitnessScoreService
+        # Seed historical Fitness Scores for demo.progress to show positive score trend
+        if email == "demo.progress@fitmind.ai":
+            past_scores = [55, 58, 61, 64]
+            for i, sc in enumerate(past_scores):
+                p_start = ref_today - timedelta(days=(4 - i) * 7)
+                p_end = p_start + timedelta(days=6)
+                fs = FitnessScore(
+                    user_id=user.id,
+                    score=sc,
+                    workout_adherence_pct=75.0 + (i * 5.0),
+                    nutrition_score=60.0 + (i * 4.0),
+                    protein_score=70.0,
+                    sleep_score=75.0,
+                    recovery_score=75.0,
+                    consistency_score=65.0 + (i * 5.0),
+                    period_start=p_start,
+                    period_end=p_end,
+                )
+                db.add(fs)
+
+        # Persist current Fitness Score using FitnessScoreService
         FitnessScoreService.calculate_and_save_fitness_score(db, user, ref_today)
         created_user_emails.append(email)
 
