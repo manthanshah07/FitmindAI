@@ -99,3 +99,66 @@ def verify_test_subjects_health(
     }
 
 
+@router.get("/db-info", status_code=status.HTTP_200_OK)
+def get_db_diagnostic_info(db: Session = Depends(get_db)):
+    """
+    Safe diagnostic endpoint returning DB provider, host (hostname only), table existence,
+    user count, and test subject existence without exposing credentials or secrets.
+    """
+    from sqlalchemy import inspect
+    from app.models.user import User
+    from app.seed_demo_data import engine
+
+    url = engine.url
+    db_host = url.host or "local"
+    db_name = url.database or "unknown"
+    db_type = engine.dialect.name
+
+    inspector = inspect(engine)
+    has_users_table = inspector.has_table("users")
+
+    total_users = 0
+    demo_full_exists = False
+
+    if has_users_table:
+        total_users = db.query(User).count()
+        demo_full_user = db.query(User).filter(User.email == "demo.full@fitmind.ai").first()
+        demo_full_exists = demo_full_user is not None
+
+    seed_env_var = os.getenv("SEED_TEST_SUBJECTS_PRODUCTION") or os.getenv("DEMO_SEED_PRODUCTION")
+
+    return {
+        "status": "ok",
+        "database_type": db_type,
+        "database_host": db_host,
+        "database_name": db_name,
+        "users_table_exists": has_users_table,
+        "total_users_count": total_users,
+        "demo_full_exists": demo_full_exists,
+        "seed_env_var_value": seed_env_var,
+    }
+
+
+@router.post("/run-seeder", status_code=status.HTTP_200_OK)
+def run_test_subjects_seeder(db: Session = Depends(get_db)):
+    """
+    Direct HTTP trigger to run test subject seeding on the connected database.
+    """
+    os.environ["SEED_TEST_SUBJECTS_PRODUCTION"] = "true"
+    os.environ["DEMO_SEED_PRODUCTION"] = "true"
+    try:
+        seeded_emails = seed_test_subjects(db)
+        return {
+            "status": "success",
+            "message": f"Successfully seeded {len(seeded_emails)} test subject user accounts.",
+            "seeded_emails": seeded_emails,
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to seed test subjects: {str(e)}",
+        )
+
+
+

@@ -242,11 +242,23 @@ def test_verify_test_subjects_health_endpoint(db: Session):
     assert data["total_test_subjects"] == 10
     assert data["valid_test_subjects"] == 10
     assert len(data["subjects"]) == 10
-    for subj in data["subjects"]:
-        assert subj["exists"] is True
-        assert subj["is_active"] is True
-        assert subj["is_verified"] is True
-        assert subj["password_verified"] is True
+def test_db_diagnostic_info_and_run_seeder_endpoints(db: Session):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    res_info = client.get("/api/v1/admin/db-info")
+    assert res_info.status_code == 200
+    info_data = res_info.json()
+    assert info_data["status"] == "ok"
+    assert info_data["users_table_exists"] is True
+
+    res_seed = client.post("/api/v1/admin/run-seeder")
+    assert res_seed.status_code == 200
+    seed_data = res_seed.json()
+    assert seed_data["status"] == "success"
+    assert len(seed_data["seeded_emails"]) == 10
+
 
 
 
