@@ -44,3 +44,58 @@ def trigger_test_subjects_seeding(
             detail=f"Failed to seed test subjects: {str(e)}",
         )
 
+
+@router.get("/verify-test-subjects", status_code=status.HTTP_200_OK)
+def verify_test_subjects_health(
+    db: Session = Depends(get_db),
+):
+    """
+    Safe production health verification for the 10 test subject accounts.
+    Returns database connection type and verification status per test subject without exposing secrets.
+    """
+    from app.models.user import User
+    from app.core.security import verify_password
+    from app.seed_demo_data import TEST_SUBJECTS_CONFIG, TEST_SUBJECT_PASSWORD, engine
+
+    db_dialect = engine.dialect.name
+    results = []
+    total_valid = 0
+
+    for cfg in TEST_SUBJECTS_CONFIG:
+        email = cfg["email"]
+        user = db.query(User).filter(User.email == email).first()
+
+        if not user:
+            results.append({
+                "email": email,
+                "exists": False,
+                "is_active": False,
+                "is_verified": False,
+                "password_verified": False,
+            })
+            continue
+
+        pwd_ok = verify_password(TEST_SUBJECT_PASSWORD, user.password_hash)
+
+        is_valid = user.is_active and user.is_verified and pwd_ok
+
+        if is_valid:
+            total_valid += 1
+
+        results.append({
+            "email": email,
+            "exists": True,
+            "is_active": user.is_active,
+            "is_verified": user.is_verified,
+            "password_verified": pwd_ok,
+        })
+
+    return {
+        "status": "ok" if total_valid == len(TEST_SUBJECTS_CONFIG) else "incomplete",
+        "database_type": db_dialect,
+        "total_test_subjects": len(TEST_SUBJECTS_CONFIG),
+        "valid_test_subjects": total_valid,
+        "subjects": results,
+    }
+
+

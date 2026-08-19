@@ -281,19 +281,21 @@ def validate_production_seeding_safety():
 
     if is_prod_env or is_remote_db:
         allow_flag = (
-            os.getenv("DEMO_SEED_PRODUCTION", "").lower() in ("true", "1", "yes")
+            os.getenv("SEED_TEST_SUBJECTS_PRODUCTION", "").lower() in ("true", "1", "yes")
+            or os.getenv("DEMO_SEED_PRODUCTION", "").lower() in ("true", "1", "yes")
             or os.getenv("DEMO_SEED_ALLOW", "").lower() in ("true", "1", "yes")
             or "--force-production" in sys.argv
         )
         if not allow_flag:
             raise RuntimeError(
-                "SAFETY BLOCK: Attempted to run demo seeding against a PRODUCTION or REMOTE database without explicit confirmation.\n"
+                "SAFETY BLOCK: Attempted to run test-subject seeding against a PRODUCTION or REMOTE database without explicit confirmation.\n"
                 f"  ENVIRONMENT: {settings.ENVIRONMENT}\n"
-                "  To authorize production demo seeding, set environment variable:\n"
-                "    DEMO_SEED_PRODUCTION=true\n"
+                "  To authorize production test-subject seeding, set environment variable:\n"
+                "    SEED_TEST_SUBJECTS_PRODUCTION=true\n"
                 "  or run with CLI flag:\n"
                 "    python -m app.seed_demo_data --force-production\n"
             )
+
 
 
 def seed_test_subjects(db: Session) -> List[str]:

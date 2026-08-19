@@ -227,4 +227,27 @@ def test_admin_trigger_demo_seeding_endpoint(db: Session):
     assert len(data["seeded_emails"]) == 10
 
 
+def test_verify_test_subjects_health_endpoint(db: Session):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    db.rollback()
+    seed_demo_data(db)
+
+    client = TestClient(app)
+    res = client.get("/api/v1/admin/verify-test-subjects")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert data["total_test_subjects"] == 10
+    assert data["valid_test_subjects"] == 10
+    assert len(data["subjects"]) == 10
+    for subj in data["subjects"]:
+        assert subj["exists"] is True
+        assert subj["is_active"] is True
+        assert subj["is_verified"] is True
+        assert subj["password_verified"] is True
+
+
+
 
