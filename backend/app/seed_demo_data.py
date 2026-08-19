@@ -298,26 +298,45 @@ def validate_production_seeding_safety():
 
 
 
-def run_db_migrations():
+def run_db_migrations(db: Session = None):
     """
-    Programmatically runs Alembic migrations (alembic upgrade head) against the database
-    to ensure all table columns (such as timezone in profiles) exist before seeding.
+    Ensures all PostgreSQL schema columns exist (timezone, preferred_workout_duration_minutes,
+    target_workout_days_per_week in profiles) by executing idempotent DDL statements directly
+    and attempting Alembic programmatic upgrades.
     """
+    from sqlalchemy import text
+
+    if db is not None:
+        try:
+            db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'UTC';"))
+            db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS preferred_workout_duration_minutes INTEGER DEFAULT 45;"))
+            db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS target_workout_days_per_week INTEGER DEFAULT 4;"))
+            db.commit()
+            print("[Migrations] Direct PostgreSQL DDL column verification succeeded.")
+        except Exception as ddl_err:
+            db.rollback()
+            print(f"[Migrations Warning] Direct DDL execution: {ddl_err}")
+
     try:
         from alembic.config import Config
         from alembic import command
-        alembic_cfg = Config("alembic.ini")
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ini_path = os.path.join(base_dir, "alembic.ini")
+        if not os.path.exists(ini_path):
+            ini_path = "alembic.ini"
+        alembic_cfg = Config(ini_path)
         command.upgrade(alembic_cfg, "head")
         print("[Migrations] Alembic upgrade head executed successfully.")
     except Exception as e:
-        print(f"[Migrations Warning] Programmatic migration skipped/info: {e}")
+        print(f"[Migrations Warning] Alembic programmatic upgrade: {e}")
 
 
 def seed_test_subjects(db: Session) -> List[str]:
     validate_production_seeding_safety()
-    run_db_migrations()
+    run_db_migrations(db)
     Base.metadata.create_all(bind=engine)
     demo_emails = [cfg["email"] for cfg in TEST_SUBJECTS_CONFIG]
+
 
 
 
