@@ -246,3 +246,9 @@ The P0 actions are critically important and should happen before any new feature
 ## Fix 1 — Admin Database RBAC Remediation Status (2026-08-20)
 
 - **SEC-011 / Fix 1 (Database RBAC Admin Authorization):** RESOLVED — Refactored all `/admin/*` routes to use `get_current_admin_user` dependency checking `is_admin == True` on the `User` model. Created Alembic migration `2026_08_20_0012_add_is_admin_to_users.py`.
+
+---
+
+## Fix 2 — Alembic-Only Schema Management Remediation Status (2026-08-20)
+
+- **Fix 2 (Alembic-Only Schema Management):** RESOLVED — Removed programmatic DDL statements from `backend/app/seed_demo_data.py`. Alembic CLI (`alembic upgrade head`) is the exclusive database migration mechanism.

@@ -358,3 +358,9 @@
 ## Fix 1 — Admin Database RBAC Remediation Status (2026-08-20)
 
 - **SEC-011 / Fix 1 (Database RBAC Admin Authorization):** RESOLVED — Replaced static `X-Admin-Secret` header authorization with database-backed user role authorization (`get_current_admin_user` checking `is_admin == True` on the `User` model). Alembic DDL migration `2026_08_20_0012_add_is_admin_to_users.py` created. `test_admin_rbac.py` suite added (264 Pytest tests passing, 95% total app coverage).
+
+---
+
+## Fix 2 — Alembic-Only Schema Management Remediation Status (2026-08-20)
+
+- **Fix 2 (Alembic-Only Schema Management):** RESOLVED — Eliminated all programmatic schema mutation paths. Removed `run_db_migrations()` (direct PostgreSQL `ALTER TABLE` statements) and `Base.metadata.create_all` from `backend/app/seed_demo_data.py`. Alembic CLI is now the sole authority for database schema creation and DDL version control.

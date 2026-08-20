@@ -193,3 +193,11 @@ Fix these three problems and this becomes a project that would genuinely impress
 | Task / Item | Status | Verification |
 |---|---|---|
 | SEC-011 / Fix 1 (Database RBAC Admin Authorization) | **RESOLVED** | Added `is_admin` boolean column to `User` model (Alembic DDL 0012). Implemented `get_current_admin_user` dependency in `deps.py`. Refactored all `/admin/*` routes to enforce `is_admin == True`. Added `test_admin_rbac.py` test suite (264 Pytest tests passing, 95% coverage). |
+
+---
+
+## Fix 2 — Alembic-Only Schema Management Remediation Status (2026-08-20)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| Fix 2 (Alembic-Only Schema Management) | **RESOLVED** | Removed programmatic DDL (`run_db_migrations()`, direct `ALTER TABLE` queries) and `Base.metadata.create_all` from `backend/app/seed_demo_data.py`. All database DDL migrations are managed strictly via Alembic CLI (`alembic upgrade head`). Verified 264 Pytest tests passing. |
