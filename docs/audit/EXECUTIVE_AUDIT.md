@@ -175,3 +175,13 @@ Fix these three problems and this becomes a project that would genuinely impress
 | P2-6 (Frontend TDEE Preview Documentation) | **RESOLVED** | Added top-level JSDoc header comment to `tdeeCalculator.ts` clarifying preview-only onboarding wizard role and backend calculation authority. |
 | P3-1 (Optimistic Chat Message ID Hardening) | **RESOLVED** | Replaced `Date.now()` temporary IDs in `CoachPage.tsx` with `crypto.randomUUID()` to prevent millisecond timestamp collision risk. |
 | P3-7 (Backend Test Coverage Tooling) | **RESOLVED** | Added `pytest-cov>=4.1.0` dependency to `requirements.txt` and verified test coverage execution (`pytest --cov=app`). |
+
+---
+
+## Phase 6 Remediation Status (2026-08-20)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| P2-3 (TanStack Query Data Fetching Migration) | **RESOLVED** | Migrated `DashboardPage.tsx` and `CoachPage.tsx` data fetching to `@tanstack/react-query` (`useQuery`). Verified with 75 Vitest tests. |
+| NEW-CI-01 (CI Oxlint Static Check Integration) | **RESOLVED** | Added `npm run lint` (`oxlint`) step to `.github/workflows/ci.yml`. |
+| NEW-TEST-01 (AI Memory Service Unit Coverage) | **RESOLVED** | Added `backend/tests/test_ai_memory.py` unit test suite covering preference extraction, medical filtering, and key updates (92% coverage). Total app coverage reached 95%. |

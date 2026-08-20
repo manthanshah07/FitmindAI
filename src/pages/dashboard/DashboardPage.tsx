@@ -1,36 +1,26 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
 import { getDashboardSummaryApi } from '../../lib/api/dashboard';
-import type { DashboardSummaryResponse } from '../../types/dashboard';
+import { getErrorMessage } from '../../utils/apiError';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
-  const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await getDashboardSummaryApi();
-        setSummary(data);
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to load dashboard overview.';
-        setError(errorMsg);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const {
+    data: summary,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['dashboard-summary'],
+    queryFn: () => getDashboardSummaryApi(),
+  });
 
-    loadDashboardData();
-  }, []);
-
+  const error = queryError ? getErrorMessage(queryError) : null;
   const weekly = summary?.weekly_summary;
 
   return (

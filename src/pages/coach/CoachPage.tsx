@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -23,7 +24,6 @@ export const CoachPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
-  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(true);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -32,43 +32,28 @@ export const CoachPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' });
   };
 
+  const { data: historyData, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['coach-history'],
+    queryFn: () => getCoachHistoryApi(),
+  });
+
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadHistory() {
-      setIsLoadingHistory(true);
-      try {
-        const history = await getCoachHistoryApi();
-        if (isMounted && history && history.length > 0) {
-          const loadedMessages: ChatMessage[] = history.map((item) => {
-            const timeStr = item.created_at
-              ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return {
-              id: item.id,
-              sender: item.role,
-              content: item.content || undefined,
-              response: item.response || undefined,
-              timestamp: timeStr,
-            };
-          });
-          setMessages(loadedMessages);
-        }
-      } catch {
-        // Silently catch history fetch error; user can still interact with coach
-      } finally {
-        if (isMounted) {
-          setIsLoadingHistory(false);
-        }
-      }
+    if (historyData && historyData.length > 0 && messages.length === 0) {
+      const loadedMessages: ChatMessage[] = historyData.map((item) => {
+        const timeStr = item.created_at
+          ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return {
+          id: item.id,
+          sender: item.role,
+          content: item.content || undefined,
+          response: item.response || undefined,
+          timestamp: timeStr,
+        };
+      });
+      setMessages(loadedMessages);
     }
-
-    loadHistory();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [historyData, messages.length]);
 
   useEffect(() => {
     scrollToBottom();

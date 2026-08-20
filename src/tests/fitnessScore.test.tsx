@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { FitnessScoreCard } from '../components/progress/FitnessScoreCard';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
@@ -20,6 +21,20 @@ vi.mock('../lib/api/progress', () => ({
   createMeasurementApi: vi.fn(),
   getMeasurementByIdApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 const mockScoreItem = {
   id: 'fs-1',
@@ -74,7 +89,7 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
       history: [],
     });
 
-    const { container } = render(
+    const { container } = renderWithQuery(
       <MemoryRouter initialEntries={['/progress']}>
         <AppShell>
           <ProgressOverviewPage />
@@ -93,7 +108,7 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
     vi.mocked(scoreApi.getFitnessScoreApi).mockResolvedValue(mockScoreResponse);
     vi.mocked(scoreApi.recalculateFitnessScoreApi).mockResolvedValueOnce(mockScoreItem);
 
-    render(
+    renderWithQuery(
       <MemoryRouter>
         <FitnessScoreCard />
       </MemoryRouter>,
@@ -112,7 +127,7 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
   it('renders error state when score loading fails', async () => {
     vi.mocked(scoreApi.getFitnessScoreApi).mockRejectedValueOnce(new Error('Network error'));
 
-    render(
+    renderWithQuery(
       <MemoryRouter>
         <FitnessScoreCard />
       </MemoryRouter>,
@@ -125,7 +140,7 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
   it('renders compact Fitness Score card on Dashboard', async () => {
     vi.mocked(scoreApi.getFitnessScoreApi).mockResolvedValueOnce(mockScoreResponse);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/dashboard']}>
         <AppShell>
           <DashboardPage />

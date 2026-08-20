@@ -232,3 +232,11 @@ The P0 actions are critically important and should happen before any new feature
 - **P2-6 (Frontend TDEE Preview Documentation):** RESOLVED — Documented preview-only status of client TDEE calculator.
 - **P3-1 (Optimistic Chat Message ID Hardening):** RESOLVED — Replaced `Date.now()` optimistic IDs with `crypto.randomUUID()`.
 - **P3-7 (Backend Test Coverage Tooling):** RESOLVED — Installed `pytest-cov` and added to `requirements.txt`.
+
+---
+
+## Phase 6 Remediation Status (2026-08-20)
+
+- **P2-3 (TanStack Query Integration):** RESOLVED — Refactored data fetching in `DashboardPage.tsx` and `CoachPage.tsx` to `useQuery`.
+- **NEW-CI-01 (CI Oxlint Static Check Integration):** RESOLVED — Added static lint check to `.github/workflows/ci.yml`.
+- **NEW-TEST-01 (AI Memory Service Unit Coverage):** RESOLVED — Added `backend/tests/test_ai_memory.py` unit suite (95% app coverage).

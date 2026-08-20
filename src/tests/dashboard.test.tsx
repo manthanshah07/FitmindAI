@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { AppShell } from '../components/layout/AppShell';
@@ -10,6 +11,20 @@ import type { DashboardSummaryResponse } from '../types/dashboard';
 vi.mock('../lib/api/dashboard', () => ({
   getDashboardSummaryApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 const mockDashboardSummary: DashboardSummaryResponse = {
   full_name: 'Athlete User',
@@ -81,7 +96,7 @@ describe('Cycle 7 — Dashboard Integration & Metric Consistency UI', () => {
     vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValueOnce(mockDashboardSummary);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/dashboard']}>
           <AppShell>
             <DashboardPage />
@@ -111,7 +126,7 @@ describe('Cycle 7 — Dashboard Integration & Metric Consistency UI', () => {
     );
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/dashboard']}>
           <AppShell>
             <DashboardPage />

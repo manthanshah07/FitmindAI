@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { CoachPage } from '../pages/coach/CoachPage';
 import { AppShell } from '../components/layout/AppShell';
@@ -11,6 +12,20 @@ vi.mock('../lib/api/coach', () => ({
   sendCoachMessageApi: vi.fn(),
   getCoachHistoryApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 const mockStructuredResponse: CoachChatResponse = {
   answer: 'Based on your recent nutrition logs, you should focus on increasing protein intake.',
@@ -80,7 +95,7 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/coach']}>
           <AppShell>
             <CoachPage />
@@ -101,7 +116,7 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce(mockHistoryResponse);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/coach']}>
           <AppShell>
             <CoachPage />
@@ -123,7 +138,7 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/coach']}>
           <AppShell>
             <CoachPage />
@@ -148,7 +163,7 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     vi.mocked(coachApi.sendCoachMessageApi).mockResolvedValueOnce(mockStructuredResponse);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/coach']}>
           <AppShell>
             <CoachPage />
@@ -184,7 +199,7 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     vi.mocked(coachApi.sendCoachMessageApi).mockResolvedValueOnce(mockStructuredResponse);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/coach']}>
           <AppShell>
             <CoachPage />
@@ -216,7 +231,7 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     );
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/coach']}>
           <AppShell>
             <CoachPage />

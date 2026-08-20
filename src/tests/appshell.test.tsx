@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { AppShell } from '../components/layout/AppShell';
 import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import * as dashboardApi from '../lib/api/dashboard';
 
 import type { DashboardSummaryResponse } from '../types/dashboard';
-
 
 vi.mock('../lib/api/profile', () => ({
   getProfileApi: vi.fn(),
@@ -23,6 +23,20 @@ vi.mock('../lib/api/goals', () => ({
 vi.mock('../lib/api/dashboard', () => ({
   getDashboardSummaryApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 const mockSummaryComplete: DashboardSummaryResponse = {
   full_name: 'AppShell User',
@@ -109,7 +123,7 @@ describe('AppShell & Dashboard Shell', () => {
   });
 
   it('toggles mobile drawer when clicking menu button', async () => {
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/dashboard']}>
         <AppShell>
           <div>Main Content</div>
@@ -130,7 +144,7 @@ describe('AppShell & Dashboard Shell', () => {
   it('renders Dashboard Page metrics correctly inside AppShell', async () => {
     vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValue(mockSummaryComplete);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/dashboard']}>
         <AppShell>
           <DashboardPage />
@@ -151,7 +165,7 @@ describe('AppShell & Dashboard Shell', () => {
       onboarding_complete: false,
     });
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/dashboard']}>
         <AppShell>
           <DashboardPage />
@@ -166,7 +180,7 @@ describe('AppShell & Dashboard Shell', () => {
   it('hides onboarding card when onboarding_complete is true', async () => {
     vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValue(mockSummaryComplete);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/dashboard']}>
         <AppShell>
           <DashboardPage />
@@ -182,7 +196,7 @@ describe('AppShell & Dashboard Shell', () => {
   });
 
   it('navigates to login on logout button click', async () => {
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/dashboard']}>
         <Routes>
           <Route

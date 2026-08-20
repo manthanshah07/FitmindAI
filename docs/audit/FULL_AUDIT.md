@@ -344,3 +344,11 @@
 - **P2-6 (Frontend TDEE Preview Documentation):** RESOLVED — Documented in `tdeeCalculator.ts` that client-side calculation is for onboarding wizard preview only and server-side calculation is authoritative.
 - **P3-1 (Optimistic Chat Message ID Hardening):** RESOLVED — Hardened `CoachPage.tsx` optimistic message IDs to use `crypto.randomUUID()`.
 - **P3-7 (Backend Test Coverage Tooling):** RESOLVED — Added `pytest-cov>=4.1.0` dependency to `requirements.txt` enabling test coverage reporting.
+
+---
+
+## Phase 6 Remediation Status (2026-08-20)
+
+- **P2-3 (TanStack Query Data Fetching Migration):** RESOLVED — Refactored legacy `useState`/`useEffect` data fetching in `DashboardPage.tsx` and `CoachPage.tsx` to `@tanstack/react-query` (`useQuery`).
+- **NEW-CI-01 (CI Oxlint Static Check Integration):** RESOLVED — Integrated `npm run lint` (`oxlint`) step into `.github/workflows/ci.yml`.
+- **NEW-TEST-01 (AI Memory Service Unit Coverage):** RESOLVED — Created `backend/tests/test_ai_memory.py` testing preference parsing, sensitivity filtering, key updating, and deactivation (92% `AIMemoryService` coverage; 95% total app coverage).
