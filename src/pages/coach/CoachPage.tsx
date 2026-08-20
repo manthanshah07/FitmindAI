@@ -81,7 +81,7 @@ export const CoachPage: React.FC = () => {
     setErrorBanner(null);
 
     const userMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${crypto.randomUUID()}`,
       sender: 'user',
       content: trimmed,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -95,7 +95,7 @@ export const CoachPage: React.FC = () => {
       const response: CoachChatResponse = await sendCoachMessageApi({ message: trimmed });
 
       const assistantMessage: ChatMessage = {
-        id: `assistant-${Date.now()}`,
+        id: `assistant-${crypto.randomUUID()}`,
         sender: 'assistant',
         response,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -107,7 +107,7 @@ export const CoachPage: React.FC = () => {
       setErrorBanner(formattedError);
 
       const errorMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
+        id: `error-${crypto.randomUUID()}`,
         sender: 'assistant',
         isError: true,
         errorMessage: formattedError,

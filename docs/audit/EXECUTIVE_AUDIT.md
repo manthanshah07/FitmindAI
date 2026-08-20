@@ -165,3 +165,13 @@ Fix these three problems and this becomes a project that would genuinely impress
 | CI Workflow Hardening & Production Build Gate | **RESOLVED** | Added `npm run build` production bundle compilation check step to frontend CI job. Brought 100% of backend tests (253 tests) into automated CI execution. |
 | Deterministic Test Suite Organization | **RESOLVED** | Confirmed all AI tests (`test_coach_api.py`, `test_ai_client.py`) use `unittest.mock.patch` and run 100% deterministically in CI without live network dependencies. |
 | Production Configuration Hardening | **RESOLVED** | Extended `Settings` model validator in `config.py` to validate `GEMINI_API_KEY` presence when `ENVIRONMENT=production`. Added unit tests in `test_config.py`. |
+
+---
+
+## Phase 5 Remediation Status (2026-08-20)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| P2-6 (Frontend TDEE Preview Documentation) | **RESOLVED** | Added top-level JSDoc header comment to `tdeeCalculator.ts` clarifying preview-only onboarding wizard role and backend calculation authority. |
+| P3-1 (Optimistic Chat Message ID Hardening) | **RESOLVED** | Replaced `Date.now()` temporary IDs in `CoachPage.tsx` with `crypto.randomUUID()` to prevent millisecond timestamp collision risk. |
+| P3-7 (Backend Test Coverage Tooling) | **RESOLVED** | Added `pytest-cov>=4.1.0` dependency to `requirements.txt` and verified test coverage execution (`pytest --cov=app`). |

@@ -1,3 +1,9 @@
+/**
+ * PREVIEW ONLY:
+ * Used for instant TDEE/BMR feedback during the onboarding wizard.
+ * Backend calculations (tdee_calculator.py) are authoritative for persisted/user-facing values.
+ */
+
 export interface TDEECalculationInput {
   weight_kg?: number | null;
   height_cm?: number | null;

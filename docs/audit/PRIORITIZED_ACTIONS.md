@@ -224,3 +224,11 @@ The P0 actions are critically important and should happen before any new feature
 
 - **CI Pipeline Hardening & Build Gate:** RESOLVED — Added `npm run build` check to CI workflow. Brought 100% of Pytest backend integration tests (253 tests) into automated GitHub Actions execution.
 - **Production Config Hardening:** RESOLVED — Extended production mode settings validation to require valid `GEMINI_API_KEY` configuration.
+
+---
+
+## Phase 5 Remediation Status (2026-08-20)
+
+- **P2-6 (Frontend TDEE Preview Documentation):** RESOLVED — Documented preview-only status of client TDEE calculator.
+- **P3-1 (Optimistic Chat Message ID Hardening):** RESOLVED — Replaced `Date.now()` optimistic IDs with `crypto.randomUUID()`.
+- **P3-7 (Backend Test Coverage Tooling):** RESOLVED — Installed `pytest-cov` and added to `requirements.txt`.

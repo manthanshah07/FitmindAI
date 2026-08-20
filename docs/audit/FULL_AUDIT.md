@@ -336,3 +336,11 @@
 - **CI Workflow Hardening:** RESOLVED — Added `npm run build` production asset compilation check to `.github/workflows/ci.yml`. Removed Pytest ignore flags so all 253 backend tests run deterministically in CI.
 - **AI Test Execution:** RESOLVED — Verified `test_coach_api.py` and `test_ai_client.py` use local mocks and execute deterministically in CI with zero external Gemini API calls.
 - **Production Configuration Validation:** RESOLVED — Enforced `GEMINI_API_KEY` configuration validation in `Settings` when `ENVIRONMENT=production`. Added test coverage in `test_config.py`.
+
+---
+
+## Phase 5 Remediation Status (2026-08-20)
+
+- **P2-6 (Frontend TDEE Preview Documentation):** RESOLVED — Documented in `tdeeCalculator.ts` that client-side calculation is for onboarding wizard preview only and server-side calculation is authoritative.
+- **P3-1 (Optimistic Chat Message ID Hardening):** RESOLVED — Hardened `CoachPage.tsx` optimistic message IDs to use `crypto.randomUUID()`.
+- **P3-7 (Backend Test Coverage Tooling):** RESOLVED — Added `pytest-cov>=4.1.0` dependency to `requirements.txt` enabling test coverage reporting.
