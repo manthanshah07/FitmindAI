@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -7,14 +8,11 @@ import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
 import { getProgressSummaryApi, createMeasurementApi } from '../../lib/api/progress';
 import { getErrorMessage } from '../../utils/apiError';
 import { inchesToCm, formatInches } from '../../utils/unitConversion';
-import type { ProgressSummary } from '../../types/progress';
 
 export const ProgressOverviewPage: React.FC = () => {
-  const [summary, setSummary] = useState<ProgressSummary | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Form State (User inputs circumferences in Inches)
@@ -27,22 +25,16 @@ export const ProgressOverviewPage: React.FC = () => {
   const [thighIn, setThighIn] = useState<string>('');
   const [bodyFatPct, setBodyFatPct] = useState<string>('');
 
-  const loadSummary = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const data = await getProgressSummaryApi();
-      setSummary(data);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    data: summary,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['progressSummary'],
+    queryFn: () => getProgressSummaryApi(),
+  });
 
-  useEffect(() => {
-    loadSummary();
-  }, []);
+  const error = queryError ? getErrorMessage(queryError) : null;
 
   const handleAddMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,8 +86,8 @@ export const ProgressOverviewPage: React.FC = () => {
       setThighIn('');
       setBodyFatPct('');
 
-      // Reload summary
-      await loadSummary();
+      // Invalidate progressSummary query cache
+      await queryClient.invalidateQueries({ queryKey: ['progressSummary'] });
     } catch (err) {
       setFormError(getErrorMessage(err));
     } finally {
@@ -121,7 +113,7 @@ export const ProgressOverviewPage: React.FC = () => {
       <div className="flex flex-col gap-4 p-8 border border-error bg-error/5 text-error">
         <h3 className="font-mono text-lg font-bold uppercase">Progress Error</h3>
         <p className="text-xs font-sans">{error || 'Could not load progress data.'}</p>
-        <Button variant="secondary" onClick={loadSummary}>
+        <Button variant="secondary" onClick={() => queryClient.invalidateQueries({ queryKey: ['progressSummary'] })}>
           Retry Loading
         </Button>
       </div>

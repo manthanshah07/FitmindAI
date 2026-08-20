@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { ProgressOverviewPage } from '../pages/progress/ProgressOverviewPage';
 import { AppShell } from '../components/layout/AppShell';
@@ -12,6 +13,24 @@ vi.mock('../lib/api/progress', () => ({
   createMeasurementApi: vi.fn(),
   getMeasurementByIdApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 const mockMeasurement = {
   id: 'm-1',
@@ -60,7 +79,7 @@ describe('Phase 5 — Progress & Measurement Tracking Frontend Module', () => {
   it('renders Progress Overview Page with summary statistics and historical trend', async () => {
     vi.mocked(progressApi.getProgressSummaryApi).mockResolvedValueOnce(mockSummary);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/progress']}>
         <AppShell>
           <ProgressOverviewPage />
@@ -78,7 +97,7 @@ describe('Phase 5 — Progress & Measurement Tracking Frontend Module', () => {
     vi.mocked(progressApi.getProgressSummaryApi).mockResolvedValue(mockSummary);
     vi.mocked(progressApi.createMeasurementApi).mockResolvedValueOnce(mockMeasurement);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/progress']}>
         <AppShell>
           <ProgressOverviewPage />
@@ -119,7 +138,7 @@ describe('Phase 5 — Progress & Measurement Tracking Frontend Module', () => {
       history: [],
     });
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/progress']}>
         <AppShell>
           <ProgressOverviewPage />

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -13,7 +14,7 @@ import {
   seedExercisesApi,
 } from '../../lib/api/workout';
 import { getErrorMessage } from '../../utils/apiError';
-import type { WorkoutPlan, WorkoutLog, Exercise } from '../../types/workout';
+import type { WorkoutPlan, WorkoutLog } from '../../types/workout';
 
 const DAYS_OPTIONS = [
   { value: '3', label: '3 Days / Week (Full Body Split)' },
@@ -48,9 +49,7 @@ const CATEGORY_OPTIONS = [
 
 export const WorkoutOverviewPage: React.FC = () => {
   const location = useLocation();
-  const [plan, setPlan] = useState<WorkoutPlan | null>(null);
-  const [recentLog, setRecentLog] = useState<WorkoutLog | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [selectedDays, setSelectedDays] = useState<string>('4');
   const [feedback, setFeedback] = useState<string | null>(
@@ -58,92 +57,61 @@ export const WorkoutOverviewPage: React.FC = () => {
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Exercise Catalog Explorer State
-  const [catalogExercises, setCatalogExercises] = useState<Exercise[]>([]);
-  const [isCatalogLoading, setIsCatalogLoading] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedMuscle, setSelectedMuscle] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
 
-  const loadWorkoutOverview = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Fetch active plan, logs, and initial exercise catalog in parallel
-      const [planData, logsData, exercisesData] = await Promise.allSettled([
+  const {
+    data: overviewData,
+    isLoading,
+    error: overviewQueryError,
+  } = useQuery({
+    queryKey: ['workoutOverview'],
+    queryFn: async () => {
+      const [planData, logsData] = await Promise.allSettled([
         getActiveWorkoutPlanApi(),
         getWorkoutLogsApi(1, 0),
-        getExercisesApi(),
       ]);
 
-      let activePlan: WorkoutPlan | null = null;
-      if (planData.status === 'fulfilled') {
-        activePlan = planData.value;
-      }
-
-      // If no plan, automatically seed default exercises and generate an initial plan
+      let activePlan = planData.status === 'fulfilled' ? planData.value : null;
       if (!activePlan) {
         await seedExercisesApi();
         activePlan = await generateWorkoutPlanApi({ days_per_week: 4 });
       }
 
-      setPlan(activePlan);
+      const recentLog = logsData.status === 'fulfilled' && logsData.value.length > 0 ? logsData.value[0] : null;
+      return { plan: activePlan as WorkoutPlan | null, recentLog: recentLog as WorkoutLog | null };
+    },
+  });
 
-      if (logsData.status === 'fulfilled' && logsData.value.length > 0) {
-        setRecentLog(logsData.value[0]);
-      }
+  const {
+    data: catalogExercises = [],
+    isLoading: isCatalogLoading,
+  } = useQuery({
+    queryKey: ['catalogExercises', searchQuery, selectedMuscle, selectedDifficulty, selectedCategory],
+    queryFn: () =>
+      getExercisesApi({
+        search: searchQuery || undefined,
+        muscle: selectedMuscle || undefined,
+        difficulty: selectedDifficulty || undefined,
+        category: selectedCategory || undefined,
+      }),
+  });
 
-      if (exercisesData.status === 'fulfilled') {
-        setCatalogExercises(exercisesData.value);
-      }
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadWorkoutOverview();
-  }, []);
-
-  // Filter Catalog exercises dynamically
-  useEffect(() => {
-    async function filterCatalog() {
-      try {
-        setIsCatalogLoading(true);
-        const data = await getExercisesApi({
-          search: searchQuery || undefined,
-          muscle: selectedMuscle || undefined,
-          difficulty: selectedDifficulty || undefined,
-          category: selectedCategory || undefined,
-        });
-        setCatalogExercises(data);
-      } catch {
-        // Soft fallback
-      } finally {
-        setIsCatalogLoading(false);
-      }
-    }
-
-    const timer = setTimeout(() => {
-      filterCatalog();
-    }, 200);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery, selectedMuscle, selectedDifficulty, selectedCategory]);
+  const plan = overviewData?.plan || null;
+  const recentLog = overviewData?.recentLog || null;
+  const combinedError = error || (overviewQueryError ? getErrorMessage(overviewQueryError) : null);
 
   const handleGeneratePlan = async () => {
     try {
       setIsGenerating(true);
       setError(null);
       await seedExercisesApi();
-      const newPlan = await generateWorkoutPlanApi({
+      await generateWorkoutPlanApi({
         days_per_week: parseInt(selectedDays, 10),
       });
-      setPlan(newPlan);
+      await queryClient.invalidateQueries({ queryKey: ['workoutOverview'] });
       setFeedback('Personalized workout plan generated successfully!');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -166,40 +134,36 @@ export const WorkoutOverviewPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
+    <div className="flex flex-col gap-8 max-w-7xl mx-auto">
+      {/* Overview Header & Title */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-borderLine">
         <div>
-          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Workout System Overview
+          <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-1">
+            Training Management System
           </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-graphite">
-            Today's Workout Routine
+          <h1 className="text-3xl font-bold tracking-tighter uppercase font-mono">
+            Workout Hub
           </h1>
-          <p className="text-sm text-charcoal font-sans mt-1">
-            View your active routine, scheduled exercise specs, and live session tracker.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <NavLink to="/workout/history">
-            <Button variant="secondary">View Log History</Button>
-          </NavLink>
-          <NavLink to="/workout/session">
-            <Button variant="primary">Start Workout Session →</Button>
+            <Button variant="secondary">View Workout Logs 📋</Button>
           </NavLink>
         </div>
       </div>
 
-      {/* Feedback & Error Banners */}
+      {/* Dynamic Feedback Banner */}
       {feedback && (
         <div className="p-4 border border-olive bg-olive/5 text-olive font-mono text-xs uppercase tracking-wider">
-          {feedback}
+          ✓ {feedback}
         </div>
       )}
-      {error && (
+
+      {/* Error Alert Banner */}
+      {combinedError && (
         <div className="p-4 border border-error bg-error/5 text-error font-mono text-xs uppercase tracking-wider" role="alert">
-          {error}
+          {combinedError}
         </div>
       )}
 

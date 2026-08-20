@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { NutritionOverviewPage } from '../pages/nutrition/NutritionOverviewPage';
 import { FoodLoggerPage } from '../pages/nutrition/FoodLoggerPage';
@@ -17,6 +18,24 @@ vi.mock('../lib/api/nutrition', () => ({
   seedFoodsApi: vi.fn(),
   logMealApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 const mockFood = {
   id: 'food-1',
@@ -108,7 +127,7 @@ describe('Phase 4 — Nutrition Frontend Module', () => {
     vi.mocked(nutritionApi.seedFoodsApi).mockResolvedValueOnce([mockFood]);
     vi.mocked(nutritionApi.getTodayNutritionSummaryApi).mockResolvedValueOnce(mockSummary);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/nutrition']}>
         <AppShell>
           <NutritionOverviewPage />

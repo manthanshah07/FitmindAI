@@ -1,47 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { getWeeklyReportApi, getMonthlyReportApi } from '../../lib/api/reports';
 import { getErrorMessage } from '../../utils/apiError';
-import type { FitnessReportResponse } from '../../types/reports';
 
 export const ReportsPage: React.FC = () => {
   const [reportType, setReportType] = useState<'weekly' | 'monthly'>('weekly');
-  const [report, setReport] = useState<FitnessReportResponse | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const {
+    data: report = null,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['reports', reportType],
+    queryFn: () => (reportType === 'weekly' ? getWeeklyReportApi() : getMonthlyReportApi()),
+  });
 
-    async function loadReport() {
-      setIsLoading(true);
-      setErrorBanner(null);
-      try {
-        const data =
-          reportType === 'weekly'
-            ? await getWeeklyReportApi()
-            : await getMonthlyReportApi();
-        if (isMounted) {
-          setReport(data);
-        }
-      } catch (err: unknown) {
-        if (isMounted) {
-          setErrorBanner(getErrorMessage(err));
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadReport();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [reportType]);
+  const errorBanner = queryError ? getErrorMessage(queryError) : null;
 
   const renderAdherenceBadge = (label?: string | null) => {
     switch (label?.toLowerCase()) {

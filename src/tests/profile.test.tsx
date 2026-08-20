@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { ProfilePage } from '../pages/profile/ProfilePage';
 import { AppShell } from '../components/layout/AppShell';
@@ -11,6 +12,24 @@ vi.mock('../lib/api/profile', () => ({
   updateProfileApi: vi.fn(),
   completeOnboardingApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 const mockProfile = {
   id: 'p-123',
@@ -57,7 +76,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
   it('loads and displays user profile data from GET /api/v1/profile', async () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/profile']}>
         <AppShell>
           <ProfilePage />
@@ -80,7 +99,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
       full_name: 'Alex Rivera Updated',
     });
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/profile']}>
         <AppShell>
           <ProfilePage />
@@ -117,7 +136,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
   it('discards unsaved edits when Cancel is clicked', async () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/profile']}>
         <AppShell>
           <ProfilePage />
@@ -145,7 +164,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
   it('prevents saving invalid height or weight values with validation errors', async () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/profile']}>
         <AppShell>
           <ProfilePage />
@@ -175,7 +194,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
       new Error('Database error occurred'),
     );
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/profile']}>
         <AppShell>
           <ProfilePage />
@@ -197,7 +216,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
     vi.mocked(profileApi.updateProfileApi).mockResolvedValueOnce(mockProfile);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/profile']}>
         <AppShell>
           <ProfilePage />

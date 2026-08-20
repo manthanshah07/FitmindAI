@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,7 +10,10 @@ import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { getProfileApi, updateProfileApi } from '../../lib/api/profile';
 import { getErrorMessage } from '../../utils/apiError';
-import type { Profile, Gender, ActivityLevel, DietPreference } from '../../types/profile';
+import type { Gender, ActivityLevel, DietPreference } from '../../types/profile';
+
+// ... equipment and diet options remain ...
+
 
 const EQUIPMENT_OPTIONS = [
   { value: 'bodyweight', label: 'Bodyweight Only' },
@@ -112,12 +116,20 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 export const ProfilePage: React.FC = () => {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [selectedEquipment, setSelectedEquipment] = useState<string[]>([]);
   const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const {
+    data: profile = null,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['profile'],
+    queryFn: getProfileApi,
+  });
 
   const {
     register,
@@ -129,34 +141,29 @@ export const ProfilePage: React.FC = () => {
   });
 
   useEffect(() => {
-    async function loadProfile() {
-      try {
-        setIsLoading(true);
-        const data = await getProfileApi();
-        setProfile(data);
-        setSelectedEquipment(data.equipment || ['bodyweight']);
-        reset({
-          full_name: data.full_name || '',
-          date_of_birth: data.date_of_birth || '',
-          gender: (data.gender as Gender) || 'prefer_not_to_say',
-          height_cm: data.height_cm || undefined,
-          weight_kg: data.weight_kg || undefined,
-          activity_level: (data.activity_level as ActivityLevel) || 'moderate',
-          diet_preference: (data.diet_preference as DietPreference) || 'omnivore',
-          timezone: data.timezone || 'UTC',
-          preferred_workout_duration_minutes: data.preferred_workout_duration_minutes || 45,
-          target_workout_days_per_week: data.target_workout_days_per_week || 4,
-          medical_notes: data.medical_notes || '',
-        });
-      } catch (err) {
-        setFeedbackMessage({ type: 'error', text: getErrorMessage(err) });
-      } finally {
-        setIsLoading(false);
-      }
+    if (profile) {
+      setSelectedEquipment(profile.equipment || ['bodyweight']);
+      reset({
+        full_name: profile.full_name || '',
+        date_of_birth: profile.date_of_birth || '',
+        gender: (profile.gender as Gender) || 'prefer_not_to_say',
+        height_cm: profile.height_cm || undefined,
+        weight_kg: profile.weight_kg || undefined,
+        activity_level: (profile.activity_level as ActivityLevel) || 'moderate',
+        diet_preference: (profile.diet_preference as DietPreference) || 'omnivore',
+        timezone: profile.timezone || 'UTC',
+        preferred_workout_duration_minutes: profile.preferred_workout_duration_minutes || 45,
+        target_workout_days_per_week: profile.target_workout_days_per_week || 4,
+        medical_notes: profile.medical_notes || '',
+      });
     }
+  }, [profile, reset]);
 
-    loadProfile();
-  }, [reset]);
+  useEffect(() => {
+    if (queryError) {
+      setFeedbackMessage({ type: 'error', text: getErrorMessage(queryError) });
+    }
+  }, [queryError]);
 
   const toggleEquipment = (eq: string) => {
     if (!isEditing) return;
@@ -209,8 +216,9 @@ export const ProfilePage: React.FC = () => {
         medical_notes: data.medical_notes || undefined,
       };
 
-      const updated = await updateProfileApi(payload);
-      setProfile(updated);
+      await updateProfileApi(payload);
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       setIsEditing(false);
       setFeedbackMessage({ type: 'success', text: 'Profile updated successfully!' });
 

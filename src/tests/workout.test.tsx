@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { WorkoutOverviewPage } from '../pages/workout/WorkoutOverviewPage';
 import { WorkoutSessionPage } from '../pages/workout/WorkoutSessionPage';
@@ -19,6 +20,24 @@ vi.mock('../lib/api/workout', () => ({
   seedExercisesApi: vi.fn(),
   logWorkoutSessionApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 const mockExercise = {
   id: 'ex-1',
@@ -112,7 +131,7 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([mockLog]);
     vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/workout']}>
         <AppShell>
           <WorkoutOverviewPage />
@@ -158,7 +177,7 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
     vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/workout']}>
         <AppShell>
           <WorkoutOverviewPage />
@@ -185,7 +204,7 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
     vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
 
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/workout']}>
         <AppShell>
           <WorkoutOverviewPage />

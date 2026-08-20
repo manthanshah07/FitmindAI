@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { ReportsPage } from '../pages/reports/ReportsPage';
 import { AppShell } from '../components/layout/AppShell';
@@ -11,6 +12,24 @@ vi.mock('../lib/api/reports', () => ({
   getWeeklyReportApi: vi.fn(),
   getMonthlyReportApi: vi.fn(),
 }));
+
+const createTestQueryClient = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+const renderWithQuery = (ui: React.ReactNode) => {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {ui}
+    </QueryClientProvider>
+  );
+};
 
 const mockWeeklyReport: FitnessReportResponse = {
   report_type: 'weekly',
@@ -139,7 +158,7 @@ describe('Phase 8 — Automated Reports Module UI', () => {
     vi.mocked(reportsApi.getWeeklyReportApi).mockResolvedValueOnce(mockWeeklyReport);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/reports']}>
           <AppShell>
             <ReportsPage />
@@ -168,7 +187,7 @@ describe('Phase 8 — Automated Reports Module UI', () => {
     });
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/reports']}>
           <AppShell>
             <ReportsPage />
@@ -198,7 +217,7 @@ describe('Phase 8 — Automated Reports Module UI', () => {
     vi.mocked(reportsApi.getWeeklyReportApi).mockResolvedValueOnce(mockSparseWeeklyReport);
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/reports']}>
           <AppShell>
             <ReportsPage />
@@ -222,7 +241,7 @@ describe('Phase 8 — Automated Reports Module UI', () => {
     );
 
     await act(async () => {
-      render(
+      renderWithQuery(
         <MemoryRouter initialEntries={['/reports']}>
           <AppShell>
             <ReportsPage />

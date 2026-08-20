@@ -1,38 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { getTodayNutritionSummaryApi, seedFoodsApi } from '../../lib/api/nutrition';
 import { getErrorMessage } from '../../utils/apiError';
-import type { DailyNutritionSummary } from '../../types/nutrition';
 
 export const NutritionOverviewPage: React.FC = () => {
   const location = useLocation();
-  const [summary, setSummary] = useState<DailyNutritionSummary | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [feedback] = useState<string | null>(
     (location.state as { message?: string })?.message || null,
   );
 
-  useEffect(() => {
-    async function loadNutritionOverview() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        await seedFoodsApi().catch(() => {});
-        const data = await getTodayNutritionSummaryApi();
-        setSummary(data);
-      } catch (err) {
-        setError(getErrorMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
-    }
+  const {
+    data: summary,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['todayNutritionSummary'],
+    queryFn: async () => {
+      await seedFoodsApi().catch(() => {});
+      return getTodayNutritionSummaryApi();
+    },
+  });
 
-    loadNutritionOverview();
-  }, []);
+  const error = queryError ? getErrorMessage(queryError) : null;
 
   if (isLoading) {
     return (
