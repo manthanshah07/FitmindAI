@@ -30,6 +30,9 @@ jobs:
       - name: Run Vitest unit & UI tests
         run: npm run test
 
+      - name: Production bundle build check
+        run: npm run build
+
   backend:
     name: Backend (FastAPI / Pytest)
     runs-on: ubuntu-latest
@@ -55,4 +58,4 @@ jobs:
           GEMINI_API_KEY: dummy_ci_key_placeholder
         run: |
           cd backend
-          pytest --ignore=tests/test_coach_api.py --ignore=tests/test_ai_client.py -q
+          pytest -q

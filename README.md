@@ -99,6 +99,7 @@ The application strictly separates **deterministic calculations** (BMR/TDEE calc
 | **Security & Limits** | PyJWT, Passlib, Bcrypt, Slowapi | Signed JWT tokens, bcrypt password hashing, rate limiting |
 | **Infrastructure** | Vercel, Render | Edge CDN static hosting & backend ASGI web service |
 | **Testing & CI** | Vitest, Pytest, GitHub Actions | Automated unit, UI, and integration test suites |
+| **Quality Assurance** | - **Automated Tests:** **75 frontend tests** (Vitest / React Testing Library) + **253 backend tests** (Pytest) <br> - **CI/CD Pipeline:** Automated GitHub Actions workflow (`.github/workflows/ci.yml`) validating frontend typechecking (`tsc`), Vitest UI tests, production bundle compilation (`vite build`), and 100% deterministic backend Pytest suite execution on push/PR to `main`. |
 
 ---
 

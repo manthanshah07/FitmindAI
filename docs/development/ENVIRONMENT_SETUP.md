@@ -85,3 +85,18 @@ python -c "import secrets; print(secrets.token_hex(32))"
 # Node.js
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
+
+---
+
+## Running Quality & Test Gates Locally
+
+```bash
+# Frontend UI tests & TypeScript compilation
+npm run test
+npx tsc -b --noEmit
+npm run build
+
+# Backend deterministic test suite (253 tests)
+cd backend
+GEMINI_API_KEY="dummy_ci_key_placeholder" .venv/bin/pytest -q
+```

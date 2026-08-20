@@ -36,6 +36,20 @@ def test_production_environment_accepts_strong_jwt_secret():
     settings = Settings(
         ENVIRONMENT="production",
         JWT_SECRET=strong_secret,
+        GEMINI_API_KEY="AIzaSyValidProdKeyPlaceholder",
     )
     assert settings.ENVIRONMENT == "production"
     assert settings.JWT_SECRET == strong_secret
+
+
+def test_production_environment_rejects_missing_gemini_api_key():
+    strong_secret = "a_very_secure_production_secret_key_that_is_32_bytes_or_longer"
+    with pytest.raises(ValidationError) as exc_info:
+        Settings(
+            ENVIRONMENT="production",
+            JWT_SECRET=strong_secret,
+            GEMINI_API_KEY="",
+        )
+    assert "GEMINI_API_KEY must be configured with a valid API key in production mode" in str(
+        exc_info.value
+    )

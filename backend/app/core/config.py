@@ -48,6 +48,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "CORS_ORIGINS cannot include wildcards ('*') in production mode."
                 )
+            if not self.GEMINI_API_KEY or self.GEMINI_API_KEY == "AIzaSy...":
+                raise ValueError(
+                    "GEMINI_API_KEY must be configured with a valid API key in production mode."
+                )
         return self
 
     @field_validator("DATABASE_URL", mode="before")

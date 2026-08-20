@@ -155,3 +155,13 @@ Fix these three problems and this becomes a project that would genuinely impress
 | INT-03 (Refresh Endpoint Rate Limiting) | **RESOLVED** | Added `@limiter.limit("10/minute")` to `/auth/refresh` route in `app/api/v1/auth.py`. |
 | INT-04 (CORS Security Middleware Hardening) | **RESOLVED** | Restricted `allow_methods` and `allow_headers` in `main.py` to explicit standard API verbs and headers. |
 | INT-05 (Type Annotation Hygiene) | **RESOLVED** | Imported `List` from `typing` in `coach_service.py`. |
+
+---
+
+## Phase 4 Remediation Status (2026-08-20)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| CI Workflow Hardening & Production Build Gate | **RESOLVED** | Added `npm run build` production bundle compilation check step to frontend CI job. Brought 100% of backend tests (253 tests) into automated CI execution. |
+| Deterministic Test Suite Organization | **RESOLVED** | Confirmed all AI tests (`test_coach_api.py`, `test_ai_client.py`) use `unittest.mock.patch` and run 100% deterministically in CI without live network dependencies. |
+| Production Configuration Hardening | **RESOLVED** | Extended `Settings` model validator in `config.py` to validate `GEMINI_API_KEY` presence when `ENVIRONMENT=production`. Added unit tests in `test_config.py`. |

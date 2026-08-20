@@ -20,6 +20,8 @@
 | **Phase 8** | Automated Reports Module | **COMPLETE** | Weekly/monthly automated reports, AI narrative synthesis |
 | **Remediation 1** | Security & Repository Stabilization | **COMPLETE** | Sanitized credentials, removed `/admin/migrate` & `/admin/run-seeder`, header auth |
 | **Remediation 2** | Documentation Sync & CI/CD Pipeline | **COMPLETE** | Synchronized README/status/decisions, GitHub Actions CI workflow |
+| **Remediation 3** | Score Integrity & Utility Refactoring | **COMPLETE** | Explicit sleep/recovery fallback constants, centralized `extract_date` in `timezone_utils.py` |
+| **Remediation 4** | Production Quality & CI Hardening | **COMPLETE** | Production build check in CI, 100% backend Pytest CI integration (253 tests passing), production env validation |
 
 ---
 

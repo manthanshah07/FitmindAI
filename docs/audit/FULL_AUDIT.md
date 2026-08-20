@@ -328,3 +328,11 @@
 - **INT-03 (Refresh Endpoint Rate Limiting):** RESOLVED — Throttled `/auth/refresh` to 10 requests per minute in `app/api/v1/auth.py`.
 - **INT-04 (CORS Middleware Hardening):** RESOLVED — Scoped CORS middleware allowed methods and headers in `main.py`.
 - **INT-05 (Type Annotation Hygiene):** RESOLVED — Fixed missing `List` typing import in `coach_service.py`.
+
+---
+
+## Phase 4 Remediation Status (2026-08-20)
+
+- **CI Workflow Hardening:** RESOLVED — Added `npm run build` production asset compilation check to `.github/workflows/ci.yml`. Removed Pytest ignore flags so all 253 backend tests run deterministically in CI.
+- **AI Test Execution:** RESOLVED — Verified `test_coach_api.py` and `test_ai_client.py` use local mocks and execute deterministically in CI with zero external Gemini API calls.
+- **Production Configuration Validation:** RESOLVED — Enforced `GEMINI_API_KEY` configuration validation in `Settings` when `ENVIRONMENT=production`. Added test coverage in `test_config.py`.

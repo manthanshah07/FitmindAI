@@ -217,3 +217,10 @@ The P0 actions are critically important and should happen before any new feature
 - **P3-4 (Scope CORS Configuration):** RESOLVED — Hardened CORS middleware methods and headers in `main.py`.
 - **P3-6 (Database Connection Pool Options):** RESOLVED — Configured engine pool options in `database.py`.
 - **P3-9 (Type Import Hygiene):** RESOLVED — Fixed `List` import in `coach_service.py`.
+
+---
+
+## Phase 4 Remediation Status (2026-08-20)
+
+- **CI Pipeline Hardening & Build Gate:** RESOLVED — Added `npm run build` check to CI workflow. Brought 100% of Pytest backend integration tests (253 tests) into automated GitHub Actions execution.
+- **Production Config Hardening:** RESOLVED — Extended production mode settings validation to require valid `GEMINI_API_KEY` configuration.
