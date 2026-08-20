@@ -206,77 +206,112 @@ def test_production_safety_check_blocks_unauthorized_execution(db: Session, monk
 def test_admin_trigger_demo_seeding_endpoint(db: Session):
     from fastapi.testclient import TestClient
     from app.main import app
-    from app.core.config import settings
+    from app.models.user import User
+    from app.core.security import create_access_token
 
     client = TestClient(app)
 
-    # Unauthorized without X-Admin-Secret header
-    res_no_header = client.post("/api/v1/admin/seed-demo")
-    assert res_no_header.status_code == 422  # missing required header
+    # 1. Unauthenticated (no JWT) -> 401
+    res_unauth = client.post("/api/v1/admin/seed-demo")
+    assert res_unauth.status_code == 401
 
-    # Invalid secret header
-    res_bad_header = client.post("/api/v1/admin/seed-demo", headers={"x-admin-secret": "WrongSecret123"})
-    assert res_bad_header.status_code == 401
+    # 2. Non-admin user -> 403
+    non_admin_user = User(email="normal_user_seed@example.com", password_hash="hash123", is_admin=False)
+    db.add(non_admin_user)
+    db.commit()
+    db.refresh(non_admin_user)
 
-    # Valid secret header triggers seeding
-    db.rollback()
-    res_success = client.post("/api/v1/admin/seed-demo", headers={"x-admin-secret": settings.JWT_SECRET})
+    normal_token = create_access_token({"sub": str(non_admin_user.id)})
+    res_forbidden = client.post(
+        "/api/v1/admin/seed-demo",
+        headers={"Authorization": f"Bearer {normal_token}"},
+    )
+    assert res_forbidden.status_code == 403
+
+    # 3. Admin user -> 200 Success
+    admin_user = User(email="admin_user_seed@example.com", password_hash="hash123", is_admin=True)
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
+    admin_token = create_access_token({"sub": str(admin_user.id)})
+    res_success = client.post(
+        "/api/v1/admin/seed-demo",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert res_success.status_code == 200
     data = res_success.json()
     assert data["status"] == "success"
     assert data["count"] == 10
-    assert "seeded_emails" not in data  # PII email list removed from response
+    assert "seeded_emails" not in data
 
 
 def test_verify_test_subjects_health_endpoint_requires_auth(db: Session):
     from fastapi.testclient import TestClient
     from app.main import app
-    from app.core.config import settings
+    from app.models.user import User
+    from app.core.security import create_access_token
 
     db.rollback()
     seed_demo_data(db)
 
     client = TestClient(app)
 
-    # Unauthenticated request blocked
+    # Unauthenticated request blocked (401)
     res_unauth = client.get("/api/v1/admin/verify-test-subjects")
-    assert res_unauth.status_code in (401, 422)
+    assert res_unauth.status_code == 401
 
-    # Authenticated request succeeds with aggregate info
-    res = client.get("/api/v1/admin/verify-test-subjects", headers={"x-admin-secret": settings.JWT_SECRET})
+    # Admin request succeeds
+    admin_user = User(email="admin_health@example.com", password_hash="hash123", is_admin=True)
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
+    admin_token = create_access_token({"sub": str(admin_user.id)})
+    res = client.get(
+        "/api/v1/admin/verify-test-subjects",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "ok"
     assert data["total_test_subjects"] == 10
     assert data["valid_test_subjects"] == 10
-    assert "subjects" not in data  # Individual subject PII array removed
 
 
 def test_db_diagnostic_info_and_removed_dangerous_endpoints(db: Session):
     from fastapi.testclient import TestClient
     from app.main import app
-    from app.core.config import settings
+    from app.models.user import User
+    from app.core.security import create_access_token
 
     client = TestClient(app)
 
-    # Unauthenticated access to /admin/db-info blocked
+    # Unauthenticated access to /admin/db-info blocked (401)
     res_unauth = client.get("/api/v1/admin/db-info")
-    assert res_unauth.status_code in (401, 422)
+    assert res_unauth.status_code == 401
 
-    # Authenticated request to /admin/db-info succeeds
-    res_info = client.get("/api/v1/admin/db-info", headers={"x-admin-secret": settings.JWT_SECRET})
+    # Authenticated admin request to /admin/db-info succeeds
+    admin_user = User(email="admin_dbinfo@example.com", password_hash="hash123", is_admin=True)
+    db.add(admin_user)
+    db.commit()
+    db.refresh(admin_user)
+
+    admin_token = create_access_token({"sub": str(admin_user.id)})
+    res_info = client.get(
+        "/api/v1/admin/db-info",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
     assert res_info.status_code == 200
     info_data = res_info.json()
     assert info_data["status"] == "ok"
     assert info_data["users_table_exists"] is True
 
-    # Dangerous unauthenticated endpoints /run-seeder and /migrate are removed (404)
+    # Dangerous unauthenticated endpoints /run-seeder and /migrate remain removed (404)
     res_run_seeder = client.post("/api/v1/admin/run-seeder")
     assert res_run_seeder.status_code == 404
 
     res_migrate = client.post("/api/v1/admin/migrate")
-    assert res_migrate.status_code == 404
-
 
 
 

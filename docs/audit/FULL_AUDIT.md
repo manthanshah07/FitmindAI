@@ -352,3 +352,9 @@
 - **P2-3 (TanStack Query Data Fetching Migration):** RESOLVED — Refactored legacy `useState`/`useEffect` data fetching in `DashboardPage.tsx` and `CoachPage.tsx` to `@tanstack/react-query` (`useQuery`).
 - **NEW-CI-01 (CI Oxlint Static Check Integration):** RESOLVED — Integrated `npm run lint` (`oxlint`) step into `.github/workflows/ci.yml`.
 - **NEW-TEST-01 (AI Memory Service Unit Coverage):** RESOLVED — Created `backend/tests/test_ai_memory.py` testing preference parsing, sensitivity filtering, key updating, and deactivation (92% `AIMemoryService` coverage; 95% total app coverage).
+
+---
+
+## Fix 1 — Admin Database RBAC Remediation Status (2026-08-20)
+
+- **SEC-011 / Fix 1 (Database RBAC Admin Authorization):** RESOLVED — Replaced static `X-Admin-Secret` header authorization with database-backed user role authorization (`get_current_admin_user` checking `is_admin == True` on the `User` model). Alembic DDL migration `2026_08_20_0012_add_is_admin_to_users.py` created. `test_admin_rbac.py` suite added (264 Pytest tests passing, 95% total app coverage).

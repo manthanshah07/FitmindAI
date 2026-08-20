@@ -79,7 +79,7 @@ The application strictly separates **deterministic calculations** (BMR/TDEE calc
 
 * **Rate Limiting & Security Controls:**
   * Endpoint rate limiting via `slowapi` with user-aware key functions.
-  * Secured admin diagnostic routes requiring `X-Admin-Secret` header authorization.
+  * Secured admin diagnostic routes requiring database-backed admin user authorization (`is_admin == True`).
   * DDL schema migrations managed strictly via Alembic CLI in deployment pipeline.
 
 ---

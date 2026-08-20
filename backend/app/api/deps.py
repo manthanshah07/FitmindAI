@@ -44,3 +44,19 @@ def get_current_user(
         )
 
     return user
+
+
+def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency that enforces database-backed administrative privileges.
+    Requires authenticated user with is_admin == True.
+    Returns 401 for unauthenticated/invalid JWT and 403 for non-admin users.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrative privileges required",
+        )
+    return current_user

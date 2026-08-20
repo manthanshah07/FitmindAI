@@ -1,39 +1,24 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_admin_user
 from app.core.database import get_db
-from app.core.config import settings
+from app.models.user import User
 from app.seed_demo_data import seed_test_subjects, seed_demo_data
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 
-def verify_admin_secret(
-    x_admin_secret: str = Header(..., description="Admin authorization secret header"),
-) -> str:
-    """
-    Dependency that enforces admin secret header verification for all admin endpoints.
-    Requires header `X-Admin-Secret` matching ADMIN_SEED_SECRET or JWT_SECRET fallback.
-    """
-    expected_secret = os.getenv("ADMIN_SEED_SECRET", settings.JWT_SECRET)
-    if not x_admin_secret or x_admin_secret != expected_secret:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid admin authorization secret header",
-        )
-    return x_admin_secret
-
-
 @router.post("/seed-demo", status_code=status.HTTP_200_OK)
 @router.post("/seed-test-subjects", status_code=status.HTTP_200_OK)
 def trigger_test_subjects_seeding(
-    admin_secret: str = Depends(verify_admin_secret),
+    admin_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
     """
     Trigger test subject data seeding via authenticated HTTP POST request.
-    Requires header `X-Admin-Secret`.
+    Requires database-backed admin user authentication (is_admin == True).
     """
     os.environ["SEED_TEST_SUBJECTS_PRODUCTION"] = "true"
     os.environ["DEMO_SEED_PRODUCTION"] = "true"
@@ -55,14 +40,13 @@ def trigger_test_subjects_seeding(
 
 @router.get("/verify-test-subjects", status_code=status.HTTP_200_OK)
 def verify_test_subjects_health(
-    admin_secret: str = Depends(verify_admin_secret),
+    admin_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
     """
     Authenticated diagnostic endpoint verifying health of test subject accounts.
-    Requires `X-Admin-Secret` header. Returns aggregate metrics without exposing PII.
+    Requires database-backed admin user authentication (is_admin == True).
     """
-    from app.models.user import User
     from app.core.security import verify_password
     from app.seed_demo_data import TEST_SUBJECTS_CONFIG, TEST_SUBJECT_PASSWORD, engine
 
@@ -89,15 +73,14 @@ def verify_test_subjects_health(
 
 @router.get("/db-info", status_code=status.HTTP_200_OK)
 def get_db_diagnostic_info(
-    admin_secret: str = Depends(verify_admin_secret),
+    admin_user: User = Depends(get_current_admin_user),
     db: Session = Depends(get_db),
 ):
     """
     Authenticated diagnostic endpoint returning database metrics.
-    Requires `X-Admin-Secret` header.
+    Requires database-backed admin user authentication (is_admin == True).
     """
     from sqlalchemy import inspect
-    from app.models.user import User
     from app.seed_demo_data import engine
 
     url = engine.url

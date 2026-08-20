@@ -240,3 +240,9 @@ The P0 actions are critically important and should happen before any new feature
 - **P2-3 (TanStack Query Integration):** RESOLVED — Refactored data fetching in `DashboardPage.tsx` and `CoachPage.tsx` to `useQuery`.
 - **NEW-CI-01 (CI Oxlint Static Check Integration):** RESOLVED — Added static lint check to `.github/workflows/ci.yml`.
 - **NEW-TEST-01 (AI Memory Service Unit Coverage):** RESOLVED — Added `backend/tests/test_ai_memory.py` unit suite (95% app coverage).
+
+---
+
+## Fix 1 — Admin Database RBAC Remediation Status (2026-08-20)
+
+- **SEC-011 / Fix 1 (Database RBAC Admin Authorization):** RESOLVED — Refactored all `/admin/*` routes to use `get_current_admin_user` dependency checking `is_admin == True` on the `User` model. Created Alembic migration `2026_08_20_0012_add_is_admin_to_users.py`.

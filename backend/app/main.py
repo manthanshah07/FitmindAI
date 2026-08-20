@@ -52,7 +52,6 @@ if settings.CORS_ORIGINS:
         allow_headers=[
             "Authorization",
             "Content-Type",
-            "X-Admin-Secret",
             "Accept",
             "Origin",
             "X-Requested-With",

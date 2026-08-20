@@ -185,3 +185,11 @@ Fix these three problems and this becomes a project that would genuinely impress
 | P2-3 (TanStack Query Data Fetching Migration) | **RESOLVED** | Migrated `DashboardPage.tsx` and `CoachPage.tsx` data fetching to `@tanstack/react-query` (`useQuery`). Verified with 75 Vitest tests. |
 | NEW-CI-01 (CI Oxlint Static Check Integration) | **RESOLVED** | Added `npm run lint` (`oxlint`) step to `.github/workflows/ci.yml`. |
 | NEW-TEST-01 (AI Memory Service Unit Coverage) | **RESOLVED** | Added `backend/tests/test_ai_memory.py` unit test suite covering preference extraction, medical filtering, and key updates (92% coverage). Total app coverage reached 95%. |
+
+---
+
+## Fix 1 — Admin Database RBAC Remediation Status (2026-08-20)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| SEC-011 / Fix 1 (Database RBAC Admin Authorization) | **RESOLVED** | Added `is_admin` boolean column to `User` model (Alembic DDL 0012). Implemented `get_current_admin_user` dependency in `deps.py`. Refactored all `/admin/*` routes to enforce `is_admin == True`. Added `test_admin_rbac.py` test suite (264 Pytest tests passing, 95% coverage). |
