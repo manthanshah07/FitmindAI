@@ -169,7 +169,7 @@
 ### SEC-001 — GEMINI API KEY IN BACKEND/.ENV
 - **Status:** RESOLVED
 - **Before:** `backend/.env` contained a plaintext API key.
-- **Action Taken:** Removed plaintext API key from local `backend/.env` file and replaced with safe placeholder `GEMINI_API_KEY=your_gemini_api_key_here`. Verified `backend/.env` is NOT tracked in git (`git ls-files backend/.env` is empty). Verified key was never committed to git history (`git log --all -S "REDACTED"` returned 0 matches).
+- **Action Taken:** Removed plaintext API key from local `backend/.env` file and replaced with safe placeholder `GEMINI_API_KEY=your_gemini_api_key_here`. Verified `backend/.env` is NOT tracked in git (`git ls-files backend/.env` is empty). Verified key was never committed to git history (`git log --all -S "AQ.Ab8RN"` returned 0 matches).
 - **Verification:** `git status` shows clean tracking state; `git ls-files backend/.env` returns empty.
 
 ### SEC-002 — /ADMIN/RUN-SEEDER UNAUTHENTICATED ENDPOINT
