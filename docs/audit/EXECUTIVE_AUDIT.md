@@ -143,3 +143,15 @@ Fix these three problems and this becomes a project that would genuinely impress
 |---|---|---|
 | P1-2 (Hardcoded Baseline Sleep Score) | **RESOLVED** | Defined explicit `DEFAULT_SLEEP_SCORE_FALLBACK = 75.0` and `DEFAULT_RECOVERY_SCORE_FALLBACK = 75.0` in `FitnessScoreService`. Added unit tests verifying 10% recovery weight math and fallback behavior without altering score semantics. |
 | P2-1 (Duplicate `extract_date` Utility) | **RESOLVED** | Consolidated duplicate `extract_date` implementations across `analytics_service.py`, `fitness_score_service.py`, `context_builder.py`, and `report_service.py` into `app/core/timezone_utils.py`. Added unit tests in `test_calculations.py`. |
+
+---
+
+## Phase 4 Remediation Status (2026-08-20)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| INT-01 (DB Connection Pool Resilience) | **RESOLVED** | Added `pool_recycle=300`, `pool_size=5`, `max_overflow=10` settings in `database.py` for non-SQLite engines. |
+| INT-02 (Password Complexity Validation) | **RESOLVED** | Added Pydantic `@field_validator("password")` in `RegisterRequest` requiring letters and digits. Added unit tests in `test_auth.py`. |
+| INT-03 (Refresh Endpoint Rate Limiting) | **RESOLVED** | Added `@limiter.limit("10/minute")` to `/auth/refresh` route in `app/api/v1/auth.py`. |
+| INT-04 (CORS Security Middleware Hardening) | **RESOLVED** | Restricted `allow_methods` and `allow_headers` in `main.py` to explicit standard API verbs and headers. |
+| INT-05 (Type Annotation Hygiene) | **RESOLVED** | Imported `List` from `typing` in `coach_service.py`. |

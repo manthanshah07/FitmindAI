@@ -70,6 +70,15 @@ class TestRegistration:
         response = client.post("/api/v1/auth/register", json=payload)
         assert response.status_code == 422
 
+    def test_password_missing_letters_or_digits(self):
+        # Missing digits
+        res1 = client.post("/api/v1/auth/register", json={"email": "nodigits@example.com", "password": "PasswordOnly!"})
+        assert res1.status_code == 422
+
+        # Missing letters
+        res2 = client.post("/api/v1/auth/register", json={"email": "noletters@example.com", "password": "1234567890!"})
+        assert res2.status_code == 422
+
 
 class TestLogin:
     def test_successful_login(self):

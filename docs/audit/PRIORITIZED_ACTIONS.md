@@ -207,3 +207,13 @@ The P0 actions are critically important and should happen before any new feature
 
 - **P1-2 (Hardcoded Baseline `sleep_score = 75.0`):** RESOLVED — Refactored inline magic numbers to explicit fallback constants `DEFAULT_SLEEP_SCORE_FALLBACK = 75.0` and `DEFAULT_RECOVERY_SCORE_FALLBACK = 75.0` in `FitnessScoreService`. Verified 10% score weighting with test coverage.
 - **P2-1 (Duplicate `extract_date` Utility):** RESOLVED — Extracted `extract_date` into `app/core/timezone_utils.py` and updated all 4 service callers.
+
+---
+
+## Phase 4 Remediation Status (2026-08-20)
+
+- **P3-2 (Password Complexity Validation):** RESOLVED — Extended `RegisterRequest` schema with password validator requiring letters and digits.
+- **P3-3 (Rate Limit Refresh Endpoint):** RESOLVED — Added rate limit decorator to `/auth/refresh`.
+- **P3-4 (Scope CORS Configuration):** RESOLVED — Hardened CORS middleware methods and headers in `main.py`.
+- **P3-6 (Database Connection Pool Options):** RESOLVED — Configured engine pool options in `database.py`.
+- **P3-9 (Type Import Hygiene):** RESOLVED — Fixed `List` import in `coach_service.py`.

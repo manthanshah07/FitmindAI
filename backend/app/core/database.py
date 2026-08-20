@@ -9,12 +9,25 @@ class Base(DeclarativeBase):
     pass
 
 
-# Engine setup
+# Engine setup with connection pool parameters
+is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+engine_kwargs = {
+    "pool_pre_ping": True,
+    "echo": False,
+}
+
+if not is_sqlite:
+    engine_kwargs.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_recycle": 300,
+    })
+
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_pre_ping=True,
-    echo=False,
+    **engine_kwargs,
 )
+
 
 # Session factory
 SessionLocal = sessionmaker(

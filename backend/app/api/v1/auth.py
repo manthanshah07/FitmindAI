@@ -33,7 +33,8 @@ def login(request: Request, req: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-def refresh(req: RefreshTokenRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def refresh(request: Request, req: RefreshTokenRequest, db: Session = Depends(get_db)):
     """Refresh access token using valid refresh token (rotates refresh token)."""
     return AuthService.refresh_access_token(db, req.refresh_token)
 

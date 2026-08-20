@@ -318,3 +318,13 @@
 
 - **P1-2 (Hardcoded Baseline `sleep_score = 75.0`):** RESOLVED — Centralized `DEFAULT_SLEEP_SCORE_FALLBACK` and `DEFAULT_RECOVERY_SCORE_FALLBACK` in `FitnessScoreService`. Added explicit documentation explaining the 75.0 neutral baseline score for unlogged recovery in v1.0. Added unit tests for 10% recovery weight math.
 - **P2-1 (Duplicate `extract_date()` Utility):** RESOLVED — Moved `extract_date` to `app/core/timezone_utils.py`. Replaced duplicate functions in `analytics_service.py`, `fitness_score_service.py`, `context_builder.py`, and `report_service.py`. Added unit test coverage for `date`, `datetime`, ISO strings, `None`, and invalid inputs in `test_calculations.py`.
+
+---
+
+## Phase 4 Remediation Status (2026-08-20)
+
+- **INT-01 (Database Connection Pool Resilience):** RESOLVED — Added `pool_recycle=300`, `pool_size=5`, `max_overflow=10` settings in `database.py` for PostgreSQL production deployments.
+- **INT-02 (Password Complexity Validation):** RESOLVED — Updated `RegisterRequest` schema with Pydantic validator requiring both letters and digits.
+- **INT-03 (Refresh Endpoint Rate Limiting):** RESOLVED — Throttled `/auth/refresh` to 10 requests per minute in `app/api/v1/auth.py`.
+- **INT-04 (CORS Middleware Hardening):** RESOLVED — Scoped CORS middleware allowed methods and headers in `main.py`.
+- **INT-05 (Type Annotation Hygiene):** RESOLVED — Fixed missing `List` typing import in `coach_service.py`.
