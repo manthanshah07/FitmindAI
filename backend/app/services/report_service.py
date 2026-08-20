@@ -21,21 +21,13 @@ from app.schemas.report import (
 )
 from app.services.nutrition_service import NutritionService
 from app.services.fitness_score_service import FitnessScoreService
-from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+from app.core.timezone_utils import (
+    extract_date,
+    get_timezone_aware_range,
+    get_user_today_date,
+)
 
 logger = logging.getLogger(__name__)
-
-
-def extract_date_val(val) -> Optional[date]:
-    if val is None:
-        return None
-    if isinstance(val, date) and not isinstance(val, datetime):
-        return val
-    if isinstance(val, datetime):
-        return val.date()
-    if isinstance(val, str):
-        return date.fromisoformat(val.split("T")[0].split(" ")[0])
-    return None
 
 
 class ReportService:
@@ -201,7 +193,7 @@ class ReportService:
         daily_cals: Dict[date, float] = {}
         daily_protein: Dict[date, float] = {}
         for meal in meal_logs:
-            m_date = extract_date_val(meal.logged_at)
+            m_date = extract_date(meal.logged_at)
             if m_date:
                 if m_date not in daily_cals:
                     daily_cals[m_date] = 0.0

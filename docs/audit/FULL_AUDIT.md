@@ -311,3 +311,10 @@
 - **DOC-002 (00_PROJECT_DECISIONS outdated references):** RESOLVED — Decision log updated to reflect Google Gemini API integration (`gemini-2.5-flash-lite`), relational memory context assembly in PostgreSQL, Render deployment, and Pydantic response validation.
 - **PROJECT_STATUS.md Realignment:** RESOLVED — Cleaned legacy duplicate headers and corrected false "not started" status tables for completed application features.
 - **DevOps CI/CD Pipeline:** RESOLVED — Created `.github/workflows/ci.yml` protecting against regressions via frontend Vitest UI tests, TypeScript typechecking (`tsc`), and backend Pytest integration tests.
+
+---
+
+## Phase 3 Remediation Status (2026-08-19)
+
+- **P1-2 (Hardcoded Baseline `sleep_score = 75.0`):** RESOLVED — Centralized `DEFAULT_SLEEP_SCORE_FALLBACK` and `DEFAULT_RECOVERY_SCORE_FALLBACK` in `FitnessScoreService`. Added explicit documentation explaining the 75.0 neutral baseline score for unlogged recovery in v1.0. Added unit tests for 10% recovery weight math.
+- **P2-1 (Duplicate `extract_date()` Utility):** RESOLVED — Moved `extract_date` to `app/core/timezone_utils.py`. Replaced duplicate functions in `analytics_service.py`, `fitness_score_service.py`, `context_builder.py`, and `report_service.py`. Added unit test coverage for `date`, `datetime`, ISO strings, `None`, and invalid inputs in `test_calculations.py`.

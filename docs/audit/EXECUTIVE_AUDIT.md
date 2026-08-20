@@ -134,3 +134,12 @@ Fix these three problems and this becomes a project that would genuinely impress
 | PROJECT_STATUS.md Realignment | **RESOLVED** | Cleaned legacy headers and false "not started" tables. Verified all implemented phases 0–8 as COMPLETED. |
 | docs/00_PROJECT_DECISIONS.md Realignment | **RESOLVED** | Corrected AI provider (Google Gemini API `gemini-2.5-flash-lite`), memory architecture (relational PostgreSQL context assembly), Render deployment, and system prompt architecture. |
 | GitHub Actions CI Pipeline | **RESOLVED** | Created `.github/workflows/ci.yml` running frontend Vitest + TypeScript `tsc` and backend Pytest automation on push and pull requests. |
+
+---
+
+## Phase 3 Remediation Status (2026-08-19)
+
+| Task / Item | Status | Verification |
+|---|---|---|
+| P1-2 (Hardcoded Baseline Sleep Score) | **RESOLVED** | Defined explicit `DEFAULT_SLEEP_SCORE_FALLBACK = 75.0` and `DEFAULT_RECOVERY_SCORE_FALLBACK = 75.0` in `FitnessScoreService`. Added unit tests verifying 10% recovery weight math and fallback behavior without altering score semantics. |
+| P2-1 (Duplicate `extract_date` Utility) | **RESOLVED** | Consolidated duplicate `extract_date` implementations across `analytics_service.py`, `fitness_score_service.py`, `context_builder.py`, and `report_service.py` into `app/core/timezone_utils.py`. Added unit tests in `test_calculations.py`. |

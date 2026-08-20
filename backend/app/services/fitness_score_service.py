@@ -9,20 +9,15 @@ from app.models.progress import Measurement
 from app.models.fitness_score import FitnessScore
 from app.schemas.fitness_score import FitnessScoreItem, FitnessScoreResponse
 from app.services.nutrition_service import NutritionService
-from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+from app.core.timezone_utils import (
+    extract_date,
+    get_timezone_aware_range,
+    get_user_today_date,
+)
 
-
-
-def extract_date(val) -> Optional[date]:
-    if val is None:
-        return None
-    if isinstance(val, date) and not isinstance(val, datetime):
-        return val
-    if isinstance(val, datetime):
-        return val.date()
-    if isinstance(val, str):
-        return date.fromisoformat(val.split("T")[0].split(" ")[0])
-    return None
+# Neutral baseline score (0-100 scale) applied for sleep & recovery when direct log data is unavailable.
+DEFAULT_SLEEP_SCORE_FALLBACK = 75.0
+DEFAULT_RECOVERY_SCORE_FALLBACK = 75.0
 
 
 def get_score_label(score: int) -> str:
@@ -129,7 +124,7 @@ class FitnessScoreService:
             protein_score = min(100.0, (avg_protein / target_protein) * 100.0)
 
         # -------------------------------------------------------------
-        # D. LOGGING CONSISTENCY (15%)
+        # D. LOGGING CONSISTENCY (15%) & RECOVERY BASELINE (10%)
         # -------------------------------------------------------------
         period_measurements = (
             db.query(Measurement)
@@ -149,8 +144,8 @@ class FitnessScoreService:
         active_logging_days = len(workout_dates | meal_dates | measurement_dates)
         consistency_score = (active_logging_days / 7.0) * 100.0
 
-        sleep_score = 75.0
-        recovery_score = 75.0
+        sleep_score = DEFAULT_SLEEP_SCORE_FALLBACK
+        recovery_score = DEFAULT_RECOVERY_SCORE_FALLBACK
 
         weighted_score = (
             (0.30 * workout_adherence_pct)

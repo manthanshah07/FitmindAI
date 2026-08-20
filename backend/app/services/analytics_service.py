@@ -22,22 +22,14 @@ from app.schemas.fitness_analytics import (
 )
 from app.services.nutrition_service import NutritionService
 from app.services.fitness_score_service import FitnessScoreService
-from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+from app.core.timezone_utils import (
+    extract_date,
+    get_timezone_aware_range,
+    get_user_today_date,
+)
 
 
 logger = logging.getLogger(__name__)
-
-
-def extract_date(val) -> Optional[date]:
-    if val is None:
-        return None
-    if isinstance(val, date) and not isinstance(val, datetime):
-        return val
-    if isinstance(val, datetime):
-        return val.date()
-    if isinstance(val, str):
-        return date.fromisoformat(val.split("T")[0].split(" ")[0])
-    return None
 
 
 class AnalyticsService:

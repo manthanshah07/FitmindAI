@@ -305,3 +305,24 @@ class TestFitnessScoreAPI:
         finally:
             db.close()
 
+    def test_sleep_and_recovery_score_fallback_constants(self):
+        from app.services.fitness_score_service import (
+            FitnessScoreService,
+            DEFAULT_SLEEP_SCORE_FALLBACK,
+            DEFAULT_RECOVERY_SCORE_FALLBACK,
+        )
+        from tests.conftest import TestingSessionLocal
+        from app.models.user import User
+
+        assert DEFAULT_SLEEP_SCORE_FALLBACK == 75.0
+        assert DEFAULT_RECOVERY_SCORE_FALLBACK == 75.0
+
+        db = TestingSessionLocal()
+        try:
+            user = db.query(User).filter(User.email == "zerouser@example.com").first()
+            if user:
+                item = FitnessScoreService.calculate_fitness_score(db, user)
+                assert item.sleep_score == DEFAULT_SLEEP_SCORE_FALLBACK
+                assert item.recovery_score == DEFAULT_RECOVERY_SCORE_FALLBACK
+        finally:
+            db.close()

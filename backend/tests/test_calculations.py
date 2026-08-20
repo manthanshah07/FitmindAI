@@ -21,3 +21,18 @@ def test_calculate_tdee_with_inputs():
     assert res["height_used"] == 180.0
     assert res["is_weight_defaulted"] is False
     assert res["tdee"] > 2000
+
+
+def test_extract_date_utility():
+    from datetime import datetime
+    from app.core.timezone_utils import extract_date
+
+    assert extract_date(None) is None
+    d = date(2026, 8, 19)
+    assert extract_date(d) == d
+    dt = datetime(2026, 8, 19, 14, 30, 0)
+    assert extract_date(dt) == d
+    assert extract_date("2026-08-19T14:30:00Z") == d
+    assert extract_date("2026-08-19 14:30:00") == d
+    assert extract_date("invalid-date-string") is None
+    assert extract_date(12345) is None

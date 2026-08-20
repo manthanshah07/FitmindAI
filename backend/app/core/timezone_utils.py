@@ -39,3 +39,22 @@ def get_user_today_date(tz_str: str | None) -> date:
     """
     user_tz = get_user_zone_info(tz_str)
     return datetime.now(user_tz).date()
+
+
+def extract_date(val: object) -> date | None:
+    """
+    Extracts a datetime.date object safely from date, datetime, ISO string, or None inputs.
+    Returns None if value is None or cannot be parsed as a date.
+    """
+    if val is None:
+        return None
+    if isinstance(val, date) and not isinstance(val, datetime):
+        return val
+    if isinstance(val, datetime):
+        return val.date()
+    if isinstance(val, str):
+        try:
+            return date.fromisoformat(val.split("T")[0].split(" ")[0])
+        except (ValueError, TypeError):
+            return None
+    return None
