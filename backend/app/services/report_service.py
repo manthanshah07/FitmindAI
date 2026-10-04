@@ -381,7 +381,7 @@ class ReportService:
         narrative: Optional[str] = None
         ai_generated = False
 
-        if include_ai_narrative and settings.GEMINI_API_KEY:
+        if include_ai_narrative:
             try:
                 fact_prompt = f"""REPORT TYPE: {report_type.upper()} ({start_date.isoformat()} to {end_date.isoformat()})
 WORKOUTS: {workouts_completed}/{target_workouts} completed ({completion_rate_pct}%). Top muscles: {', '.join(top_muscles) if top_muscles else 'General'}.

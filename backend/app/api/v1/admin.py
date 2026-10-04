@@ -48,9 +48,10 @@ def verify_test_subjects_health(
     Requires database-backed admin user authentication (is_admin == True).
     """
     from app.core.security import verify_password
-    from app.seed_demo_data import TEST_SUBJECTS_CONFIG, TEST_SUBJECT_PASSWORD, engine
+    from app.seed_demo_data import TEST_SUBJECTS_CONFIG, TEST_SUBJECT_PASSWORD
 
-    db_dialect = engine.dialect.name
+    bind = db.get_bind()
+    db_dialect = bind.dialect.name
     total_valid = 0
 
     for cfg in TEST_SUBJECTS_CONFIG:
@@ -81,14 +82,14 @@ def get_db_diagnostic_info(
     Requires database-backed admin user authentication (is_admin == True).
     """
     from sqlalchemy import inspect
-    from app.seed_demo_data import engine
 
-    url = engine.url
+    bind = db.get_bind()
+    url = bind.url
     db_host = url.host or "local"
     db_name = url.database or "unknown"
-    db_type = engine.dialect.name
+    db_type = bind.dialect.name
 
-    inspector = inspect(engine)
+    inspector = inspect(bind)
     has_users_table = inspector.has_table("users")
 
     total_users = 0

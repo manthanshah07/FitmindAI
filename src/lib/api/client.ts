@@ -2,7 +2,24 @@ import axios, { AxiosError } from 'axios';
 import type { InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../../store/useAuthStore';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const getBaseUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+    return 'http://localhost:8000/api/v1';
+  }
+  // Production fallback with descriptive console warning for troubleshooting
+  if (typeof console !== 'undefined' && console.warn) {
+    console.warn(
+      '[FitMind AI] VITE_API_BASE_URL is not set in production build. Requests will target fallback endpoint.'
+    );
+  }
+  return 'http://localhost:8000/api/v1';
+};
+
+export const BASE_URL = getBaseUrl();
 
 export const api = axios.create({
   baseURL: BASE_URL,

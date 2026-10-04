@@ -65,9 +65,11 @@ class Settings(BaseSettings):
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
+            return [i.strip().rstrip("/") for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
+            return [i.strip().rstrip("/") if isinstance(i, str) else i for i in v]
+        elif isinstance(v, str):
+            return [v.strip().rstrip("/")]
         raise ValueError(v)
 
     model_config = SettingsConfigDict(
