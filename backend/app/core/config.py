@@ -32,6 +32,25 @@ class Settings(BaseSettings):
     SUPABASE_URL: str | None = None
     SUPABASE_SERVICE_KEY: str | None = None
 
+    # Cookie Configuration
+    REFRESH_COOKIE_NAME: str = "fitmind_refresh_token"
+    REFRESH_COOKIE_PATH: str = "/api/v1/auth"
+    REFRESH_COOKIE_MAX_AGE: int = 30 * 86400  # 30 days in seconds
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
+
+    @property
+    def refresh_cookie_samesite(self) -> str:
+        # In production with HTTPS across Vercel -> Render cross-site, SameSite=none is required.
+        # In local HTTP development, SameSite=lax is used because browsers reject SameSite=None without Secure.
+        return "none" if self.is_production else "lax"
+
+    @property
+    def refresh_cookie_secure(self) -> bool:
+        return self.is_production
+
     @model_validator(mode="after")
     def validate_production_jwt_secret(self) -> "Settings":
         DEFAULT_DEV_SECRET = "default_dev_secret_change_me_in_production_32_bytes"

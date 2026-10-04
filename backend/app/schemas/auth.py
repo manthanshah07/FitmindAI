@@ -26,7 +26,7 @@ class LoginRequest(BaseModel):
 
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str = Field(..., min_length=1)
+    refresh_token: Optional[str] = Field(None, description="Optional raw refresh token if not using HttpOnly cookies")
 
 
 class UserResponse(BaseModel):
@@ -43,7 +43,7 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    refresh_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
     user: UserResponse
 

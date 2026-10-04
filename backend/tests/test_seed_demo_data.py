@@ -189,7 +189,7 @@ def test_database_configuration_alignment():
     from app.core.config import settings
     from app.core.database import engine
 
-    assert str(engine.url) == settings.DATABASE_URL
+    assert engine.url.render_as_string(hide_password=False) == settings.DATABASE_URL
 
 
 def test_production_safety_check_blocks_unauthorized_execution(db: Session, monkeypatch):

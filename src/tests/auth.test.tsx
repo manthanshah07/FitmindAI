@@ -15,20 +15,22 @@ vi.mock('../lib/api/auth', () => ({
   logoutApi: vi.fn(),
 }));
 
-describe('Token Storage Adapter', () => {
+describe('Token Storage Adapter & Migration', () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it('stores and retrieves refresh token', () => {
+  it('does not store refresh tokens in localStorage', () => {
     tokenStorage.setRefreshToken('sample_token');
-    expect(tokenStorage.getRefreshToken()).toBe('sample_token');
+    expect(tokenStorage.getRefreshToken()).toBeNull();
+    expect(localStorage.getItem('fitmind_refresh_token')).toBeNull();
   });
 
-  it('clears refresh token', () => {
-    tokenStorage.setRefreshToken('sample_token');
+  it('clears any legacy refresh token from localStorage', () => {
+    localStorage.setItem('fitmind_refresh_token', 'legacy_token');
+    expect(localStorage.getItem('fitmind_refresh_token')).toBe('legacy_token');
     tokenStorage.clearRefreshToken();
-    expect(tokenStorage.getRefreshToken()).toBeNull();
+    expect(localStorage.getItem('fitmind_refresh_token')).toBeNull();
   });
 });
 
@@ -63,7 +65,7 @@ describe('API Error Utility', () => {
   });
 });
 
-describe('Zustand Auth Store', () => {
+describe('Zustand Auth Store (HttpOnly Cookie & In-Memory Access Token)', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -84,7 +86,7 @@ describe('Zustand Auth Store', () => {
     expect(state.isAuthenticated).toBe(false);
   });
 
-  it('handles login success', async () => {
+  it('handles login success without storing refresh token in localStorage', async () => {
     const mockUser = {
       id: 'uuid-123',
       email: 'user@example.com',
@@ -95,7 +97,6 @@ describe('Zustand Auth Store', () => {
 
     vi.mocked(authApi.loginApi).mockResolvedValueOnce({
       access_token: 'mock_access_token',
-      refresh_token: 'mock_refresh_token',
       token_type: 'bearer',
       user: mockUser,
     });
@@ -106,7 +107,8 @@ describe('Zustand Auth Store', () => {
     expect(state.isAuthenticated).toBe(true);
     expect(state.accessToken).toBe('mock_access_token');
     expect(state.user?.email).toBe('user@example.com');
-    expect(tokenStorage.getRefreshToken()).toBe('mock_refresh_token');
+    // Ensure no refresh token was written to localStorage
+    expect(localStorage.getItem('fitmind_refresh_token')).toBeNull();
   });
 
   it('handles login failure and updates error state', async () => {
@@ -130,8 +132,30 @@ describe('Zustand Auth Store', () => {
     expect(state.error).toBe('Invalid email or password');
   });
 
-  it('handles logout and clears session', async () => {
-    tokenStorage.setRefreshToken('mock_refresh_token');
+  it('handles session refresh using HttpOnly cookie', async () => {
+    const mockUser = {
+      id: 'uuid-123',
+      email: 'user@example.com',
+      is_active: true,
+      is_verified: false,
+      created_at: new Date().toISOString(),
+    };
+
+    vi.mocked(authApi.refreshApi).mockResolvedValueOnce({
+      access_token: 'new_access_token',
+      token_type: 'bearer',
+      user: mockUser,
+    });
+
+    await useAuthStore.getState().refreshSession();
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.accessToken).toBe('new_access_token');
+    expect(state.user?.email).toBe('user@example.com');
+  });
+
+  it('handles logout and clears in-memory session', async () => {
     useAuthStore.setState({
       user: {
         id: '123',
@@ -152,7 +176,43 @@ describe('Zustand Auth Store', () => {
     expect(state.isAuthenticated).toBe(false);
     expect(state.accessToken).toBeNull();
     expect(state.user).toBeNull();
-    expect(tokenStorage.getRefreshToken()).toBeNull();
+    expect(localStorage.getItem('fitmind_refresh_token')).toBeNull();
+  });
+
+  it('initializes session via HttpOnly cookie refresh', async () => {
+    const mockUser = {
+      id: 'uuid-init',
+      email: 'init@example.com',
+      is_active: true,
+      is_verified: true,
+      created_at: '2026-08-16',
+    };
+
+    vi.mocked(authApi.refreshApi).mockResolvedValueOnce({
+      access_token: 'init_access_token',
+      token_type: 'bearer',
+      user: mockUser,
+    });
+
+    await useAuthStore.getState().initializeSession();
+
+    const state = useAuthStore.getState();
+    expect(state.isInitialized).toBe(true);
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.accessToken).toBe('init_access_token');
+    expect(state.user?.email).toBe('init@example.com');
+  });
+
+  it('handles failed session initialization gracefully', async () => {
+    vi.mocked(authApi.refreshApi).mockRejectedValueOnce(new Error('Unauthorized'));
+
+    await useAuthStore.getState().initializeSession();
+
+    const state = useAuthStore.getState();
+    expect(state.isInitialized).toBe(true);
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.accessToken).toBeNull();
+    expect(state.user).toBeNull();
   });
 });
 

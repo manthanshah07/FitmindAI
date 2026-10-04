@@ -4,7 +4,8 @@ from fastapi import FastAPI, Depends, status
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.core.security import create_access_token, hash_password
+from app.core.config import settings
+from app.core.security import create_access_token, hash_password, hash_token
 from app.models.user import User
 from app.models.refresh_token import RefreshToken
 from app.api.deps import get_current_user
@@ -81,7 +82,7 @@ class TestRegistration:
 
 
 class TestLogin:
-    def test_successful_login(self):
+    def test_successful_login_sets_httponly_cookie(self):
         reg_payload = {
             "email": "loginuser@example.com",
             "password": "Password123!",
@@ -96,15 +97,21 @@ class TestLogin:
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
-        assert "refresh_token" in data
+        assert data.get("refresh_token") is None  # Never leaked in response body
         assert data["token_type"] == "bearer"
         assert data["user"]["email"] == "loginuser@example.com"
+
+        # Verify HttpOnly Cookie was set
+        assert settings.REFRESH_COOKIE_NAME in response.cookies
+        cookie_val = response.cookies[settings.REFRESH_COOKIE_NAME]
+        assert len(cookie_val) > 20
 
         # Verify refresh token stored in DB
         db = TestingSessionLocal()
         tokens = db.query(RefreshToken).all()
         assert len(tokens) == 1
-        assert tokens[0].token_hash != data["refresh_token"]  # Hashed in DB
+        assert tokens[0].token_hash == hash_token(cookie_val)  # Hashed correctly
+        assert tokens[0].is_revoked is False
         db.close()
 
     def test_login_incorrect_password(self):
@@ -115,6 +122,7 @@ class TestLogin:
         response = client.post("/api/v1/auth/login", json=login_payload)
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid email or password"
+        assert settings.REFRESH_COOKIE_NAME not in response.cookies
 
     def test_login_nonexistent_email(self):
         login_payload = {"email": "nonexistent@example.com", "password": "Password123!"}
@@ -182,41 +190,146 @@ class TestProtectedRoutes:
 
 
 class TestRefreshToken:
-    def test_successful_refresh_and_rotation(self):
+    def test_successful_refresh_and_rotation_with_cookie(self):
         reg_payload = {"email": "refresh@example.com", "password": "Password123!"}
         client.post("/api/v1/auth/register", json=reg_payload)
         login_res = client.post("/api/v1/auth/login", json=reg_payload)
 
         old_access = login_res.json()["access_token"]
-        old_refresh = login_res.json()["refresh_token"]
+        old_refresh = login_res.cookies[settings.REFRESH_COOKIE_NAME]
 
-        refresh_res = client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+        # Call refresh endpoint with cookie
+        refresh_res = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: old_refresh},
+        )
         assert refresh_res.status_code == 200
         new_data = refresh_res.json()
 
         assert new_data["access_token"] != old_access
-        assert new_data["refresh_token"] != old_refresh
+        assert new_data.get("refresh_token") is None  # Not returned in JSON
 
-        # Test token rotation: old refresh token cannot be reused
-        reuse_res = client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+        # Verify replacement cookie was set
+        new_refresh = refresh_res.cookies.get(settings.REFRESH_COOKIE_NAME)
+        assert new_refresh is not None
+        assert new_refresh != old_refresh
+
+        # Test token rotation: old refresh token cannot be reused outside grace window
+        # Update old token's revoked_at in DB to simulate expired grace period
+        db = TestingSessionLocal()
+        old_record = db.query(RefreshToken).filter(RefreshToken.token_hash == hash_token(old_refresh)).first()
+        old_record.revoked_at = datetime.now(timezone.utc) - timedelta(seconds=60)
+        db.commit()
+        db.close()
+
+        reuse_res = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: old_refresh},
+        )
         assert reuse_res.status_code == 401
 
-    def test_invalid_refresh_token(self):
-        res = client.post("/api/v1/auth/refresh", json={"refresh_token": "bogus_token"})
+    def test_multi_tab_refresh_grace_period(self):
+        reg_payload = {"email": "multitab@example.com", "password": "Password123!"}
+        client.post("/api/v1/auth/register", json=reg_payload)
+        login_res = client.post("/api/v1/auth/login", json=reg_payload)
+        shared_refresh = login_res.cookies[settings.REFRESH_COOKIE_NAME]
+
+        # Tab A refreshes first
+        res_a = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: shared_refresh},
+        )
+        assert res_a.status_code == 200
+        access_a = res_a.json()["access_token"]
+
+        # Tab B refreshes immediately after with the same previous token (within 30s grace)
+        res_b = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: shared_refresh},
+        )
+        assert res_b.status_code == 200
+        access_b = res_b.json()["access_token"]
+        assert access_b is not None
+
+    def test_missing_refresh_cookie(self):
+        # Use a fresh client to avoid cookie bleedover from prior tests
+        fresh_client = TestClient(app)
+        res = fresh_client.post("/api/v1/auth/refresh")
+        assert res.status_code == 401
+        assert res.json()["detail"] == "Refresh token missing"
+
+    def test_invalid_refresh_cookie(self):
+        res = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: "bogus_invalid_jwt_cookie"},
+        )
         assert res.status_code == 401
 
 
 class TestLogout:
-    def test_successful_logout(self):
+    def test_successful_logout_clears_cookie_and_revokes(self):
         reg_payload = {"email": "logout@example.com", "password": "Password123!"}
         client.post("/api/v1/auth/register", json=reg_payload)
         login_res = client.post("/api/v1/auth/login", json=reg_payload)
-        refresh_token = login_res.json()["refresh_token"]
+        refresh_token = login_res.cookies[settings.REFRESH_COOKIE_NAME]
 
-        logout_res = client.post("/api/v1/auth/logout", json={"refresh_token": refresh_token})
+        logout_res = client.post(
+            "/api/v1/auth/logout",
+            cookies={settings.REFRESH_COOKIE_NAME: refresh_token},
+        )
         assert logout_res.status_code == 200
         assert logout_res.json() == {"message": "Successfully logged out"}
 
-        # Subsequent refresh attempt with logged-out token fails
-        refresh_attempt = client.post("/api/v1/auth/refresh", json={"refresh_token": refresh_token})
+        # Check DB revocation
+        db = TestingSessionLocal()
+        record = db.query(RefreshToken).filter(RefreshToken.token_hash == hash_token(refresh_token)).first()
+        assert record is not None
+        assert record.is_revoked is True
+        db.close()
+
+        # Update revoked_at outside grace window
+        db = TestingSessionLocal()
+        record = db.query(RefreshToken).filter(RefreshToken.token_hash == hash_token(refresh_token)).first()
+        record.revoked_at = datetime.now(timezone.utc) - timedelta(seconds=60)
+        db.commit()
+        db.close()
+
+        # Subsequent refresh attempt with revoked token fails
+        refresh_attempt = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: refresh_token},
+        )
         assert refresh_attempt.status_code == 401
+
+
+class TestCSRFProtection:
+    def test_csrf_unauthorized_origin_rejected(self):
+        reg_payload = {"email": "csrf@example.com", "password": "Password123!"}
+        client.post("/api/v1/auth/register", json=reg_payload)
+        login_res = client.post("/api/v1/auth/login", json=reg_payload)
+        refresh_token = login_res.cookies[settings.REFRESH_COOKIE_NAME]
+
+        # Request from malicious origin
+        res = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: refresh_token},
+            headers={"Origin": "https://malicious-attacker-site.com"},
+        )
+        assert res.status_code == 403
+        assert res.json()["detail"] == "CSRF origin validation failed"
+
+    def test_csrf_authorized_origin_accepted(self):
+        reg_payload = {"email": "allowedorigin@example.com", "password": "Password123!"}
+        client.post("/api/v1/auth/register", json=reg_payload)
+        login_res = client.post("/api/v1/auth/login", json=reg_payload)
+        refresh_token = login_res.cookies[settings.REFRESH_COOKIE_NAME]
+
+        # Request from authorized origin
+        allowed_origin = settings.CORS_ORIGINS[0] if isinstance(settings.CORS_ORIGINS, list) else settings.CORS_ORIGINS
+        res = client.post(
+            "/api/v1/auth/refresh",
+            cookies={settings.REFRESH_COOKIE_NAME: refresh_token},
+            headers={"Origin": allowed_origin},
+        )
+        assert res.status_code == 200
+

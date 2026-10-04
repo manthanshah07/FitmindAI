@@ -33,7 +33,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await loginApi(credentials);
-      tokenStorage.setRefreshToken(response.refresh_token);
+      // Migration safety: clear any legacy localStorage refresh token
+      tokenStorage.clearRefreshToken();
       set({
         user: response.user,
         accessToken: response.access_token,
@@ -63,34 +64,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: async () => {
     set({ isLoading: true });
-    const refreshToken = tokenStorage.getRefreshToken();
-    if (refreshToken) {
-      try {
-        await logoutApi({ refresh_token: refreshToken });
-      } catch {
-        // Silently handle backend network failure on logout
-      }
+    try {
+      await logoutApi();
+    } catch {
+      // Silently handle backend network failure on logout
+    } finally {
+      tokenStorage.clearRefreshToken();
+      set({
+        user: null,
+        accessToken: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      });
     }
-    tokenStorage.clearRefreshToken();
-    set({
-      user: null,
-      accessToken: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-    });
   },
 
   refreshSession: async () => {
-    const refreshToken = tokenStorage.getRefreshToken();
-    if (!refreshToken) {
-      get().clearSession();
-      throw new Error('No refresh token available');
-    }
-
     try {
-      const response = await refreshApi({ refresh_token: refreshToken });
-      tokenStorage.setRefreshToken(response.refresh_token);
+      const response = await refreshApi();
+      // Migration safety: clear any legacy localStorage refresh token
+      tokenStorage.clearRefreshToken();
       set({
         user: response.user,
         accessToken: response.access_token,
@@ -107,22 +101,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (get().isInitialized) return;
 
     set({ isLoading: true });
-    const refreshToken = tokenStorage.getRefreshToken();
-
-    if (!refreshToken) {
-      set({
-        user: null,
-        accessToken: null,
-        isAuthenticated: false,
-        isLoading: false,
-        isInitialized: true,
-      });
-      return;
-    }
 
     try {
-      const response = await refreshApi({ refresh_token: refreshToken });
-      tokenStorage.setRefreshToken(response.refresh_token);
+      const response = await refreshApi();
+      tokenStorage.clearRefreshToken();
       set({
         user: response.user,
         accessToken: response.access_token,

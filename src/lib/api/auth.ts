@@ -18,12 +18,12 @@ export async function loginApi(data: LoginRequest): Promise<TokenResponse> {
   return response.data;
 }
 
-export async function refreshApi(data: RefreshTokenRequest): Promise<TokenResponse> {
+export async function refreshApi(data: RefreshTokenRequest = {}): Promise<TokenResponse> {
   const response = await api.post<TokenResponse>('/auth/refresh', data);
   return response.data;
 }
 
-export async function logoutApi(data: RefreshTokenRequest): Promise<MessageResponse> {
+export async function logoutApi(data: RefreshTokenRequest = {}): Promise<MessageResponse> {
   const response = await api.post<MessageResponse>('/auth/logout', data);
   return response.data;
 }

@@ -123,6 +123,8 @@ class AuthService:
 
     @staticmethod
     def refresh_access_token(db: Session, raw_refresh_token: str) -> TokenResponse:
+        ROTATION_GRACE_PERIOD_SECONDS = 30
+
         invalid_token_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
@@ -143,8 +145,36 @@ class AuthService:
         token_hash_val = hash_token(raw_refresh_token)
         refresh_record = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash_val).first()
 
-        if not refresh_record or refresh_record.is_revoked or ensure_utc(refresh_record.expires_at) <= utc_now():
+        if not refresh_record or ensure_utc(refresh_record.expires_at) <= utc_now():
             raise invalid_token_exception
+
+        # Multi-Tab Race Handling: If already revoked, check if within the grace window
+        if refresh_record.is_revoked:
+            revoked_at_utc = ensure_utc(refresh_record.revoked_at) if refresh_record.revoked_at else None
+            if revoked_at_utc and (utc_now() - revoked_at_utc).total_seconds() <= ROTATION_GRACE_PERIOD_SECONDS:
+                user = db.query(User).filter(User.id == refresh_record.user_id).first()
+                if not user or not user.is_active:
+                    raise invalid_token_exception
+
+                token_data = {"sub": str(user.id)}
+                new_access_token = create_access_token(token_data)
+                user_response = UserResponse(
+                    id=user.id,
+                    email=user.email,
+                    full_name=None,
+                    is_active=user.is_active,
+                    is_verified=user.is_verified,
+                    is_admin=user.is_admin,
+                    created_at=user.created_at,
+                )
+                return TokenResponse(
+                    access_token=new_access_token,
+                    refresh_token=raw_refresh_token,
+                    token_type="bearer",
+                    user=user_response,
+                )
+            else:
+                raise invalid_token_exception
 
         user = db.query(User).filter(User.id == user_id).first()
         if not user or not user.is_active:
