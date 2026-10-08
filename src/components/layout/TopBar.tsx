@@ -10,6 +10,7 @@ interface TopBarProps {
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
+  '/intelligence': 'Personal Digital Twin',
   '/coach': 'AI Coach',
   '/workout': 'Workout Overview',
   '/nutrition': 'Nutrition Overview',

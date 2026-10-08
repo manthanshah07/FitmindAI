@@ -27,6 +27,7 @@ const NutritionHistoryPage = lazy(() => import('./pages/nutrition/NutritionHisto
 const ProgressOverviewPage = lazy(() => import('./pages/progress/ProgressOverviewPage').then((m) => ({ default: m.ProgressOverviewPage })));
 const CoachPage = lazy(() => import('./pages/coach/CoachPage').then((m) => ({ default: m.CoachPage })));
 const ReportsPage = lazy(() => import('./pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
+const IntelligencePage = lazy(() => import('./pages/intelligence/IntelligencePage').then((m) => ({ default: m.IntelligencePage })));
 
 const PageLoadingFallback = () => (
   <div className="min-h-[50vh] flex items-center justify-center p-8 bg-bone">
@@ -93,6 +94,7 @@ export function App() {
             <Route path="/nutrition/history" element={<NutritionHistoryPage />} />
             <Route path="/progress" element={<ProgressOverviewPage />} />
             <Route path="/progress/measurements" element={<ProgressOverviewPage />} />
+            <Route path="/intelligence" element={<IntelligencePage />} />
             <Route path="/coach" element={<CoachPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/reports/*" element={<ReportsPage />} />

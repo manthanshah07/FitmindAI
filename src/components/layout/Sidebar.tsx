@@ -10,6 +10,7 @@ interface SidebarProps {
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { path: '/intelligence', label: 'Digital Twin', icon: '🧬' },
   { path: '/coach', label: 'AI Coach', icon: '🤖' },
   { path: '/workout', label: 'Workouts', icon: '🏋️' },
   { path: '/nutrition', label: 'Nutrition', icon: '🥗' },
