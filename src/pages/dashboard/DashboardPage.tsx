@@ -165,158 +165,167 @@ export const DashboardPage: React.FC = () => {
         </div>
       </Card>
 
-      {/* Grid Row 1: Real Calibrated Baseline Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1: Baseline Caloric Expenditure (TDEE) */}
-        <Card className="flex flex-col justify-between">
-          <div>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
-              Daily Energy Burn (TDEE)
-            </span>
-            <span className="font-mono text-3xl font-bold text-graphite">
-              {isLoading ? '...' : `${summary?.tdee_calories || 2000} kcal`}
-            </span>
-            <p className="text-xs text-charcoal mt-2 font-sans">
-              Base metabolism: <span className="font-mono font-bold">{summary?.bmr_calories || 1600} kcal/day</span>
-            </p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Target daily intake: {summary?.target_calories || 2000} kcal ({summary?.target_protein_g || 150}g protein)
-          </div>
-        </Card>
+      {/* Section 2: What should I do today? */}
+      <div className="flex flex-col gap-4">
+        <div>
+          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
+            Today's Focus
+          </span>
+          <h2 className="text-xl font-bold tracking-tight text-graphite">
+            What should I do today?
+          </h2>
+        </div>
 
-        {/* Card 2: Primary Goal */}
-        <Card className="flex flex-col justify-between">
-          <div>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
-              Active Goal
-            </span>
-            <span className="font-mono text-xl font-bold uppercase text-graphite block truncate">
-              {isLoading ? '...' : summary?.goal?.goal_type ? summary.goal.goal_type.replace('_', ' ') : 'General Fitness'}
-            </span>
-            <p className="text-xs text-charcoal mt-2 font-sans">
-              Target weight:{' '}
-              <span className="font-mono font-bold">
-                {summary?.goal?.target_weight_kg ? `${summary.goal.target_weight_kg} kg` : 'Not specified'}
-              </span>
-            </p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Target date: {summary?.goal?.target_date ? summary.goal.target_date : 'Ongoing routine'}
-          </div>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: Your workout */}
+          <Card className="p-6 flex flex-col justify-between border-solid">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
+                  <span>🏋️</span> Your workout
+                </span>
+                <Badge variant="olive">Active</Badge>
+              </div>
+              <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+                {summary?.workout_plan ? summary.workout_plan.name : 'Routine Ready'}
+              </h3>
+              <p className="text-xs text-charcoal font-sans">
+                {summary?.workout_plan
+                  ? `${summary.workout_plan.exercise_count} exercises scheduled • ${summary.workout_plan.days_per_week} days/week`
+                  : 'View your scheduled exercises, log completed sets, or start today’s session.'}
+              </p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
+              <span className="font-mono text-[10px] text-faded uppercase">Training Plan</span>
+              <NavLink
+                to="/workout"
+                className="font-mono text-xs uppercase font-bold text-olive hover:underline"
+              >
+                View workout plan →
+              </NavLink>
+            </div>
+          </Card>
 
-        {/* Card 3: Today's Consumed Nutrition */}
-        <Card className="flex flex-col justify-between">
-          <div>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-olive font-bold block mb-1">
-              Today's Nutrition
-            </span>
-            <span className="font-mono text-xl font-bold text-graphite block">
-              {isLoading ? '...' : `${summary?.today_nutrition ? summary.today_nutrition.consumed_calories : 0} / ${summary?.today_nutrition ? summary.today_nutrition.target_calories : 2000} kcal`}
-            </span>
-            <p className="text-xs text-charcoal mt-2 font-sans">
-              Protein: <span className="font-mono font-bold">{summary?.today_nutrition ? summary.today_nutrition.consumed_protein_g : 0}g / {summary?.today_nutrition ? summary.today_nutrition.target_protein_g : 150}g</span>
-            </p>
-          </div>
-          <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Remaining: {summary?.today_nutrition ? summary.today_nutrition.remaining_calories : 0} kcal
-          </div>
-        </Card>
+          {/* Card 2: Your nutrition */}
+          <Card className="p-6 flex flex-col justify-between border-solid">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
+                  <span>🥗</span> Your nutrition
+                </span>
+                <Badge variant="olive">
+                  {summary?.today_nutrition ? `${summary.today_nutrition.remaining_calories} kcal left` : 'Active'}
+                </Badge>
+              </div>
+              <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+                {summary?.today_nutrition
+                  ? `${summary.today_nutrition.consumed_calories} / ${summary.today_nutrition.target_calories} kcal`
+                  : 'Daily Nutrition'}
+              </h3>
+              <p className="text-xs text-charcoal font-sans">
+                {summary?.today_nutrition
+                  ? `Protein: ${summary.today_nutrition.consumed_protein_g}g / ${summary.today_nutrition.target_protein_g}g (${Math.round((summary.today_nutrition.consumed_protein_g / (summary.today_nutrition.target_protein_g || 1)) * 100)}%)`
+                  : 'Track your meals, monitor protein, and stay within your calorie targets.'}
+              </p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
+              <span className="font-mono text-[10px] text-faded uppercase">Food Log</span>
+              <NavLink
+                to="/nutrition"
+                className="font-mono text-xs uppercase font-bold text-olive hover:underline"
+              >
+                Log food →
+              </NavLink>
+            </div>
+          </Card>
+
+          {/* Card 3: Your coach */}
+          <Card className="p-6 flex flex-col justify-between border-solid">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
+                  <span>🤖</span> Your coach
+                </span>
+                <Badge variant="olive">Active AI Coach</Badge>
+              </div>
+              <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+                FitMind Coach
+              </h3>
+              <p className="text-xs text-charcoal font-sans">
+                Ask questions about your exercises, nutrition adjustments, or advice on pacing your fitness goals.
+              </p>
+            </div>
+            <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
+              <span className="font-mono text-[10px] text-faded uppercase">AI Guidance</span>
+              <NavLink
+                to="/coach"
+                className="font-mono text-xs uppercase font-bold text-olive hover:underline"
+              >
+                Chat with coach →
+              </NavLink>
+            </div>
+          </Card>
+        </div>
       </div>
 
-      {/* Grid Row 2: Core Application Modules */}
-      <h2 className="text-lg font-bold text-graphite pt-4 border-t border-borderLine">
-        Activity & Workflows
-      </h2>
+      {/* Section 3: What needs my attention? / Targets & Progress */}
+      <div className="flex flex-col gap-4">
+        <div>
+          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
+            Targets & Progress
+          </span>
+          <h2 className="text-xl font-bold tracking-tight text-graphite">
+            What needs my attention?
+          </h2>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Module 1: Workout Module */}
-        <Card className="p-6 flex flex-col justify-between border-solid">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-                <span>🏋️</span> Workout System
-              </span>
-              <Badge variant="olive">Active</Badge>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Active Goal & Baseline Energy */}
+          <Card className="p-6 flex flex-col justify-between border-solid">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
+                  <span>🎯</span> Active Goal & Energy Burn
+                </span>
+                <Badge variant="faded">
+                  {summary?.goal?.goal_type ? summary.goal.goal_type.replace('_', ' ') : 'General Fitness'}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 my-2">
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-faded block">Target Weight</span>
+                  <span className="text-xl font-bold font-mono text-graphite">
+                    {summary?.goal?.target_weight_kg ? `${summary.goal.target_weight_kg} kg` : 'Open'}
+                  </span>
+                  <span className="text-[10px] text-faded font-mono block mt-0.5">
+                    {summary?.goal?.target_date ? `Deadline: ${summary.goal.target_date}` : 'Ongoing'}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-mono uppercase text-faded block">Daily Energy Burn</span>
+                  <span className="text-xl font-bold font-mono text-graphite">
+                    {summary?.tdee_calories || 2000} kcal
+                  </span>
+                  <span className="text-[10px] text-faded font-mono block mt-0.5">
+                    Target intake: {summary?.target_calories || 2000} kcal
+                  </span>
+                </div>
+              </div>
             </div>
-            <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
-              {summary?.workout_plan ? summary.workout_plan.name : 'Routine Ready'}
-            </h3>
-            <p className="text-xs text-charcoal font-sans">
-              {summary?.workout_plan
-                ? `${summary.workout_plan.exercise_count} exercises scheduled • ${summary.workout_plan.days_per_week} days/week`
-                : 'View active workout plan, track completed sets, and start live training sessions.'}
-            </p>
-          </div>
-          <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">Daily Workout Routine</span>
-            <NavLink
-              to="/workout"
-              className="font-mono text-xs uppercase font-bold text-olive hover:underline"
-            >
-              Open Workout Module →
-            </NavLink>
-          </div>
-        </Card>
 
-        {/* Module 2: Nutrition Module */}
-        <Card className="p-6 flex flex-col justify-between border-solid">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-                <span>🥗</span> Nutrition System
-              </span>
-              <Badge variant="olive">Active</Badge>
+            <div className="mt-4 pt-4 border-t border-borderLine flex items-center justify-between text-[11px] font-mono text-faded">
+              <span>BMR: {summary?.bmr_calories || 1600} kcal/day</span>
+              <NavLink to="/profile" className="text-olive hover:underline font-bold uppercase">
+                Goal settings →
+              </NavLink>
             </div>
-            <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
-              {summary?.today_nutrition
-                ? `${summary.today_nutrition.consumed_calories} / ${summary.today_nutrition.target_calories} kcal Consumed`
-                : 'Nutrition Progress'}
-            </h3>
-            <p className="text-xs text-charcoal font-sans">
-              {summary?.today_nutrition
-                ? `Protein: ${summary.today_nutrition.consumed_protein_g}g / ${summary.today_nutrition.target_protein_g}g • ${summary.today_nutrition.remaining_calories} kcal remaining`
-                : 'Log meal sessions, track portion sizes, and monitor protein/carbs/fat targets.'}
-            </p>
-          </div>
-          <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">Daily Nutrition Tracker</span>
-            <NavLink
-              to="/nutrition"
-              className="font-mono text-xs uppercase font-bold text-olive hover:underline"
-            >
-              Open Nutrition Module →
-            </NavLink>
-          </div>
-        </Card>
+          </Card>
 
-        {/* Module 3: Fitness Score & Progress Module */}
-        <FitnessScoreCard compact={true} />
-
-        {/* Module 4: Active AI Coach */}
-        <Card className="p-6 flex flex-col justify-between border-solid">
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-                <span>🤖</span> AI Coach Module
-              </span>
-              <Badge variant="olive">Active AI Coach</Badge>
-            </div>
-            <p className="text-xs text-charcoal font-sans">
-              Conversational AI coaching assistant with persistent memory, real-time analytics context, and tailored recommendations.
-            </p>
-          </div>
-          <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-            <span className="font-mono text-[10px] text-faded uppercase">AI Fitness Assistant</span>
-            <NavLink
-              to="/coach"
-              className="font-mono text-xs uppercase font-bold text-olive hover:underline font-mono font-bold"
-            >
-              Chat with Coach →
-            </NavLink>
-          </div>
-        </Card>
+          {/* Card 2: Fitness Score Card */}
+          <FitnessScoreCard compact={true} />
+        </div>
       </div>
     </div>
   );

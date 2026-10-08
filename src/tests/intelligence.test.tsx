@@ -216,8 +216,8 @@ describe('Phase 3 — Personal Fitness Digital Twin Frontend Module', () => {
       expect(screen.getByText('What If?')).toBeInTheDocument();
     });
 
-    // Find custom simulation button
-    const runBtn = screen.getByRole('button', { name: /Run Model Simulation/i });
+    // Find simulation button
+    const runBtn = screen.getByRole('button', { name: /See Expected Progress/i });
     expect(runBtn).toBeInTheDocument();
 
     // Trigger simulation
@@ -238,10 +238,10 @@ describe('Phase 3 — Personal Fitness Digital Twin Frontend Module', () => {
     renderWithQuery(<IntelligencePage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Run Model Simulation/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /See Expected Progress/i })).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Run Model Simulation/i }));
+    fireEvent.click(screen.getByRole('button', { name: /See Expected Progress/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Custom Simulated Plan')).toBeInTheDocument();
@@ -263,8 +263,7 @@ describe('Phase 3 — Personal Fitness Digital Twin Frontend Module', () => {
 
     await waitFor(() => {
       expect(intelligenceApi.optimizePlanApi).toHaveBeenCalled();
-      expect(screen.getByText('Best-Scoring Candidate')).toBeInTheDocument();
-      expect(screen.getByText('Plan Candidate candidate_opt_1')).toBeInTheDocument();
+      expect(screen.getByText(/This is the plan that best matches your current goal/i)).toBeInTheDocument();
       expect(screen.getByText('2050')).toBeInTheDocument();
     });
 

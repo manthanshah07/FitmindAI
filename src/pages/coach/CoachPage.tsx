@@ -10,7 +10,6 @@ import type {
   CoachChatResponse,
   ObservationSeverity,
   RecommendationPriority,
-  DataQualityLevel,
 } from '../../types/coach';
 
 const SUGGESTED_PROMPTS = [
@@ -136,21 +135,6 @@ export const CoachPage: React.FC = () => {
     }
   };
 
-  const renderDataQualityBadge = (quality: DataQualityLevel) => {
-    switch (quality) {
-      case 'comprehensive':
-        return <Badge variant="olive">DATA QUALITY: COMPREHENSIVE</Badge>;
-      case 'moderate':
-        return <Badge variant="graphite">DATA QUALITY: MODERATE</Badge>;
-      case 'sparse':
-        return <Badge variant="faded">DATA QUALITY: SPARSE</Badge>;
-      case 'minimal':
-        return <Badge variant="error">DATA QUALITY: MINIMAL</Badge>;
-      default:
-        return <Badge variant="faded">DATA QUALITY: UNKNOWN</Badge>;
-    }
-  };
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       {/* Top Header */}
@@ -158,19 +142,19 @@ export const CoachPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-1 font-bold">
-              PERFORMANCE & GUIDANCE ENGINE
+              Your Personal Coach
             </span>
             <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-tighter text-graphite">
               FitMind AI Coach
             </h1>
             <p className="text-sm text-charcoal mt-1">
-              Context-aware fitness guidance backed by your deterministic training, nutrition, and progress metrics.
+              Ask questions about your workouts, nutrition, or goal pacing for personalized fitness advice.
             </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-olive animate-pulse" />
             <span className="font-mono text-xs text-graphite uppercase tracking-widest font-bold">
-              GEMINI ACTIVE
+              ONLINE
             </span>
           </div>
         </div>
@@ -205,7 +189,7 @@ export const CoachPage: React.FC = () => {
                   Welcome to your AI Coach
                 </h2>
                 <p className="text-sm text-charcoal leading-relaxed">
-                  FitMind AI Coach analyzes your profile, active goal, workout sessions, nutrition logs, and deterministic analytics to give clear, actionable advice.
+                  FitMind AI Coach analyzes your profile, active goal, workout sessions, and nutrition logs to give clear, actionable advice.
                 </p>
               </div>
 
@@ -254,34 +238,28 @@ export const CoachPage: React.FC = () => {
                     <span className="font-mono text-[10px] text-faded mt-1">{msg.timestamp}</span>
                   </div>
                 ) : (
-                  /* Assistant Message with Structured Response */
+                  /* Assistant Message with Clean Response */
                   <div className="flex flex-col items-start max-w-[95%] sm:max-w-[85%]">
-                    <div className="border border-borderLine bg-white text-graphite p-5 sm:p-6 space-y-5 shadow-sm">
-                      {/* Top Header: Coach Name & Data Quality */}
-                      <div className="flex items-center justify-between border-b border-borderLine/60 pb-2.5">
+                    <div className="border border-borderLine bg-white text-graphite p-5 sm:p-6 space-y-4 shadow-sm">
+                      {/* Top Header: Coach Name */}
+                      <div className="flex items-center justify-between border-b border-borderLine/60 pb-2">
                         <span className="font-mono text-xs text-olive font-bold uppercase tracking-wider flex items-center gap-1.5">
                           <span>🤖</span> FitMind AI Coach
                         </span>
-                        {msg.response?.data_quality && renderDataQualityBadge(msg.response.data_quality)}
                       </div>
 
-                      {/* Direct Answer Block */}
+                      {/* Direct Conversational Answer */}
                       {(msg.response?.answer || msg.content) && (
-                        <div className="space-y-1">
-                          <span className="font-mono text-[10px] text-faded font-bold uppercase tracking-wider block">
-                            COACH DIRECT ANSWER
-                          </span>
-                          <p className="text-sm md:text-base font-sans text-graphite leading-relaxed">
-                            {msg.response?.answer || msg.content}
-                          </p>
-                        </div>
+                        <p className="text-sm md:text-base font-sans text-graphite leading-relaxed whitespace-pre-wrap">
+                          {msg.response?.answer || msg.content}
+                        </p>
                       )}
 
-                      {/* Observations Section */}
+                      {/* Observations / Insights (only shown when provided) */}
                       {msg.response?.observations && msg.response.observations.length > 0 && (
-                        <div className="space-y-2.5 border-t border-borderLine/60 pt-3.5">
-                          <span className="font-mono text-[11px] text-graphite font-bold uppercase tracking-wider block">
-                            FACTS & OBSERVATIONS ({msg.response.observations.length})
+                        <div className="space-y-2 pt-2 border-t border-borderLine/50">
+                          <span className="font-mono text-[11px] text-charcoal font-bold uppercase tracking-wider block">
+                            Key Insights
                           </span>
                           <div className="space-y-2">
                             {msg.response.observations.map((obs, oIdx) => (
@@ -302,11 +280,11 @@ export const CoachPage: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Recommendations Section */}
+                      {/* Recommendations / Next Steps (only shown when provided) */}
                       {msg.response?.recommendations && msg.response.recommendations.length > 0 && (
-                        <div className="space-y-2.5 border-t border-borderLine/60 pt-3.5">
-                          <span className="font-mono text-[11px] text-graphite font-bold uppercase tracking-wider block">
-                            ACTIONABLE RECOMMENDATIONS ({msg.response.recommendations.length})
+                        <div className="space-y-2 pt-2 border-t border-borderLine/50">
+                          <span className="font-mono text-[11px] text-charcoal font-bold uppercase tracking-wider block">
+                            Recommended Next Steps
                           </span>
                           <div className="grid grid-cols-1 gap-2.5">
                             {msg.response.recommendations.map((rec, rIdx) => (
@@ -336,15 +314,15 @@ export const CoachPage: React.FC = () => {
 
                       {/* Warnings Section */}
                       {msg.response?.warnings && msg.response.warnings.length > 0 && (
-                        <div className="space-y-2 border-t border-borderLine/60 pt-3.5">
-                          <span className="font-mono text-[11px] text-rose-700 font-bold uppercase tracking-wider block">
-                            DATA LIMITATIONS & SAFETY WARNINGS
+                        <div className="space-y-1.5 pt-2 border-t border-borderLine/50">
+                          <span className="font-mono text-[10px] text-rose-700 font-bold uppercase tracking-wider block">
+                            Notes & Reminders
                           </span>
                           <div className="space-y-1">
                             {msg.response.warnings.map((warn, wIdx) => (
                               <div
                                 key={wIdx}
-                                className="p-2.5 border border-rose-200 bg-rose-50 text-xs font-sans text-rose-900"
+                                className="p-2 border border-rose-200 bg-rose-50 text-xs font-sans text-rose-900"
                               >
                                 ⚠️ {warn}
                               </div>

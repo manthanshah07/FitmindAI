@@ -100,34 +100,132 @@ class FeasibilityService:
         rate_diff = abs(projected_rate - required_rate)
 
         # 4. Status Determination
-        # Check direction alignment
-        same_direction = (
-            (required_rate < 0 and projected_rate < 0)
-            or (required_rate > 0 and projected_rate > 0)
-            or (abs(required_rate) < 0.05 and abs(projected_rate) < 0.05)
-        )
+        # Calculate pacing shortfall and directional alignment
+        is_weight_loss = required_rate < -0.03
+        is_weight_gain = required_rate > 0.03
+        is_maintenance = not is_weight_loss and not is_weight_gain
 
-        if same_direction and rate_diff <= FeasibilitySafetyPolicy.TOLERANCE_ON_TRACK_KG_WEEK:
-            status = "ON_TRACK"
-            explanation = (
-                f"Your current projected rate of {projected_rate:+.2f} kg/week closely matches "
-                f"the required rate of {required_rate:+.2f} kg/week to reach {target_weight:.1f} kg "
-                f"by {target_date.isoformat()}."
-            )
-        elif same_direction and rate_diff <= FeasibilitySafetyPolicy.TOLERANCE_POSSIBLE_ADJ_KG_WEEK:
-            status = "POSSIBLE_ADJUSTMENT"
-            explanation = (
-                f"Your projected rate of {projected_rate:+.2f} kg/week trends toward your goal, "
-                f"but differs by {rate_diff:.2f} kg/week from the required rate ({required_rate:+.2f} kg/week). "
-                "A modest adjustment in nutrition or activity could help bridge this gap."
-            )
+        if is_weight_loss:
+            if projected_rate >= 0.02:
+                # Maintaining or gaining weight while goal requires weight loss
+                status = "UNLIKELY"
+                explanation = (
+                    f"Your projected rate of {projected_rate:+.2f} kg/week does not reflect weight loss, "
+                    f"while your goal requires losing {abs(required_rate):.2f} kg/week to reach {target_weight:.1f} kg "
+                    f"by {target_date.isoformat()}. Substantial plan modifications are needed."
+                )
+            elif projected_rate <= required_rate:
+                # Losing at required pace or faster
+                status = "ON_TRACK"
+                if abs(projected_rate - required_rate) <= 0.05:
+                    explanation = (
+                        f"Your current projected rate of {projected_rate:+.2f} kg/week closely matches "
+                        f"the required rate of {required_rate:+.2f} kg/week to reach {target_weight:.1f} kg "
+                        f"by {target_date.isoformat()}."
+                    )
+                else:
+                    explanation = (
+                        f"Your current projected rate of {projected_rate:+.2f} kg/week is on pace to reach "
+                        f"your target of {target_weight:.1f} kg by {target_date.isoformat()}."
+                    )
+            else:
+                # Losing weight, but slower than required pace
+                shortfall = round(projected_rate - required_rate, 3)  # positive difference
+                pacing_ratio = projected_rate / required_rate if required_rate != 0 else 0.0
+
+                if shortfall <= 0.05 or (pacing_ratio >= 0.85 and shortfall <= 0.10):
+                    status = "ON_TRACK"
+                    explanation = (
+                        f"Your current projected rate of {projected_rate:+.2f} kg/week closely matches "
+                        f"the required rate of {required_rate:+.2f} kg/week to reach {target_weight:.1f} kg "
+                        f"by {target_date.isoformat()}."
+                    )
+                elif shortfall <= FeasibilitySafetyPolicy.TOLERANCE_POSSIBLE_ADJ_KG_WEEK:
+                    status = "POSSIBLE_ADJUSTMENT"
+                    explanation = (
+                        f"Your projected rate of {projected_rate:+.2f} kg/week trends toward your goal, "
+                        f"but differs by {shortfall:.2f} kg/week from the required rate ({required_rate:+.2f} kg/week). "
+                        "A modest adjustment in nutrition or activity could help bridge this gap."
+                    )
+                else:
+                    status = "UNLIKELY"
+                    explanation = (
+                        f"Your projected rate of {projected_rate:+.2f} kg/week significantly diverges from "
+                        f"the required pace ({required_rate:+.2f} kg/week). Reaching {target_weight:.1f} kg "
+                        f"by {target_date.isoformat()} would require substantial plan modifications or extending the timeline."
+                    )
+
+        elif is_weight_gain:
+            if projected_rate <= -0.02:
+                # Losing weight while goal requires gaining
+                status = "UNLIKELY"
+                explanation = (
+                    f"Your projected rate of {projected_rate:+.2f} kg/week indicates weight loss, "
+                    f"while your goal requires gaining {required_rate:+.2f} kg/week to reach {target_weight:.1f} kg "
+                    f"by {target_date.isoformat()}. Substantial plan modifications are needed."
+                )
+            elif projected_rate >= required_rate:
+                # Gaining at required pace or faster
+                status = "ON_TRACK"
+                if abs(projected_rate - required_rate) <= 0.05:
+                    explanation = (
+                        f"Your current projected rate of {projected_rate:+.2f} kg/week closely matches "
+                        f"the required rate of {required_rate:+.2f} kg/week to reach {target_weight:.1f} kg "
+                        f"by {target_date.isoformat()}."
+                    )
+                else:
+                    explanation = (
+                        f"Your current projected rate of {projected_rate:+.2f} kg/week is on pace to reach "
+                        f"your target of {target_weight:.1f} kg by {target_date.isoformat()}."
+                    )
+            else:
+                # Gaining slower than required
+                shortfall = round(required_rate - projected_rate, 3)
+                pacing_ratio = projected_rate / required_rate if required_rate != 0 else 0.0
+
+                if shortfall <= 0.05 or (pacing_ratio >= 0.85 and shortfall <= 0.10):
+                    status = "ON_TRACK"
+                    explanation = (
+                        f"Your current projected rate of {projected_rate:+.2f} kg/week closely matches "
+                        f"the required rate of {required_rate:+.2f} kg/week to reach {target_weight:.1f} kg "
+                        f"by {target_date.isoformat()}."
+                    )
+                elif shortfall <= FeasibilitySafetyPolicy.TOLERANCE_POSSIBLE_ADJ_KG_WEEK:
+                    status = "POSSIBLE_ADJUSTMENT"
+                    explanation = (
+                        f"Your projected rate of {projected_rate:+.2f} kg/week trends toward your goal, "
+                        f"but differs by {shortfall:.2f} kg/week from the required rate ({required_rate:+.2f} kg/week). "
+                        "A modest adjustment in nutrition or activity could help bridge this gap."
+                    )
+                else:
+                    status = "UNLIKELY"
+                    explanation = (
+                        f"Your projected rate of {projected_rate:+.2f} kg/week significantly diverges from "
+                        f"the required pace ({required_rate:+.2f} kg/week). Reaching {target_weight:.1f} kg "
+                        f"by {target_date.isoformat()} would require substantial plan modifications or extending the timeline."
+                    )
+
         else:
-            status = "UNLIKELY"
-            explanation = (
-                f"Your projected rate of {projected_rate:+.2f} kg/week significantly diverges from "
-                f"the required pace ({required_rate:+.2f} kg/week). Reaching {target_weight:.1f} kg "
-                f"by {target_date.isoformat()} would require substantial plan modifications or extending the timeline."
-            )
+            # Maintenance
+            rate_diff = abs(projected_rate - required_rate)
+            if rate_diff <= 0.08:
+                status = "ON_TRACK"
+                explanation = (
+                    f"Your current projected rate of {projected_rate:+.2f} kg/week closely matches "
+                    f"your maintenance target to remain near {target_weight:.1f} kg."
+                )
+            elif rate_diff <= FeasibilitySafetyPolicy.TOLERANCE_POSSIBLE_ADJ_KG_WEEK:
+                status = "POSSIBLE_ADJUSTMENT"
+                explanation = (
+                    f"Your projected rate of {projected_rate:+.2f} kg/week drifts slightly from "
+                    f"your maintenance target ({required_rate:+.2f} kg/week). A modest adjustment will keep weight stable."
+                )
+            else:
+                status = "UNLIKELY"
+                explanation = (
+                    f"Your projected rate of {projected_rate:+.2f} kg/week diverges significantly from "
+                    f"your maintenance target ({required_rate:+.2f} kg/week)."
+                )
 
         # 5. Product Pacing Guardrail Assessment
         if required_rate < -ProductPacingGuardrails.MAX_RECOMMENDED_LOSS_RATE_KG_WEEK:

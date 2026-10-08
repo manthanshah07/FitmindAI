@@ -233,22 +233,19 @@ export const TrajectoryChart: React.FC<TrajectoryChartProps> = ({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 font-mono text-[11px]">
             <span className="w-4 h-0.5 border-t-2 border-dashed border-graphite" />
-            <span>Model Projection</span>
+            <span>Expected Path</span>
           </div>
           <div className="flex items-center gap-1.5 font-mono text-[11px]">
             <span className="w-3 h-3 bg-olive/15 border border-olive/30 inline-block" />
-            <span>90% Benchmark Uncertainty</span>
+            <span>Expected Range</span>
           </div>
           {targetWeight != null && (
             <div className="flex items-center gap-1.5 font-mono text-[11px]">
               <span className="w-4 h-0.5 border-t border-dashed border-accent" />
-              <span>Target Goal ({targetWeight} kg)</span>
+              <span>Goal Target ({targetWeight} kg)</span>
             </div>
           )}
         </div>
-        <span className="text-[11px] text-faded italic">
-          Controlled physiological benchmark residual (sigma ≈ 0.39 kg)
-        </span>
       </div>
     </div>
   );

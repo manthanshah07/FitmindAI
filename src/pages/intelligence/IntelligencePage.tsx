@@ -221,16 +221,16 @@ export const IntelligencePage: React.FC = () => {
         {/* KPI Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="p-5 flex flex-col justify-between">
-            <span className="text-[11px] font-mono uppercase text-faded block">Current Baseline</span>
+            <span className="text-[11px] font-mono uppercase text-faded block">Current Weight</span>
             <div className="mt-2">
               <span className="text-3xl font-bold font-mono text-graphite">{baselineWeight.toFixed(1)}</span>
               <span className="text-xs text-faded font-mono ml-1">kg</span>
             </div>
-            <span className="text-[11px] text-faded font-mono mt-1">Starting point</span>
+            <span className="text-[11px] text-faded font-mono mt-1">Starting baseline</span>
           </Card>
 
           <Card className="p-5 flex flex-col justify-between">
-            <span className="text-[11px] font-mono uppercase text-faded block">Projected 28d Change</span>
+            <span className="text-[11px] font-mono uppercase text-faded block">Expected 28d Change</span>
             <div className="mt-2">
               <span className={`text-3xl font-bold font-mono ${projectedChange < 0 ? 'text-olive' : 'text-graphite'}`}>
                 {projectedChange > 0 ? `+${projectedChange.toFixed(2)}` : projectedChange.toFixed(2)}
@@ -241,7 +241,7 @@ export const IntelligencePage: React.FC = () => {
           </Card>
 
           <Card className="p-5 flex flex-col justify-between">
-            <span className="text-[11px] font-mono uppercase text-faded block">Projected Weight</span>
+            <span className="text-[11px] font-mono uppercase text-faded block">Expected Weight</span>
             <div className="mt-2">
               <span className="text-3xl font-bold font-mono text-graphite">{projectedWeight.toFixed(1)}</span>
               <span className="text-xs text-faded font-mono ml-1">kg</span>
@@ -250,7 +250,7 @@ export const IntelligencePage: React.FC = () => {
           </Card>
 
           <Card className="p-5 flex flex-col justify-between">
-            <span className="text-[11px] font-mono uppercase text-faded block">Active Goal Target</span>
+            <span className="text-[11px] font-mono uppercase text-faded block">Goal Target</span>
             <div className="mt-2">
               <span className="text-3xl font-bold font-mono text-graphite">
                 {targetWeight ? targetWeight.toFixed(1) : '—'}
@@ -272,13 +272,9 @@ export const IntelligencePage: React.FC = () => {
                   Expected 28-Day Trajectory
                 </h2>
                 <p className="text-xs text-faded font-mono mt-0.5">
-                  Visual projection showing your expected path and benchmark range based on current adherence.
+                  Visual projection showing your expected path and range based on current adherence.
                 </p>
               </div>
-
-              <span className="font-mono text-[10px] uppercase text-faded bg-black/5 px-2.5 py-1 self-start sm:self-auto">
-                Model Projection
-              </span>
             </div>
 
             <TrajectoryChart
@@ -290,10 +286,21 @@ export const IntelligencePage: React.FC = () => {
               referenceDate={trajectory.reference_date}
             />
 
-            {/* Scientific Disclaimer Note */}
-            <p className="text-[11px] text-faded italic leading-relaxed pt-2 border-t border-borderLine/60">
-              {trajectory.projection_disclaimer}
-            </p>
+            {/* Expandable Methodology & Disclaimer */}
+            <details className="pt-2 border-t border-borderLine/60 group">
+              <summary className="font-mono text-xs uppercase tracking-wider text-graphite font-bold cursor-pointer hover:text-olive transition-colors flex items-center justify-between">
+                <span>How this estimate works</span>
+                <span className="text-faded group-open:rotate-180 transition-transform text-[10px]">▼</span>
+              </summary>
+              <div className="mt-2 text-xs text-charcoal font-sans space-y-1.5 leading-relaxed bg-bone p-3 border border-borderLine">
+                <p>
+                  This estimate is calculated from your recent energy expenditure, food logging adherence, and workout frequency, referenced against a controlled physiological energy-balance benchmark.
+                </p>
+                <p className="text-[11px] text-faded italic pt-1 border-t border-borderLine/50">
+                  {trajectory.projection_disclaimer}
+                </p>
+              </div>
+            </details>
           </Card>
         )}
       </section>
@@ -306,7 +313,7 @@ export const IntelligencePage: React.FC = () => {
               Can You Reach Your Goal?
             </h2>
             <p className="text-xs text-faded font-mono mt-0.5">
-              Comparison between your active target pacing and current projected rate of progress.
+              Comparison between your active target pacing and current expected rate of progress.
             </p>
           </div>
           {feasibility && getFeasibilityBadge(feasibility.status)}
@@ -328,13 +335,13 @@ export const IntelligencePage: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Projected Weekly Rate</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Expected Weekly Rate</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {feasibility.projected_rate_kg_per_week != null
                     ? `${feasibility.projected_rate_kg_per_week > 0 ? '+' : ''}${feasibility.projected_rate_kg_per_week} kg/wk`
                     : 'N/A'}
                 </span>
-                <span className="text-[11px] text-faded font-mono block mt-0.5">Current model trajectory</span>
+                <span className="text-[11px] text-faded font-mono block mt-0.5">Current expected trajectory</span>
               </div>
 
               <div>
@@ -353,22 +360,28 @@ export const IntelligencePage: React.FC = () => {
               <p className="text-sm text-charcoal font-sans leading-relaxed">
                 {feasibility.explanation}
               </p>
-              <p className="text-[11px] text-faded font-mono border-l-2 border-olive/50 pl-3">
-                {feasibility.safety_assessment}
-              </p>
+              <details className="text-[11px] text-faded font-mono">
+                <summary className="cursor-pointer hover:text-olive">Pacing details & safety guidelines</summary>
+                <p className="mt-1 pl-3 border-l-2 border-olive/50 font-sans">
+                  {feasibility.safety_assessment}
+                </p>
+              </details>
             </div>
           </Card>
         ) : null}
       </section>
 
-      {/* 4. Section: What-If Simulator */}
+      {/* 4. Section: Try a Different Plan (What-If) */}
       <section aria-labelledby="simulator-heading" className="flex flex-col gap-4">
         <div>
-          <h2 id="simulator-heading" className="text-xl font-bold text-graphite">
+          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
             What If?
+          </span>
+          <h2 id="simulator-heading" className="text-xl font-bold text-graphite">
+            Try a Different Plan
           </h2>
           <p className="text-xs text-charcoal mt-0.5">
-            Explore how changing your controllable variables could alter your projected 28-day trajectory.
+            See how small adjustments to your calories, protein, or activity would change your expected 28-day progress.
           </p>
         </div>
 
@@ -377,10 +390,10 @@ export const IntelligencePage: React.FC = () => {
           <Card className="lg:col-span-5 p-6 flex flex-col gap-5">
             <div className="border-b border-borderLine pb-3">
               <h3 className="text-sm font-bold text-graphite uppercase tracking-wider font-mono">
-                Simulation Controls
+                Plan Adjustments
               </h3>
               <p className="text-[11px] text-faded font-sans mt-0.5">
-                Adjust hypothetical parameters. Calculations are ephemeral and do not overwrite your real plan.
+                Adjust hypothetical targets. These adjustments are for planning only and will not overwrite your active plan.
               </p>
             </div>
 
@@ -487,7 +500,7 @@ export const IntelligencePage: React.FC = () => {
               isLoading={simulateMutation.isPending}
               className="w-full text-xs font-mono font-bold uppercase tracking-wider py-3 mt-2"
             >
-              Run Model Simulation →
+              See Expected Progress →
             </Button>
           </Card>
 
@@ -496,10 +509,10 @@ export const IntelligencePage: React.FC = () => {
             {scenarioResults.length === 0 ? (
               <Card className="p-8 text-center flex flex-col items-center justify-center min-h-[300px] gap-3">
                 <span className="font-mono text-xs uppercase tracking-widest text-olive font-bold">
-                  Simulator Ready
+                  Planner Ready
                 </span>
                 <p className="text-xs text-charcoal max-w-sm">
-                  Adjust calories, protein, or activity on the left or select a quick preset to model alternative future trajectories.
+                  Adjust calories, protein, or activity on the left or select a quick preset to see expected progress.
                 </p>
                 <Button
                   variant="secondary"
@@ -519,14 +532,14 @@ export const IntelligencePage: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. Section: Recommended Candidate Plan (Plan Optimizer) */}
+      {/* 5. Section: Recommended Plan */}
       <section aria-labelledby="optimizer-heading" className="flex flex-col gap-4">
         <div>
           <h2 id="optimizer-heading" className="text-xl font-bold text-graphite">
             Recommended Plan
           </h2>
           <p className="text-xs text-charcoal mt-0.5">
-            FitMind evaluates candidate plans using a deterministic multi-criteria ranking heuristic balancing target pacing against habitual adherence practicality.
+            A balanced plan tailored to your goal and current rate of progress.
           </p>
         </div>
 
@@ -534,13 +547,13 @@ export const IntelligencePage: React.FC = () => {
           <Card className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="max-w-xl">
               <span className="font-mono text-[10px] uppercase tracking-widest text-olive font-bold block mb-1">
-                Deterministic Candidate Ranking
+                Plan Recommendation
               </span>
               <h3 className="text-base font-bold text-graphite">
-                Evaluate candidates aligned with your active goal
+                Find a plan aligned with your active goal
               </h3>
               <p className="text-xs text-charcoal mt-1">
-                Searches a bounded grid of nutrition adjustments to identify the best-scoring candidate plan.
+                Evaluates calorie, protein, and activity adjustments to identify the plan that best supports your target sustainably.
               </p>
             </div>
 
@@ -581,34 +594,26 @@ export const IntelligencePage: React.FC = () => {
           </Card>
         ) : (
           <div className="flex flex-col gap-4">
-            {/* Best Candidate Plan Card */}
+            {/* Recommended Plan Card */}
             <Card className="p-6 md:p-8 border-2 border-graphite bg-white flex flex-col gap-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-borderLine pb-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs uppercase bg-graphite text-bone px-2 py-0.5 font-bold">
-                      Best-Scoring Candidate
+                      Recommended Plan
                     </span>
-                    <Badge variant="olive">{optimizerData.best_candidate.feasibility_rating} Feasibility</Badge>
+                    <Badge variant="olive">{optimizerData.best_candidate.feasibility_rating}</Badge>
                   </div>
-                  <h3 className="text-lg font-bold text-graphite mt-1.5">
-                    Plan Candidate {optimizerData.best_candidate.candidate_id}
-                  </h3>
-                </div>
-
-                <div className="sm:text-right">
-                  <span className="text-[10px] font-mono uppercase text-faded block">Objective Score</span>
-                  <span className="font-mono text-sm font-bold text-graphite">
-                    {optimizerData.best_candidate.objective_score.toFixed(4)}
-                  </span>
-                  <span className="text-[10px] text-faded block font-mono">Lower is superior</span>
+                  <p className="text-xs text-faded font-mono mt-1">
+                    Based on your current progress and goal
+                  </p>
                 </div>
               </div>
 
               {/* Plan Targets Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-3 bg-bone border border-borderLine">
-                  <span className="text-[10px] font-mono uppercase text-faded block">Recommended Calories</span>
+                  <span className="text-[10px] font-mono uppercase text-faded block">Daily Calories</span>
                   <span className="text-xl font-bold font-mono text-graphite">
                     {optimizerData.best_candidate.daily_calories}
                   </span>
@@ -621,7 +626,7 @@ export const IntelligencePage: React.FC = () => {
                 </div>
 
                 <div className="p-3 bg-bone border border-borderLine">
-                  <span className="text-[10px] font-mono uppercase text-faded block">Recommended Protein</span>
+                  <span className="text-[10px] font-mono uppercase text-faded block">Daily Protein</span>
                   <span className="text-xl font-bold font-mono text-graphite">
                     {optimizerData.best_candidate.daily_protein_g}
                   </span>
@@ -629,15 +634,15 @@ export const IntelligencePage: React.FC = () => {
                 </div>
 
                 <div className="p-3 bg-bone border border-borderLine">
-                  <span className="text-[10px] font-mono uppercase text-faded block">Activity Factor</span>
+                  <span className="text-[10px] font-mono uppercase text-faded block">Activity Level</span>
                   <span className="text-xl font-bold font-mono text-graphite">
                     ×{optimizerData.best_candidate.activity_multiplier}
                   </span>
-                  <span className="text-[10px] text-faded font-mono block">Weekly multiplier</span>
+                  <span className="text-[10px] text-faded font-mono block">Multiplier</span>
                 </div>
 
                 <div className="p-3 bg-bone border border-borderLine">
-                  <span className="text-[10px] font-mono uppercase text-faded block">Projected 28d Change</span>
+                  <span className="text-[10px] font-mono uppercase text-faded block">Expected 28d Change</span>
                   <span className="text-xl font-bold font-mono text-olive">
                     {optimizerData.best_candidate.projected_change_28d_kg > 0
                       ? `+${optimizerData.best_candidate.projected_change_28d_kg.toFixed(2)}`
@@ -645,25 +650,35 @@ export const IntelligencePage: React.FC = () => {
                     kg
                   </span>
                   <span className="text-[10px] text-faded font-mono block">
-                    Weight: {optimizerData.best_candidate.projected_weight_28d_kg.toFixed(1)} kg
+                    Expected weight: {optimizerData.best_candidate.projected_weight_28d_kg.toFixed(1)} kg
                   </span>
                 </div>
               </div>
 
-              {/* Heuristic Description & Disclaimer */}
-              <div className="pt-2 border-t border-borderLine flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <p className="text-[11px] text-faded font-sans leading-relaxed flex-1">
-                  {optimizerData.objective_description}
-                </p>
+              {/* Simple explanation */}
+              <p className="text-sm text-charcoal font-sans leading-relaxed">
+                This is the plan that best matches your current goal and recent progress.
+              </p>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAlternatives((prev) => !prev)}
-                  className="text-xs font-mono underline text-graphite hover:text-olive whitespace-nowrap self-start sm:self-auto"
-                >
-                  {showAlternatives ? 'Hide Alternatives' : `View ${optimizerData.alternative_candidates.length} Alternatives →`}
-                </button>
-              </div>
+              {/* Expandable Methodology */}
+              <details className="pt-2 border-t border-borderLine group">
+                <summary className="font-mono text-xs uppercase tracking-wider text-graphite font-bold cursor-pointer hover:text-olive transition-colors flex items-center justify-between">
+                  <span>How this was chosen</span>
+                  <span className="text-faded group-open:rotate-180 transition-transform text-[10px]">▼</span>
+                </summary>
+                <div className="mt-3 text-xs text-charcoal space-y-3 bg-bone p-4 border border-borderLine">
+                  <p className="leading-relaxed">
+                    {optimizerData.objective_description}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowAlternatives((prev) => !prev)}
+                    className="text-xs font-mono underline text-graphite hover:text-olive block font-bold"
+                  >
+                    {showAlternatives ? 'Hide Alternatives' : `View ${optimizerData.alternative_candidates.length} Alternatives →`}
+                  </button>
+                </div>
+              </details>
             </Card>
 
             {/* Alternative Candidates */}
@@ -673,7 +688,6 @@ export const IntelligencePage: React.FC = () => {
                   <Card key={alt.candidate_id} className="p-4 bg-bone border border-borderLine flex flex-col gap-2 text-xs">
                     <div className="flex justify-between items-center border-b border-borderLine pb-2">
                       <span className="font-mono font-bold text-graphite">{alt.candidate_id}</span>
-                      <span className="font-mono text-[10px] text-faded">Score: {alt.objective_score.toFixed(4)}</span>
                     </div>
                     <div className="flex justify-between font-mono">
                       <span>Calories:</span>
@@ -684,7 +698,7 @@ export const IntelligencePage: React.FC = () => {
                       <strong>{alt.daily_protein_g} g</strong>
                     </div>
                     <div className="flex justify-between font-mono">
-                      <span>Projected 28d:</span>
+                      <span>Expected 28d:</span>
                       <strong className="text-olive">{alt.projected_change_28d_kg.toFixed(2)} kg</strong>
                     </div>
                   </Card>
@@ -695,7 +709,7 @@ export const IntelligencePage: React.FC = () => {
         )}
       </section>
 
-      {/* 6. Section: How You're Responding (Adaptation Engine) */}
+      {/* 6. Section: How You're Responding */}
       <section aria-labelledby="adaptation-heading" className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
@@ -703,7 +717,7 @@ export const IntelligencePage: React.FC = () => {
               How You're Responding
             </h2>
             <p className="text-xs text-faded font-mono mt-0.5">
-              Longitudinal tracking comparing your observed progress against past model projections.
+              Comparing your actual weight progress against what was expected.
             </p>
           </div>
           {adaptation && getAdaptationBadge(adaptation.status)}
@@ -713,39 +727,52 @@ export const IntelligencePage: React.FC = () => {
           <div className="h-32 bg-borderLine/20 animate-pulse rounded" />
         ) : adaptation ? (
           <Card className="p-6 flex flex-col gap-5">
+            {/* Consumer Status Sentence */}
+            <div className="p-3 bg-olive/10 border border-olive/20 text-xs font-sans text-graphite font-medium">
+              {adaptation.status === 'INSUFFICIENT_DATA'
+                ? "We'll keep watching your progress as you record more check-ins."
+                : adaptation.residual_kg != null && adaptation.residual_kg < -0.2
+                ? "You're losing weight a little faster than expected."
+                : adaptation.residual_kg != null && adaptation.residual_kg > 0.2
+                ? "You're progressing a little slower than expected."
+                : adaptation.status === 'NO_CHANGE'
+                ? "You're progressing right as expected."
+                : "We'll keep watching your progress before suggesting a change."}
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-b border-borderLine pb-5">
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Actual Weight Change</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Actual</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.actual_weight_change_kg != null
                     ? `${adaptation.actual_weight_change_kg > 0 ? '+' : ''}${adaptation.actual_weight_change_kg} kg`
                     : 'N/A'}
                 </span>
-                <span className="text-[11px] text-faded font-mono block mt-0.5">Over past 28 days</span>
+                <span className="text-[11px] text-faded font-mono block mt-0.5">Past 28 days</span>
               </div>
 
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Expected Change</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Expected</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.projected_weight_change_kg != null
                     ? `${adaptation.projected_weight_change_kg > 0 ? '+' : ''}${adaptation.projected_weight_change_kg} kg`
                     : 'N/A'}
                 </span>
-                <span className="text-[11px] text-faded font-mono block mt-0.5">Model projection</span>
+                <span className="text-[11px] text-faded font-mono block mt-0.5">Expected pace</span>
               </div>
 
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Difference from Expected</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Difference</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.residual_kg != null
                     ? `${adaptation.residual_kg > 0 ? '+' : ''}${adaptation.residual_kg} kg`
                     : 'N/A'}
                 </span>
-                <span className="text-[11px] text-faded font-mono block mt-0.5">Actual minus expected</span>
+                <span className="text-[11px] text-faded font-mono block mt-0.5">Actual vs expected</span>
               </div>
 
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Logging Completeness</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Consistency</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.logging_completeness_pct}%
                 </span>
@@ -755,17 +782,19 @@ export const IntelligencePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Recommendation & Driver Explanations */}
+            {/* Recommendation & Explanations */}
             <div className="flex flex-col gap-2">
               <p className="text-sm text-charcoal font-sans leading-relaxed">
                 {adaptation.recommendation_summary}
               </p>
-              <div className="flex items-center gap-2 text-[11px] text-faded font-mono">
-                <span>Primary observational driver:</span>
-                <span className="text-graphite font-bold">{adaptation.primary_driver}</span>
-                <span>•</span>
-                <span>Calibration offset: {adaptation.personal_calibration_offset_kg.toFixed(3)} kg</span>
-              </div>
+              <details className="text-[11px] text-faded font-mono">
+                <summary className="cursor-pointer hover:text-olive">Tracking details & baseline calibration</summary>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 font-sans bg-bone p-2.5 border border-borderLine">
+                  <span>Primary driver: <strong className="text-graphite font-mono">{adaptation.primary_driver}</strong></span>
+                  <span>•</span>
+                  <span>Calibration offset: <strong className="text-graphite font-mono">{adaptation.personal_calibration_offset_kg.toFixed(3)} kg</strong></span>
+                </div>
+              </details>
             </div>
           </Card>
         ) : null}

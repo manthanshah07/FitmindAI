@@ -285,6 +285,49 @@ class TestFeasibilityService:
         assert "Product Pacing Guardrail" in data["safety_assessment"]
         assert "not a clinical prescription" in data["safety_assessment"]
 
+    def test_slower_projected_rate_not_falsely_on_track_regression(self):
+        """
+        Regression test:
+        Current: ~80.8 kg, Target: 78.5 kg, 90 days.
+        Required rate: -0.179 kg/week, Projected rate: -0.029 kg/week.
+        The system must NOT report ON_TRACK when projected rate is materially slower.
+        Must report POSSIBLE_ADJUSTMENT and indicate difference.
+        """
+        headers = get_auth_headers("feasiregress@example.com")
+        future_date = (date.today() + timedelta(days=90)).isoformat()
+        client.post(
+            "/api/v1/goals",
+            json={
+                "goal_type": "weight_loss",
+                "target_weight_kg": 78.5,
+                "target_date": future_date,
+            },
+            headers=headers,
+        )
+        from app.schemas.intelligence import TrajectoryProjectionResponse, ConfidenceInterval, DataConfidence
+        mock_proj = TrajectoryProjectionResponse(
+            baseline_weight_kg=80.8,
+            predicted_change_28d_kg=-0.116,
+            projected_weight_28d_kg=80.684,
+            confidence_interval=ConfidenceInterval(lower_bound_kg=80.1, upper_bound_kg=81.3, half_width_kg=0.6),
+            data_confidence=DataConfidence(level="HIGH", nutrition_days_logged=28, measurement_count=5, reasons=[]),
+            features_used={},
+            reference_date=date.today().isoformat(),
+            model_name="Ridge_v1",
+            model_version="1.0.0",
+        )
+        with patch.object(PredictionService, "predict_user_trajectory", return_value=mock_proj):
+            res = client.get("/api/v1/intelligence/goal-feasibility", headers=headers)
+            assert res.status_code == 200
+            data = res.json()
+            assert data["status"] == "POSSIBLE_ADJUSTMENT"
+            assert data["status"] != "ON_TRACK"
+            assert data["required_rate_kg_per_week"] == pytest.approx(-0.179, abs=0.01)
+            assert data["projected_rate_kg_per_week"] == pytest.approx(-0.029, abs=0.01)
+            assert "closely matches" not in data["explanation"]
+            assert "differs by" in data["explanation"]
+
+
 
 # =====================================================================
 # 5. PLAN OPTIMIZER TESTS (Normalized Objective & Deterministic Ranking)

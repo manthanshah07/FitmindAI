@@ -187,11 +187,10 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/COACH DIRECT ANSWER/i)).toBeInTheDocument();
+      expect(screen.getByText(/focus on increasing protein intake/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/focus on increasing protein intake/i)).toBeInTheDocument();
-    expect(screen.getByText(/FACTS & OBSERVATIONS/i)).toBeInTheDocument();
+    expect(screen.getByText(/Key Insights/i)).toBeInTheDocument();
   });
 
   it('triggers send when clicking a suggested prompt button', async () => {
