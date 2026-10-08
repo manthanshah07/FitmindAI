@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.goal import Goal
 from app.core.timezone_utils import extract_date
+from app.core.calculations import calculate_calorie_adherence
 from app.services.intelligence.adapters import FitMindDBAdapter
 from app.services.intelligence.feature_extractor import FeatureExtractor
 from app.services.intelligence.model_service import ModelService
@@ -128,7 +129,12 @@ class PlanOptimizerService:
                     feat_dict["F11"] = round(cand_cals - cand_tdee, 1)
 
                     ref_target = subject_data.target_calories or cand_tdee
-                    feat_dict["F12"] = round((cand_cals / ref_target) * 100.0 if ref_target > 0 else 100.0, 1)
+                    adherence_val = calculate_calorie_adherence(
+                        actual_calories=cand_cals,
+                        target_calories=ref_target,
+                        as_percentage=False,
+                    )
+                    feat_dict["F12"] = adherence_val if adherence_val is not None else (1.0 if cand_cals == ref_target else 0.0)
 
                     # Protein
                     feat_dict["F10"] = cand_prot

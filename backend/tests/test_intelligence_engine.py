@@ -234,6 +234,8 @@ class TestScenarioService:
         sc_deficit = data["scenario_results"][0]
         sc_surplus = data["scenario_results"][2]
         assert sc_deficit["projected_change_28d_kg"] < sc_surplus["projected_change_28d_kg"]
+        assert abs(sc_deficit["projected_change_28d_kg"]) < 10.0
+        assert abs(sc_surplus["projected_change_28d_kg"]) < 10.0
         assert "is projected to produce" in sc_deficit["non_causal_statement"]
 
 
@@ -318,6 +320,7 @@ class TestPlanOptimizer:
         # Normalized score check: score must be bounded and >= 0.0
         assert 0.0 <= data1["best_candidate"]["objective_score"] <= 2.0
         assert data1["best_candidate"]["daily_calories"] >= 1200.0
+        assert abs(data1["best_candidate"]["projected_change_28d_kg"]) < 10.0
         assert len(data1["alternative_candidates"]) >= 1
         assert "FitMind Candidate-Plan Ranking Heuristic" in data1["objective_description"]
         assert "0.60 * normalized_target_error" in data1["objective_description"]

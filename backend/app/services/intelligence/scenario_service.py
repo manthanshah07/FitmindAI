@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.models.user import User
 from app.core.timezone_utils import extract_date
+from app.core.calculations import calculate_calorie_adherence
 from app.services.intelligence.adapters import FitMindDBAdapter
 from app.services.intelligence.contracts import NormalizedSubjectData, FeatureVector
 from app.services.intelligence.feature_extractor import FeatureExtractor
@@ -70,8 +71,12 @@ class ScenarioService:
             feat_dict["F11"] = round(float(new_cals) - tdee, 1)
 
             ref_target = target_calories if target_calories and target_calories > 0 else tdee
-            adherence = (float(new_cals) / ref_target) * 100.0 if ref_target > 0 else 100.0
-            feat_dict["F12"] = round(adherence, 1)
+            adherence_val = calculate_calorie_adherence(
+                actual_calories=float(new_cals),
+                target_calories=ref_target,
+                as_percentage=False,
+            )
+            feat_dict["F12"] = adherence_val if adherence_val is not None else (1.0 if float(new_cals) == ref_target else 0.0)
 
         # Protein change updates F10
         if new_prot is not None:
