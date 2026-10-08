@@ -154,7 +154,7 @@ Copy `backend/.env.example` to `backend/.env` and fill in your values.
 cd backend
 DATABASE_URL="sqlite:///./dev.db" .venv/bin/python -m app.seed_demo_data
 ```
-See `docs/development/DEMO_ACCOUNTS.md` for demo account credentials.
+See `docs/DEMO_ACCOUNTS.md` for demo account credentials.
 
 ---
 
