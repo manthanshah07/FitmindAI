@@ -115,7 +115,7 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-4">
         <div>
           <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Deterministic Evaluation Engine
+            Weekly Performance Index
           </span>
           <h2 className="font-mono text-2xl font-bold uppercase text-graphite">
             Weekly Fitness Score

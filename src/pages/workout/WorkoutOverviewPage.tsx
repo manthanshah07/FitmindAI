@@ -139,9 +139,9 @@ export const WorkoutOverviewPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-borderLine">
         <div>
           <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-1">
-            Training Management System
+            Training Routine
           </span>
-          <h1 className="text-3xl font-bold tracking-tighter uppercase font-mono">
+          <h1 className="text-3xl font-bold tracking-tight text-graphite font-sans">
             Workout Hub
           </h1>
         </div>
@@ -169,11 +169,11 @@ export const WorkoutOverviewPage: React.FC = () => {
 
       {/* Active Workout Plan Overview Card */}
       {plan ? (
-        <Card className="p-6 md:p-8 flex flex-col gap-6">
+        <Card className="p-6 md:p-8 flex flex-col gap-6 bg-white border border-borderLine">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-4">
             <div>
               <span className="font-mono text-[10px] text-faded uppercase tracking-widest block mb-1">
-                Active Training Routine
+                Your Current Routine
               </span>
               <h2 className="text-2xl font-bold uppercase text-graphite font-mono">
                 {plan.name}
@@ -183,15 +183,15 @@ export const WorkoutOverviewPage: React.FC = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="olive">{plan.ai_generated ? 'AI Calibrated' : 'Custom Routine'}</Badge>
+              <Badge variant="olive">{plan.ai_generated ? 'Calibrated' : 'Custom Routine'}</Badge>
               <Badge variant="faded">{plan.plan_exercises.length} Exercises Scheduled</Badge>
             </div>
           </div>
 
           {/* Exercises Schedule List */}
           <div>
-            <h3 className="font-mono text-xs font-bold uppercase text-graphite tracking-widest mb-4">
-              Scheduled Exercises & Target Parameters
+            <h3 className="font-mono text-xs font-bold uppercase text-graphite tracking-wider mb-4">
+              Scheduled Exercises
             </h3>
             <div className="flex flex-col gap-3">
               {plan.plan_exercises.map((item, idx) => {

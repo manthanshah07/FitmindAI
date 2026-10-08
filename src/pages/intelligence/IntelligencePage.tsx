@@ -198,7 +198,7 @@ export const IntelligencePage: React.FC = () => {
             Your Fitness Trajectory
           </h1>
           <p className="text-sm text-charcoal mt-1 max-w-2xl">
-            Point-in-time model projection estimating where your trajectory is heading over the next 28 calendar days based on historical tracking and metabolic features.
+            A model-based estimate of where your body weight is heading over the next 28 days based on your recent energy expenditure, intake, and workout history.
           </p>
         </div>
 
@@ -226,7 +226,7 @@ export const IntelligencePage: React.FC = () => {
               <span className="text-3xl font-bold font-mono text-graphite">{baselineWeight.toFixed(1)}</span>
               <span className="text-xs text-faded font-mono ml-1">kg</span>
             </div>
-            <span className="text-[11px] text-faded font-mono mt-1">Point-in-time anchor</span>
+            <span className="text-[11px] text-faded font-mono mt-1">Starting point</span>
           </Card>
 
           <Card className="p-5 flex flex-col justify-between">
@@ -237,7 +237,7 @@ export const IntelligencePage: React.FC = () => {
               </span>
               <span className="text-xs text-faded font-mono ml-1">kg</span>
             </div>
-            <span className="text-[11px] text-faded font-mono mt-1">Model estimate</span>
+            <span className="text-[11px] text-faded font-mono mt-1">Expected change</span>
           </Card>
 
           <Card className="p-5 flex flex-col justify-between">
@@ -246,7 +246,7 @@ export const IntelligencePage: React.FC = () => {
               <span className="text-3xl font-bold font-mono text-graphite">{projectedWeight.toFixed(1)}</span>
               <span className="text-xs text-faded font-mono ml-1">kg</span>
             </div>
-            <span className="text-[11px] text-faded font-mono mt-1">In 28 calendar days</span>
+            <span className="text-[11px] text-faded font-mono mt-1">Expected in 28 days</span>
           </Card>
 
           <Card className="p-5 flex flex-col justify-between">
@@ -258,7 +258,7 @@ export const IntelligencePage: React.FC = () => {
               <span className="text-xs text-faded font-mono ml-1">{targetWeight ? 'kg' : ''}</span>
             </div>
             <span className="text-[11px] text-faded font-mono mt-1">
-              {feasibility?.target_date ? `Target: ${feasibility.target_date}` : 'No target set'}
+              {feasibility?.target_date ? `Deadline: ${feasibility.target_date}` : 'Ongoing target'}
             </span>
           </Card>
         </div>
@@ -269,15 +269,15 @@ export const IntelligencePage: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-borderLine pb-4">
               <div>
                 <h2 id="trajectory-heading" className="text-base font-bold text-graphite">
-                  28-Day Projected Trajectory vs Benchmark Uncertainty
+                  Expected 28-Day Trajectory
                 </h2>
                 <p className="text-xs text-faded font-mono mt-0.5">
-                  Estimates body-weight progression assuming habitual adherence and recent metabolic expenditure.
+                  Visual projection showing your expected path and benchmark range based on current adherence.
                 </p>
               </div>
 
               <span className="font-mono text-[10px] uppercase text-faded bg-black/5 px-2.5 py-1 self-start sm:self-auto">
-                {trajectory.model_name}
+                Model Projection
               </span>
             </div>
 
@@ -715,17 +715,17 @@ export const IntelligencePage: React.FC = () => {
           <Card className="p-6 flex flex-col gap-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-b border-borderLine pb-5">
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Observed Weight Change</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Actual Weight Change</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.actual_weight_change_kg != null
                     ? `${adaptation.actual_weight_change_kg > 0 ? '+' : ''}${adaptation.actual_weight_change_kg} kg`
                     : 'N/A'}
                 </span>
-                <span className="text-[11px] text-faded font-mono block mt-0.5">Over past 28-day window</span>
+                <span className="text-[11px] text-faded font-mono block mt-0.5">Over past 28 days</span>
               </div>
 
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Expected Model Change</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Expected Change</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.projected_weight_change_kg != null
                     ? `${adaptation.projected_weight_change_kg > 0 ? '+' : ''}${adaptation.projected_weight_change_kg} kg`
@@ -735,7 +735,7 @@ export const IntelligencePage: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-[10px] font-mono uppercase text-faded block">Residual Deviation</span>
+                <span className="text-[10px] font-mono uppercase text-faded block">Difference from Expected</span>
                 <span className="text-xl font-bold font-mono text-graphite">
                   {adaptation.residual_kg != null
                     ? `${adaptation.residual_kg > 0 ? '+' : ''}${adaptation.residual_kg} kg`

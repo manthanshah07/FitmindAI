@@ -139,13 +139,13 @@ export const ProgressOverviewPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
         <div>
           <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Body Composition & Performance
+            Body Progress
           </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-graphite">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-graphite">
             Progress & Fitness Score
           </h1>
           <p className="text-sm text-charcoal font-sans mt-1">
-            Track your 0-100 deterministic weekly fitness score, body weight history, and circumference trends in inches.
+            Track your weight history, weekly fitness score, and body circumference changes over time.
           </p>
         </div>
 
@@ -159,26 +159,26 @@ export const ProgressOverviewPage: React.FC = () => {
 
       {/* Summary Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-6">
+        <Card className="p-5 bg-white border border-borderLine">
           <span className="font-mono text-[10px] uppercase text-faded block mb-1">Latest Weight</span>
-          <h3 className="text-3xl font-bold text-graphite font-mono">
+          <h3 className="text-2xl font-bold text-graphite font-mono">
             {latest_weight_kg ? `${latest_weight_kg} kg` : 'N/A'}
           </h3>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-5 bg-white border border-borderLine">
           <span className="font-mono text-[10px] uppercase text-faded block mb-1">Weight Net Change</span>
           <div className="mt-1">{getTrendBadge()}</div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-5 bg-white border border-borderLine">
           <span className="font-mono text-[10px] uppercase text-faded block mb-1">Recorded Sessions</span>
-          <h3 className="text-3xl font-bold text-graphite font-mono">{total_entries}</h3>
+          <h3 className="text-2xl font-bold text-graphite font-mono">{total_entries}</h3>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-5 bg-white border border-borderLine">
           <span className="font-mono text-[10px] uppercase text-faded block mb-1">Latest Entry Date</span>
-          <h3 className="text-xl font-bold text-graphite font-mono truncate">
+          <h3 className="text-lg font-bold text-graphite font-mono truncate">
             {history.length > 0 ? history[0].measured_at : 'No records'}
           </h3>
         </Card>

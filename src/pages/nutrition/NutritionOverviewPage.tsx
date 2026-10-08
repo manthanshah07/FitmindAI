@@ -71,9 +71,9 @@ export const NutritionOverviewPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
         <div>
           <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Nutrition & Macro System
+            Nutrition Tracker
           </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-graphite">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-graphite">
             Today's Nutrition Summary
           </h1>
           <p className="text-sm text-charcoal font-sans mt-1">
@@ -99,11 +99,11 @@ export const NutritionOverviewPage: React.FC = () => {
       )}
 
       {/* Daily Progress Bars Grid */}
-      <Card className="p-6 md:p-8 flex flex-col gap-6">
+      <Card className="p-6 md:p-8 flex flex-col gap-6 bg-white border border-borderLine">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-borderLine">
           <div>
             <span className="font-mono text-[10px] text-faded uppercase tracking-widest block mb-1">
-              Calorie Target Progress
+              Calorie Balance
             </span>
             <h2 className="text-3xl font-bold uppercase text-graphite font-mono">
               {consumed.calories} / {targets.calories} <span className="text-sm font-sans font-normal text-charcoal">kcal</span>

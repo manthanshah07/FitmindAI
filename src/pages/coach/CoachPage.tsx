@@ -255,24 +255,22 @@ export const CoachPage: React.FC = () => {
                   </div>
                 ) : (
                   /* Assistant Message with Structured Response */
-                  <div className="flex flex-col items-start">
-                    <div className="border border-borderLine bg-bone text-graphite p-6 max-w-[95%] sm:max-w-[90%] rounded-none space-y-6 shadow-sm">
-                      {/* Top Header: Data Quality */}
-                      {msg.response?.data_quality && (
-                        <div className="flex items-center justify-between border-b border-borderLine pb-3">
-                          <span className="font-mono text-xs text-olive font-bold uppercase tracking-widest">
-                            FITMIND AI COACH
-                          </span>
-                          {renderDataQualityBadge(msg.response.data_quality)}
-                        </div>
-                      )}
+                  <div className="flex flex-col items-start max-w-[95%] sm:max-w-[85%]">
+                    <div className="border border-borderLine bg-white text-graphite p-5 sm:p-6 space-y-5 shadow-sm">
+                      {/* Top Header: Coach Name & Data Quality */}
+                      <div className="flex items-center justify-between border-b border-borderLine/60 pb-2.5">
+                        <span className="font-mono text-xs text-olive font-bold uppercase tracking-wider flex items-center gap-1.5">
+                          <span>🤖</span> FitMind AI Coach
+                        </span>
+                        {msg.response?.data_quality && renderDataQualityBadge(msg.response.data_quality)}
+                      </div>
 
-                      {/* Answer Block */}
+                      {/* Direct Answer Block */}
                       {(msg.response?.answer || msg.content) && (
                         <div className="space-y-1">
-                          <h3 className="font-mono text-xs text-faded font-bold uppercase tracking-wider">
+                          <span className="font-mono text-[10px] text-faded font-bold uppercase tracking-wider block">
                             COACH DIRECT ANSWER
-                          </h3>
+                          </span>
                           <p className="text-sm md:text-base font-sans text-graphite leading-relaxed">
                             {msg.response?.answer || msg.content}
                           </p>
@@ -281,17 +279,17 @@ export const CoachPage: React.FC = () => {
 
                       {/* Observations Section */}
                       {msg.response?.observations && msg.response.observations.length > 0 && (
-                        <div className="space-y-3 border-t border-borderLine pt-4">
-                          <span className="font-mono text-xs text-graphite font-bold uppercase tracking-widest block">
+                        <div className="space-y-2.5 border-t border-borderLine/60 pt-3.5">
+                          <span className="font-mono text-[11px] text-graphite font-bold uppercase tracking-wider block">
                             FACTS & OBSERVATIONS ({msg.response.observations.length})
                           </span>
                           <div className="space-y-2">
                             {msg.response.observations.map((obs, oIdx) => (
                               <div
                                 key={oIdx}
-                                className="p-3 border border-borderLine bg-black/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                                className="p-3 bg-bone border border-borderLine/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                               >
-                                <div className="space-y-1">
+                                <div className="space-y-0.5">
                                   <span className="font-mono text-[10px] text-olive font-bold uppercase tracking-wider block">
                                     {obs.category}
                                   </span>
@@ -306,19 +304,19 @@ export const CoachPage: React.FC = () => {
 
                       {/* Recommendations Section */}
                       {msg.response?.recommendations && msg.response.recommendations.length > 0 && (
-                        <div className="space-y-3 border-t border-borderLine pt-4">
-                          <span className="font-mono text-xs text-graphite font-bold uppercase tracking-widest block">
+                        <div className="space-y-2.5 border-t border-borderLine/60 pt-3.5">
+                          <span className="font-mono text-[11px] text-graphite font-bold uppercase tracking-wider block">
                             ACTIONABLE RECOMMENDATIONS ({msg.response.recommendations.length})
                           </span>
-                          <div className="grid grid-cols-1 gap-3">
+                          <div className="grid grid-cols-1 gap-2.5">
                             {msg.response.recommendations.map((rec, rIdx) => (
                               <div
                                 key={rIdx}
-                                className="p-4 border border-graphite bg-bone space-y-2"
+                                className="p-3.5 bg-bone border border-borderLine space-y-1.5"
                               >
-                                <div className="flex items-center justify-between gap-2 border-b border-borderLine pb-2">
+                                <div className="flex items-center justify-between gap-2 border-b border-borderLine/60 pb-1.5">
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono text-[10px] text-olive font-bold uppercase tracking-widest">
+                                    <span className="font-mono text-[10px] text-olive font-bold uppercase tracking-wider">
                                       [{rec.category}]
                                     </span>
                                     <h4 className="font-bold text-xs uppercase tracking-tight text-graphite">
@@ -338,15 +336,15 @@ export const CoachPage: React.FC = () => {
 
                       {/* Warnings Section */}
                       {msg.response?.warnings && msg.response.warnings.length > 0 && (
-                        <div className="space-y-2 border-t border-borderLine pt-4">
-                          <span className="font-mono text-xs text-error font-bold uppercase tracking-widest block">
+                        <div className="space-y-2 border-t border-borderLine/60 pt-3.5">
+                          <span className="font-mono text-[11px] text-rose-700 font-bold uppercase tracking-wider block">
                             DATA LIMITATIONS & SAFETY WARNINGS
                           </span>
                           <div className="space-y-1">
                             {msg.response.warnings.map((warn, wIdx) => (
                               <div
                                 key={wIdx}
-                                className="p-3 border border-error/30 bg-error/5 text-xs font-sans text-graphite"
+                                className="p-2.5 border border-rose-200 bg-rose-50 text-xs font-sans text-rose-900"
                               >
                                 ⚠️ {warn}
                               </div>

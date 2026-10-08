@@ -82,22 +82,21 @@ export const DashboardPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-4 mb-4">
           <div>
             <span className="font-mono text-[10px] uppercase tracking-widest text-olive font-bold block mb-1">
-              Deterministic Analytics
+              Weekly Summary
             </span>
-            <h2 className="text-xl font-bold tracking-tighter uppercase text-graphite">
+            <h2 className="text-xl font-bold tracking-tight text-graphite">
               Weekly Progress Overview
             </h2>
           </div>
           <div className="flex items-center gap-3">
             <Badge variant={weekly?.adherence_label === 'High' ? 'olive' : weekly?.adherence_label === 'Moderate' ? 'graphite' : 'faded'}>
               {weekly?.adherence_score !== null && weekly?.adherence_score !== undefined
-
                 ? `${weekly.adherence_label.toUpperCase()} ADHERENCE (${weekly.adherence_score}%)`
                 : 'INSUFFICIENT DATA'}
             </Badge>
             <NavLink
               to="/reports"
-              className="px-4 py-2 bg-olive text-bone font-mono font-bold text-xs uppercase tracking-widest hover:bg-graphite transition-colors inline-block text-center whitespace-nowrap"
+              className="px-4 py-2 bg-olive text-bone font-mono font-bold text-xs uppercase tracking-wider hover:bg-graphite transition-colors inline-block text-center whitespace-nowrap"
             >
               View Full Weekly Report →
             </NavLink>
@@ -172,17 +171,17 @@ export const DashboardPage: React.FC = () => {
         <Card className="flex flex-col justify-between">
           <div>
             <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
-              Estimated TDEE (Server Calibrated)
+              Daily Energy Burn (TDEE)
             </span>
             <span className="font-mono text-3xl font-bold text-graphite">
               {isLoading ? '...' : `${summary?.tdee_calories || 2000} kcal`}
             </span>
             <p className="text-xs text-charcoal mt-2 font-sans">
-              Basal Metabolic Rate: <span className="font-mono font-bold">{summary?.bmr_calories || 1600} kcal/day</span>
+              Base metabolism: <span className="font-mono font-bold">{summary?.bmr_calories || 1600} kcal/day</span>
             </p>
           </div>
           <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Target Daily Intake: {summary?.target_calories || 2000} kcal ({summary?.target_protein_g || 150}g protein)
+            Target daily intake: {summary?.target_calories || 2000} kcal ({summary?.target_protein_g || 150}g protein)
           </div>
         </Card>
 
@@ -190,20 +189,20 @@ export const DashboardPage: React.FC = () => {
         <Card className="flex flex-col justify-between">
           <div>
             <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
-              Primary Active Goal
+              Active Goal
             </span>
             <span className="font-mono text-xl font-bold uppercase text-graphite block truncate">
               {isLoading ? '...' : summary?.goal?.goal_type ? summary.goal.goal_type.replace('_', ' ') : 'General Fitness'}
             </span>
             <p className="text-xs text-charcoal mt-2 font-sans">
-              Target Weight:{' '}
+              Target weight:{' '}
               <span className="font-mono font-bold">
                 {summary?.goal?.target_weight_kg ? `${summary.goal.target_weight_kg} kg` : 'Not specified'}
               </span>
             </p>
           </div>
           <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Target Date: {summary?.goal?.target_date ? summary.goal.target_date : 'Ongoing routine'}
+            Target date: {summary?.goal?.target_date ? summary.goal.target_date : 'Ongoing routine'}
           </div>
         </Card>
 
@@ -211,24 +210,24 @@ export const DashboardPage: React.FC = () => {
         <Card className="flex flex-col justify-between">
           <div>
             <span className="font-mono text-[10px] uppercase tracking-widest text-olive font-bold block mb-1">
-              Today's Nutrition Tracker
+              Today's Nutrition
             </span>
             <span className="font-mono text-xl font-bold text-graphite block">
-              {isLoading ? '...' : `${summary?.today_nutrition.consumed_calories || 0} / ${summary?.today_nutrition.target_calories || 2000} kcal`}
+              {isLoading ? '...' : `${summary?.today_nutrition ? summary.today_nutrition.consumed_calories : 0} / ${summary?.today_nutrition ? summary.today_nutrition.target_calories : 2000} kcal`}
             </span>
             <p className="text-xs text-charcoal mt-2 font-sans">
-              Protein: <span className="font-mono font-bold">{summary?.today_nutrition.consumed_protein_g || 0}g / {summary?.today_nutrition.target_protein_g || 150}g</span>
+              Protein: <span className="font-mono font-bold">{summary?.today_nutrition ? summary.today_nutrition.consumed_protein_g : 0}g / {summary?.today_nutrition ? summary.today_nutrition.target_protein_g : 150}g</span>
             </p>
           </div>
           <div className="mt-4 pt-4 border-t border-borderLine text-[10px] font-mono text-faded">
-            Remaining: {summary?.today_nutrition.remaining_calories || 0} kcal
+            Remaining: {summary?.today_nutrition ? summary.today_nutrition.remaining_calories : 0} kcal
           </div>
         </Card>
       </div>
 
       {/* Grid Row 2: Core Application Modules */}
-      <h2 className="text-xl font-bold tracking-tighter uppercase text-graphite font-mono pt-4 border-t border-borderLine">
-        Core Application Modules
+      <h2 className="text-lg font-bold text-graphite pt-4 border-t border-borderLine">
+        Activity & Workflows
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
