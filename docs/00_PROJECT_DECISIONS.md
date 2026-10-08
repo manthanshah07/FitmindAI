@@ -50,7 +50,7 @@
 | A-04 | Backend: FastAPI (Python) | DECIDED | Implemented under `/backend` |
 | A-05 | Database: PostgreSQL | DECIDED | Neon serverless PostgreSQL 16+ in production, SQLite for local dev/testing |
 | A-06 | Authentication: Custom FastAPI JWT | DECIDED | Password hashing (Bcrypt), short-lived access tokens, refresh token database tracking & rotation, Bearer header |
-| A-07 | File/Photo storage: Supabase Storage | DECIDED | Configured for future photo uploads |
+| A-07 | File/Photo storage: Supabase Storage | DEFERRED | Not implemented in current codebase; progress photos deferred post-v1.0 |
 | A-08 | AI provider: Google Gemini API | DECIDED | Google Gemini API (`google-genai` SDK, `gemini-2.5-flash-lite` model) |
 | A-09 | Memory approach: Relational Context Assembly | DECIDED | Deterministic preference extraction (`AIMemoryService`) + PostgreSQL relational storage (`ai_memory` & `chat_messages` tables) |
 | A-10 | Deployment: Vercel (frontend) | DECIDED | Static SPA CDN hosting with `vercel.json` rewrite rules |
@@ -101,7 +101,7 @@
 | # | Conflict | Documents Involved | Resolution |
 |---|---|---|---|
 | C-01 | Authentication: JWT vs Firebase Auth | Project Context / Status | RESOLVED — Custom FastAPI JWT confirmed (Decision A-06). |
-| C-02 | PRD and Tech Spec missing claim | Audit / Status | RESOLVED — `docs/FitMind_PRD.md` and `docs/FitMind_TECH_SPEC.md` exist. |
+| C-02 | PRD and Tech Spec missing claim | Audit / Status | RESOLVED — Requirements captured in README and architecture docs. |
 | C-03 | Hydration / Water Intake scope | PRD vs Tech Spec | RESOLVED — Hydration score component computed deterministically; dedicated logger deferred. |
 | C-04 | AI Provider: OpenAI vs Gemini | Decisions / Code | RESOLVED — Google Gemini API (`gemini-2.5-flash-lite`) confirmed in code. |
 
