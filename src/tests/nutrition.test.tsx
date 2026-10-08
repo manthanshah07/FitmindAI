@@ -214,4 +214,74 @@ describe('Phase 4 — Nutrition Frontend Module', () => {
     expect(await screen.findByText(/No Meal Logs Recorded/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Log First Meal →/i })).toBeInTheDocument();
   });
+
+  it('supports multi-food draft creation, editing quantities, removing items, and aggregate totals', async () => {
+    const mockFood2 = {
+      id: 'food-2',
+      name: 'Cooked Basmati Rice',
+      brand: 'Standard',
+      calories_per_100g: 130.0,
+      protein_per_100g: 2.7,
+      carbs_per_100g: 28.0,
+      fat_per_100g: 0.3,
+      fiber_per_100g: 0.4,
+      is_verified: true,
+      created_at: new Date().toISOString(),
+    };
+
+    vi.mocked(nutritionApi.seedFoodsApi).mockResolvedValueOnce([mockFood, mockFood2]);
+    vi.mocked(nutritionApi.getFoodsApi).mockResolvedValue([mockFood, mockFood2]);
+    vi.mocked(nutritionApi.logMealApi).mockResolvedValueOnce(mockMealLog);
+
+    render(
+      <MemoryRouter initialEntries={['/nutrition/log']}>
+        <Routes>
+          <Route path="/nutrition/log" element={<FoodLoggerPage />} />
+          <Route path="/nutrition" element={<div>Nutrition Overview Target</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/Log Food Entry/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Whole Wheat Roti \(Chapati\)/i).length).toBeGreaterThan(0);
+
+    // 1. Add first food to draft
+    const addDraftBtn = screen.getByRole('button', { name: /\+ Add to Meal Draft/i });
+    fireEvent.click(addDraftBtn);
+
+    // Verify draft item appears
+    expect(screen.getByText(/2. Meal Draft \(1 item\)/i)).toBeInTheDocument();
+
+    // 2. Select second food and add to draft
+    fireEvent.click(screen.getByText(/Cooked Basmati Rice/i));
+    fireEvent.click(addDraftBtn);
+
+    // Verify draft now has 2 items
+    expect(screen.getByText(/2. Meal Draft \(2 items\)/i)).toBeInTheDocument();
+
+    // 3. Remove second item from draft
+    const removeRiceBtn = screen.getByRole('button', { name: /Remove Cooked Basmati Rice/i });
+    fireEvent.click(removeRiceBtn);
+
+    // Verify draft back to 1 item
+    expect(screen.getByText(/2. Meal Draft \(1 item\)/i)).toBeInTheDocument();
+
+    // 4. Save meal entry
+    fireEvent.click(screen.getByRole('button', { name: /Save Meal Entry ✓/i }));
+
+    await waitFor(() => {
+      expect(nutritionApi.logMealApi).toHaveBeenCalledWith(
+        expect.objectContaining({
+          meal_type: 'lunch',
+          items: [
+            expect.objectContaining({
+              food_id: 'food-1',
+              quantity_grams: 100,
+            }),
+          ],
+        }),
+      );
+      expect(screen.getByText(/Nutrition Overview Target/i)).toBeInTheDocument();
+    });
+  });
 });

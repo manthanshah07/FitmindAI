@@ -21,6 +21,7 @@ from app.schemas.report import (
 )
 from app.services.nutrition_service import NutritionService
 from app.services.fitness_score_service import FitnessScoreService
+from app.core.calculations import calculate_calorie_adherence
 from app.core.timezone_utils import (
     extract_date,
     get_timezone_aware_range,
@@ -193,7 +194,7 @@ class ReportService:
         daily_cals: Dict[date, float] = {}
         daily_protein: Dict[date, float] = {}
         for meal in meal_logs:
-            m_date = extract_date(meal.logged_at)
+            m_date = extract_date(meal.logged_at, user_tz)
             if m_date:
                 if m_date not in daily_cals:
                     daily_cals[m_date] = 0.0
@@ -213,8 +214,9 @@ class ReportService:
             avg_cals = round(sum(daily_cals.values()) / float(logged_days_count), 1)
             avg_protein = round(sum(daily_protein.values()) / float(logged_days_count), 1)
 
-            cal_diff = abs(avg_cals - target_calories)
-            cal_adherence = max(0.0, min(100.0, (1.0 - (cal_diff / max(1.0, target_calories))) * 100.0))
+            cal_adherence = calculate_calorie_adherence(
+                avg_cals, target_calories, as_percentage=True
+            )
             prot_adherence = min(100.0, (avg_protein / max(1.0, target_protein)) * 100.0)
 
             nutrition_section = NutritionReportSection(

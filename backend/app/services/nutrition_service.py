@@ -15,6 +15,7 @@ from app.schemas.nutrition import (
 )
 from app.services.food_service import FoodService
 from app.core.calculations import calculate_tdee, calculate_age_from_dob
+from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
 
 
 class NutritionService:
@@ -133,14 +134,14 @@ class NutritionService:
 
     @staticmethod
     def get_today_summary(db: Session, user: User, target_date: Optional[date] = None) -> DailyNutritionSummaryResponse:
-        if not target_date:
-            target_date = date.today()
+        profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+        user_tz = profile.timezone if (profile and profile.timezone) else "UTC"
 
+        ref_date = target_date or get_user_today_date(user_tz)
         targets = NutritionService.calculate_user_targets(db, user)
 
-        # Database-side filtering with start/end boundaries for target_date
-        start_dt = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-        end_dt = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+        # Database-side filtering with start/end boundaries for ref_date in user_tz
+        start_dt, end_dt = get_timezone_aware_range(ref_date, ref_date, user_tz)
 
         today_logs = (
             db.query(MealLog)
@@ -150,6 +151,7 @@ class NutritionService:
                 MealLog.logged_at >= start_dt,
                 MealLog.logged_at <= end_dt,
             )
+            .order_by(MealLog.logged_at.asc())
             .all()
         )
 
@@ -194,7 +196,7 @@ class NutritionService:
         )
 
         return DailyNutritionSummaryResponse(
-            date=target_date.isoformat(),
+            date=ref_date.isoformat(),
             targets=targets,
             consumed=consumed,
             remaining=remaining,

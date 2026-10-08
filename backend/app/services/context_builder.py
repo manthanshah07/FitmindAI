@@ -104,7 +104,7 @@ class ContextBuilder:
 
         workout_contexts: List[WorkoutLogContext] = []
         for log in workout_logs:
-            log_date = extract_date(log.started_at)
+            log_date = extract_date(log.started_at, user_tz)
             date_str = log_date.isoformat() if log_date else str(log.started_at)
             plan_name = log.plan.name if log.plan else None
 
@@ -153,7 +153,7 @@ class ContextBuilder:
 
         daily_totals: Dict[date, Dict[str, float]] = {}
         for meal in meal_logs:
-            m_date = extract_date(meal.logged_at)
+            m_date = extract_date(meal.logged_at, user_tz)
             if not m_date:
                 continue
             if m_date not in daily_totals:

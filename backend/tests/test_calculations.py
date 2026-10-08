@@ -36,3 +36,67 @@ def test_extract_date_utility():
     assert extract_date("2026-08-19 14:30:00") == d
     assert extract_date("invalid-date-string") is None
     assert extract_date(12345) is None
+
+
+def test_extract_date_with_timezone_boundaries():
+    from datetime import datetime, timezone
+    from app.core.timezone_utils import extract_date
+
+    # 23:45 IST on Oct 7 = 18:15 UTC on Oct 7
+    dt_utc_2345_ist = datetime(2026, 10, 7, 18, 15, tzinfo=timezone.utc)
+    # 00:15 IST on Oct 8 = 18:45 UTC on Oct 7
+    dt_utc_0015_ist = datetime(2026, 10, 7, 18, 45, tzinfo=timezone.utc)
+
+    # In UTC calendar date, both are Oct 7:
+    assert extract_date(dt_utc_2345_ist, "UTC") == date(2026, 10, 7)
+    assert extract_date(dt_utc_0015_ist, "UTC") == date(2026, 10, 7)
+
+    # In Asia/Kolkata timezone:
+    # 18:15 UTC is 23:45 IST -> Oct 7
+    assert extract_date(dt_utc_2345_ist, "Asia/Kolkata") == date(2026, 10, 7)
+    # 18:45 UTC is 00:15 IST -> Oct 8
+    assert extract_date(dt_utc_0015_ist, "Asia/Kolkata") == date(2026, 10, 8)
+
+    # US/Eastern (EDT, UTC-4): 21:00 EDT on Oct 7 = 01:00 UTC on Oct 8
+    dt_utc_0100_oct8 = datetime(2026, 10, 8, 1, 0, tzinfo=timezone.utc)
+    assert extract_date(dt_utc_0100_oct8, "America/New_York") == date(2026, 10, 7)
+    assert extract_date(dt_utc_0100_oct8, "UTC") == date(2026, 10, 8)
+
+    # ISO string with offset
+    assert extract_date("2026-10-07T23:45:00+05:30", "Asia/Kolkata") == date(2026, 10, 7)
+    assert extract_date("2026-10-08T00:15:00+05:30", "Asia/Kolkata") == date(2026, 10, 8)
+
+
+def test_calculate_calorie_adherence_canonical():
+    from app.core.calculations import calculate_calorie_adherence
+
+    # Exact target: 100.0% adherence
+    assert calculate_calorie_adherence(2000.0, 2000.0) == 100.0
+    assert calculate_calorie_adherence(2000.0, 2000.0, as_percentage=False) == 1.0
+
+    # Modest deficit: 1800 on 2000 target = 10% error = 90.0% adherence
+    assert calculate_calorie_adherence(1800.0, 2000.0) == 90.0
+    assert calculate_calorie_adherence(1800.0, 2000.0, as_percentage=False) == 0.9
+
+    # Modest surplus: 2200 on 2000 target = 10% error = 90.0% adherence
+    assert calculate_calorie_adherence(2200.0, 2000.0) == 90.0
+    assert calculate_calorie_adherence(2200.0, 2000.0, as_percentage=False) == 0.9
+
+    # Large deviation: 4000 on 2000 target = 100% error = 0.0% adherence
+    assert calculate_calorie_adherence(4000.0, 2000.0) == 0.0
+
+    # Extreme deviation: 5000 on 2000 target (bounded at 0.0)
+    assert calculate_calorie_adherence(5000.0, 2000.0) == 0.0
+
+    # Zero actual calories
+    assert calculate_calorie_adherence(0.0, 2000.0) == 0.0
+
+    # Missing / None values
+    assert calculate_calorie_adherence(None, 2000.0) is None
+    assert calculate_calorie_adherence(2000.0, None) is None
+    assert calculate_calorie_adherence(None, None) is None
+
+    # Zero or negative targets
+    assert calculate_calorie_adherence(2000.0, 0.0) is None
+    assert calculate_calorie_adherence(2000.0, -100.0) is None
+    assert calculate_calorie_adherence(-500.0, 2000.0) is None

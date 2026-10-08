@@ -261,3 +261,95 @@ class TestNutritionAPI:
         res = client.post("/api/v1/nutrition/log", json=log_payload, headers=headers)
         assert res.status_code == 400
         assert "do not exist" in res.json()["detail"]
+
+    def test_multi_food_meal_logging_and_totals(self):
+        headers = get_auth_headers("multifood_user@example.com")
+        client.post("/api/v1/foods/seed", headers=headers)
+        all_foods = client.get("/api/v1/foods", headers=headers).json()
+        assert len(all_foods) >= 3
+
+        food1 = all_foods[0]  # e.g. Roti
+        food2 = all_foods[1]  # e.g. Rice
+        food3 = all_foods[2]  # e.g. Chicken
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        multi_payload = {
+            "meal_type": "dinner",
+            "logged_at": now_iso,
+            "notes": "Balanced multi-item dinner",
+            "items": [
+                {"food_id": food1["id"], "quantity_grams": 150.0},
+                {"food_id": food2["id"], "quantity_grams": 200.0},
+                {"food_id": food3["id"], "quantity_grams": 120.0},
+            ],
+        }
+
+        res = client.post("/api/v1/nutrition/log", json=multi_payload, headers=headers)
+        assert res.status_code == 201
+        data = res.json()
+        assert data["meal_type"] == "dinner"
+        assert len(data["items"]) == 3
+
+        # Verify backend-calculated values for each item
+        expected_cals1 = round(food1["calories_per_100g"] * 150.0 / 100.0, 2)
+        expected_cals2 = round(food2["calories_per_100g"] * 200.0 / 100.0, 2)
+        expected_cals3 = round(food3["calories_per_100g"] * 120.0 / 100.0, 2)
+        total_expected_cals = round(expected_cals1 + expected_cals2 + expected_cals3, 1)
+
+        actual_cals = [it["calculated_calories"] for it in data["items"]]
+        assert expected_cals1 in actual_cals
+        assert expected_cals2 in actual_cals
+        assert expected_cals3 in actual_cals
+
+        # Fetch today's summary and verify aggregate consumed totals
+        res_summary = client.get("/api/v1/nutrition/today", headers=headers)
+        assert res_summary.status_code == 200
+        summary = res_summary.json()
+        assert summary["consumed"]["calories"] == total_expected_cals
+        assert len(summary["meals_by_type"]["dinner"]) == 1
+        assert len(summary["meals_by_type"]["dinner"][0]["items"]) == 3
+
+    def test_meal_logging_empty_items_rejected(self):
+        headers = get_auth_headers("empty_items_user@example.com")
+        now_iso = datetime.now(timezone.utc).isoformat()
+        bad_payload = {
+            "meal_type": "breakfast",
+            "logged_at": now_iso,
+            "items": [],
+        }
+        res = client.post("/api/v1/nutrition/log", json=bad_payload, headers=headers)
+        assert res.status_code == 422
+
+    def test_today_summary_with_user_timezone(self):
+        # Create user with timezone America/New_York (UTC-4 in summer)
+        headers = get_auth_headers("tz_nutrition_user@example.com")
+        client.put(
+            "/api/v1/profile",
+            json={"timezone": "America/New_York"},
+            headers=headers,
+        )
+
+        client.post("/api/v1/foods/seed", headers=headers)
+        foods = client.get("/api/v1/foods", headers=headers).json()
+        food_id = foods[0]["id"]
+
+        # Log a meal at 2026-10-07 21:00 EDT (which is 2026-10-08 01:00 UTC)
+        log_payload = {
+            "meal_type": "dinner",
+            "logged_at": "2026-10-08T01:00:00Z",
+            "items": [{"food_id": food_id, "quantity_grams": 100.0}],
+        }
+        res_log = client.post("/api/v1/nutrition/log", json=log_payload, headers=headers)
+        assert res_log.status_code == 201
+
+        # In America/New_York, that meal was eaten on 2026-10-07
+        res_ny = client.get("/api/v1/nutrition/today?target_date=2026-10-07", headers=headers)
+        assert res_ny.status_code == 200
+        ny_data = res_ny.json()
+        assert ny_data["consumed"]["calories"] > 0
+        assert len(ny_data["meals_by_type"]["dinner"]) == 1
+
+        # And on 2026-10-08 in America/New_York, it should NOT appear
+        res_ny_next = client.get("/api/v1/nutrition/today?target_date=2026-10-08", headers=headers)
+        assert res_ny_next.status_code == 200
+        assert res_ny_next.json()["consumed"]["calories"] == 0.0

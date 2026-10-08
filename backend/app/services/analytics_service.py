@@ -22,6 +22,7 @@ from app.schemas.fitness_analytics import (
 )
 from app.services.nutrition_service import NutritionService
 from app.services.fitness_score_service import FitnessScoreService
+from app.core.calculations import calculate_calorie_adherence
 from app.core.timezone_utils import (
     extract_date,
     get_timezone_aware_range,
@@ -364,7 +365,7 @@ class AnalyticsService:
         daily_protein: Dict[date, float] = {}
 
         for meal in meal_logs:
-            m_date = extract_date(meal.logged_at)
+            m_date = extract_date(meal.logged_at, user_tz)
             if not m_date:
                 continue
             if m_date not in daily_cals:
@@ -390,11 +391,11 @@ class AnalyticsService:
         target_cals = targets.calories
         target_protein = targets.protein_g
 
-        cal_adherence: Optional[float] = None
+        cal_adherence: Optional[float] = calculate_calorie_adherence(
+            avg_cals, target_cals, as_percentage=True
+        )
         prot_adherence: Optional[float] = None
 
-        if avg_cals is not None and target_cals and target_cals > 0:
-            cal_adherence = round((avg_cals / target_cals) * 100.0, 1)
         if avg_protein is not None and target_protein and target_protein > 0:
             prot_adherence = round((avg_protein / target_protein) * 100.0, 1)
 

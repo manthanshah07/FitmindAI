@@ -206,7 +206,7 @@ def test_nutrition_daily_totals_included(db, user_a):
 
     context = ContextBuilder.build_fitness_context(db, user_a, nutrition_days=7)
     assert len(context.recent_nutrition) >= 1
-    today_str = date.today().isoformat()
+    today_str = today_dt.date().isoformat()
     today_nut = [n for n in context.recent_nutrition if n.date == today_str]
     assert len(today_nut) == 1
     assert today_nut[0].calories_kcal >= 389.0
@@ -372,7 +372,7 @@ def test_user_a_cannot_receive_user_b_nutrition(db, user_a, user_b):
     context_a = ContextBuilder.build_fitness_context(db, user_a)
     context_b = ContextBuilder.build_fitness_context(db, user_b)
 
-    today_str = date.today().isoformat()
+    today_str = today_dt.date().isoformat()
 
     nut_a = next((n for n in context_a.recent_nutrition if n.date == today_str), None)
     nut_b = next((n for n in context_b.recent_nutrition if n.date == today_str), None)

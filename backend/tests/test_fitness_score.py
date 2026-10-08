@@ -37,7 +37,7 @@ class TestFitnessScoreAPI:
 
     def test_perfect_high_adherence_score(self):
         headers = get_auth_headers("perfectuser@example.com")
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
 
         # Seed profile and active workout plan (target 3 days)
         client.put(
@@ -80,7 +80,7 @@ class TestFitnessScoreAPI:
 
     def test_same_day_multiple_workouts(self):
         headers = get_auth_headers("samedayuser@example.com")
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
         dt_str = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
 
         # Log 2 workouts on the exact same date
@@ -94,7 +94,7 @@ class TestFitnessScoreAPI:
 
     def test_workout_plan_target_respected(self):
         headers = get_auth_headers("plantargetuser@example.com")
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
 
         # Custom plan with target = 2 days/week
         client.post(
@@ -115,7 +115,7 @@ class TestFitnessScoreAPI:
 
     def test_no_workout_plan_default_4_days(self):
         headers = get_auth_headers("noplanuser@example.com")
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
 
         # Log 2 workouts with no active plan
         d1 = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
@@ -191,7 +191,7 @@ class TestFitnessScoreAPI:
 
     def test_consistency_distinct_active_dates(self):
         headers = get_auth_headers("consistuser@example.com")
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
 
         # Day 1: Workout
         d1 = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()

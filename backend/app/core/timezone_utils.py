@@ -41,9 +41,11 @@ def get_user_today_date(tz_str: str | None) -> date:
     return datetime.now(user_tz).date()
 
 
-def extract_date(val: object) -> date | None:
+def extract_date(val: object, tz_str: str | None = None) -> date | None:
     """
     Extracts a datetime.date object safely from date, datetime, ISO string, or None inputs.
+    If tz_str is provided and val is a datetime (or ISO string with timezone),
+    it converts the timestamp to the target timezone before determining the local calendar date.
     Returns None if value is None or cannot be parsed as a date.
     """
     if val is None:
@@ -51,8 +53,23 @@ def extract_date(val: object) -> date | None:
     if isinstance(val, date) and not isinstance(val, datetime):
         return val
     if isinstance(val, datetime):
+        if tz_str:
+            user_tz = get_user_zone_info(tz_str)
+            if val.tzinfo is not None:
+                return val.astimezone(user_tz).date()
+            return val.replace(tzinfo=timezone.utc).astimezone(user_tz).date()
         return val.date()
     if isinstance(val, str):
+        try:
+            dt = datetime.fromisoformat(val)
+            if tz_str:
+                user_tz = get_user_zone_info(tz_str)
+                if dt.tzinfo is not None:
+                    return dt.astimezone(user_tz).date()
+                return dt.replace(tzinfo=timezone.utc).astimezone(user_tz).date()
+            return dt.date()
+        except (ValueError, TypeError):
+            pass
         try:
             return date.fromisoformat(val.split("T")[0].split(" ")[0])
         except (ValueError, TypeError):

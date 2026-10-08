@@ -9,6 +9,7 @@ from app.models.progress import Measurement
 from app.models.fitness_score import FitnessScore
 from app.schemas.fitness_score import FitnessScoreItem, FitnessScoreResponse
 from app.services.nutrition_service import NutritionService
+from app.core.calculations import calculate_calorie_adherence
 from app.core.timezone_utils import (
     extract_date,
     get_timezone_aware_range,
@@ -61,7 +62,7 @@ class FitnessScoreService:
         )
         workout_dates = set()
         for log in period_workout_logs:
-            d = extract_date(log.started_at)
+            d = extract_date(log.started_at, user_tz)
             if d:
                 workout_dates.add(d)
 
@@ -102,7 +103,7 @@ class FitnessScoreService:
         daily_cals = {}
         daily_protein = {}
         for meal in period_meal_logs:
-            m_date = extract_date(meal.logged_at)
+            m_date = extract_date(meal.logged_at, user_tz)
             if m_date:
                 if m_date not in daily_cals:
                     daily_cals[m_date] = 0.0
@@ -117,9 +118,14 @@ class FitnessScoreService:
             nutrition_score = 50.0
             protein_score = 50.0
         else:
-            variances = [abs(daily_cals[d] - target_cals) / target_cals for d in meal_dates]
-            avg_variance = sum(variances) / float(len(variances))
-            nutrition_score = max(0.0, min(100.0, (1.0 - avg_variance) * 100.0))
+            daily_scores = [
+                calculate_calorie_adherence(daily_cals[d], target_cals, as_percentage=True)
+                for d in meal_dates
+            ]
+            valid_scores = [s for s in daily_scores if s is not None]
+            nutrition_score = (
+                sum(valid_scores) / float(len(valid_scores)) if valid_scores else 50.0
+            )
             avg_protein = sum(daily_protein.values()) / float(len(meal_dates))
             protein_score = min(100.0, (avg_protein / target_protein) * 100.0)
 

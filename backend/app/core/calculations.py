@@ -2,11 +2,11 @@ from datetime import date
 from typing import Optional, Dict, Any, Tuple
 
 
-def calculate_age_from_dob(dob: Optional[date]) -> Optional[int]:
+def calculate_age_from_dob(dob: Optional[date], reference_date: Optional[date] = None) -> Optional[int]:
     if not dob:
         return None
-    today = date.today()
-    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    ref = reference_date or date.today()
+    age = ref.year - dob.year - ((ref.month, ref.day) < (dob.month, dob.day))
     return age if 0 <= age <= 120 else None
 
 
@@ -16,6 +16,7 @@ def calculate_tdee(
     date_of_birth: Optional[date] = None,
     gender: Optional[str] = None,
     activity_level: Optional[str] = None,
+    reference_date: Optional[date] = None,
 ) -> Dict[str, Any]:
     height_used = float(height_cm) if height_cm and float(height_cm) > 0 else 175.0
 
@@ -27,7 +28,7 @@ def calculate_tdee(
         is_weight_defaulted = True
 
 
-    computed_age = calculate_age_from_dob(date_of_birth)
+    computed_age = calculate_age_from_dob(date_of_birth, reference_date=reference_date)
     if computed_age is not None:
         age_used = computed_age
         is_age_defaulted = False
@@ -63,3 +64,36 @@ def calculate_tdee(
         "is_age_defaulted": is_age_defaulted,
         "is_weight_defaulted": is_weight_defaulted,
     }
+
+
+def calculate_calorie_adherence(
+    actual_calories: Optional[float],
+    target_calories: Optional[float],
+    as_percentage: bool = True,
+) -> Optional[float]:
+    """
+    Authoritative canonical calculation for calorie target adherence.
+    Measures proximity of actual caloric intake to target calories:
+        adherence_ratio = max(0.0, min(1.0, 1.0 - (abs(actual - target) / target)))
+
+    If as_percentage is True, returns [0.0, 100.0] rounded to 1 decimal place.
+    If as_percentage is False, returns normalized [0.0, 1.0] for ML modeling.
+    Returns None if actual_calories or target_calories is missing or non-positive.
+    """
+    if actual_calories is None or target_calories is None:
+        return None
+    try:
+        actual = float(actual_calories)
+        target = float(target_calories)
+    except (ValueError, TypeError):
+        return None
+
+    if target <= 0.0 or actual < 0.0:
+        return None
+
+    relative_error = abs(actual - target) / target
+    score = max(0.0, min(1.0, 1.0 - relative_error))
+
+    if as_percentage:
+        return round(score * 100.0, 1)
+    return round(score, 4)
