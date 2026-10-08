@@ -12,6 +12,7 @@ from app.api.v1.coach import router as coach_router
 from app.api.v1.reports import router as reports_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.admin import router as admin_router
+from app.api.v1.intelligence import router as intelligence_router
 
 api_v1_router = APIRouter()
 
@@ -52,6 +53,9 @@ api_v1_router.include_router(coach_router, prefix="/coach", tags=["AI Coach"])
 
 # Include reports endpoints
 api_v1_router.include_router(reports_router)
+
+# Include intelligence endpoints (Phase 2E)
+api_v1_router.include_router(intelligence_router, prefix="/intelligence", tags=["Intelligence"])
 
 # Health endpoint under /api/v1/health
 @api_v1_router.get("/health", tags=["Health"])
