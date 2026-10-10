@@ -455,6 +455,55 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `progress_body_desktop.png` (1280x800)
   - `dev_ui_mobile.png` (390x844)
 
+---
+
+## 11. Milestone M10 Verified Implementation
+
+- **Branch:** `m10-pwa-and-mobile-polish`
+- **Specification:** Strictly adhered to Section 6 (Milestone M10), Section 4.4, Section 8.3 of `docs/FINAL_PLAN.md`.
+- **Vite PWA Plugin Configuration:**
+  - Installed `vite-plugin-pwa` dev dependency.
+  - Configured `VitePWA` in `vite.config.ts`:
+    - `registerType: 'prompt'` with interactive reload update trigger.
+    - Web App Manifest: `name: "FitMind AI"`, `short_name: "FitMind"`, `theme_color: "#0B1220"`, `background_color: "#0B1220"`, `display: "standalone"`, `orientation: "portrait"`, `start_url: "/today"`, `scope: "/"`.
+    - Icons: 192x192, 512x512, maskable 512x512.
+    - Workbox caching rules (Section 8.3): precaches static client assets (`html`, `css`, `js`, fonts, `svg`, `ico`, `png`), `navigateFallbackDenylist: [/^\/api/]`.
+    - **Security Rule (Section 8.3):** Strictly zero caching of authenticated API endpoints (`/api/*`) in the service worker to prevent cross-account data leaks on shared devices.
+- **Brand PWA Icons & index.html Meta Tags:**
+  - Generated high-resolution brand icons in `public/`:
+    - `pwa-192x192.png` (192x192)
+    - `pwa-512x512.png` (512x512)
+    - `pwa-maskable-512x512.png` (512x512 maskable)
+    - `apple-touch-icon.png` (180x180)
+  - Updated `index.html` with mobile PWA meta tags: `viewport-fit=cover`, `apple-mobile-web-app-capable="yes"`, `apple-mobile-web-app-status-bar-style="black-translucent"`, `apple-mobile-web-app-title="FitMind"`, `theme-color="#0B1220"`, and `apple-touch-icon`.
+- **PWA Banners & Components:**
+  - `PwaUpdateBanner` (`src/components/pwa/PwaUpdateBanner.tsx`): Update available notification prompting user to update service worker and reload.
+  - `InstallPromptCard` (`src/components/pwa/InstallPromptCard.tsx`):
+    - iOS Safari: Displays instructions: *"Tap Share, then Add to Home Screen"*.
+    - Android/Chromium: Intercepts `beforeinstallprompt` event and renders an *"Install App"* button.
+    - Dismissal: Persisted in `localStorage` under `fitmind:pwa-install-dismissed` with `try/catch` protection so dismissed users are not badgered.
+  - `OfflineBanner` (`src/components/pwa/OfflineBanner.tsx`): Persistent top banner when `navigator.onLine === false`: *"You are offline. Workout Mode continues to save locally."*, with dynamic event listeners on `window` `online`/`offline`.
+  - `ColdStartBanner` (`src/components/pwa/ColdStartBanner.tsx`): Pings `/health` on startup; if delayed past 4.0s, displays unobtrusive notice: *"Waking up the server, this can take up to a minute."*, dismissed immediately upon response.
+  - Integrated banners and install card into `AppShell.tsx` and `WorkoutSessionPage.tsx`. Safe-area bottom offset `pb-[calc(5rem+env(safe-area-inset-bottom))]` applied to prevent content clipping behind navigation tabs.
+- **Deployment Configuration (`vercel.json`):**
+  - Configured `Cache-Control: no-cache, no-store, must-revalidate` for `sw.js` and `workbox-*.js` files.
+  - Retained SPA wildcard route rewrites to `index.html`.
+- **Architecture Documentation (`docs/DECISIONS.md`):**
+  - Documented PWA vs native decision, offline-first draft architecture, deterministic core vs AI reasoning separation, and iOS WebKit platform constraints (background timer throttling, lack of `navigator.vibrate`, AudioContext autoplay policies, and standalone storage lifecycle).
+- **Verification & Test Results:**
+  - Frontend Test Suite: **153 passed** across 22 test files in 3.37s (0 failures, 9 new tests in `pwa.test.tsx`).
+  - Backend Test Suite: **372 passed** across 32 test modules in 89.97s (0 failures, 0 regressions).
+  - TypeScript Static Check: `npx tsc -b --noEmit` passed with 0 errors.
+  - Production Build: `npm run build` completed successfully in 445ms, generating `dist/sw.js` (precache 87 entries) and `dist/manifest.webmanifest`.
+  - Linter: `npm run lint` passed with 0 errors.
+  - Database Migration: Zero migrations required (Alembic head remains `2026_10_10_0015 (head)`).
+- **Mobile Viewport Audit Screenshots (360px, 390px, 430px):**
+  - 15 total screenshots captured and saved in `docs/screens/m10/`:
+    - 360px (Compact Mobile): `today_360.png`, `workouts_360.png`, `workout_session_360.png`, `nutrition_360.png`, `progress_360.png`.
+    - 390px (Standard Phone): `today_390.png`, `workouts_390.png`, `workout_session_390.png`, `nutrition_390.png`, `progress_390.png`.
+    - 430px (Large Phone): `today_430.png`, `workouts_430.png`, `workout_session_430.png`, `nutrition_430.png`, `progress_430.png`.
+
+
 
 
 

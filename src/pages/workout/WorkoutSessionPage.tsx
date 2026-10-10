@@ -32,6 +32,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/Dialog';
 import { BottomSheet } from '../../components/ui/BottomSheet';
 import { Button } from '../../components/ui/Button';
+import { OfflineBanner } from '../../components/pwa/OfflineBanner';
 
 function playRestBeep() {
   try {
@@ -431,7 +432,7 @@ export const WorkoutSessionPage: React.FC = () => {
       </div>
 
       {/* TOP HEADER */}
-      <header className="sticky top-0 z-20 bg-surface/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-surface/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -480,6 +481,9 @@ export const WorkoutSessionPage: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* OFFLINE STATUS BANNER */}
+      <OfflineBanner />
 
       {/* QUOTA EXCEEDED BANNER */}
       {isQuotaExceeded && draft && (
@@ -697,7 +701,7 @@ export const WorkoutSessionPage: React.FC = () => {
       </main>
 
       {/* FOOTER CONTROLS & REST TIMER */}
-      <footer className="sticky bottom-0 z-20 bg-surface/95 backdrop-blur-md border-t border-border p-3 flex flex-col gap-2">
+      <footer className="sticky bottom-0 z-20 bg-surface/95 backdrop-blur-md border-t border-border p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-col gap-2">
         {/* REST TIMER BAR */}
         {restSecondsRemaining !== null && (
           <div

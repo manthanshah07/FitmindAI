@@ -3,6 +3,10 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { BottomTabs } from './BottomTabs';
+import { PwaUpdateBanner } from '../pwa/PwaUpdateBanner';
+import { OfflineBanner } from '../pwa/OfflineBanner';
+import { ColdStartBanner } from '../pwa/ColdStartBanner';
+import { InstallPromptCard } from '../pwa/InstallPromptCard';
 
 interface AppShellProps {
   children?: React.ReactNode;
@@ -13,6 +17,13 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-bg text-text flex flex-col lg:flex-row">
+      {/* PWA System Banners (Top of viewport) */}
+      <div className="w-full fixed top-0 left-0 right-0 z-50 pointer-events-auto">
+        <PwaUpdateBanner />
+        <OfflineBanner />
+        <ColdStartBanner />
+      </div>
+
       {/* Desktop Sidebar (Fixed left, >=1024px) */}
       <Sidebar className="hidden lg:flex min-h-screen sticky top-0" />
 
@@ -31,10 +42,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
+      {/* Main Content Area with safe area bottom clearance */}
+      <div className="flex-1 flex flex-col min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <TopBar onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)} />
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-w-[1120px] w-full mx-auto">
+          <InstallPromptCard />
           {children || <Outlet />}
         </main>
       </div>
