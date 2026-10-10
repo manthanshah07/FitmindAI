@@ -555,6 +555,57 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `forecast_desktop.png` (1280x800)
   - `progress_overview_mobile.png` (390x844)
 
+---
+
+## 13. Milestone M8 Verified Implementation
+
+- **Branch:** `m8-ai-coach`
+- **Specification:** Strictly adhered to Section 6 (Milestone M8), Section 3.2 (finding D11, Decision 12), Section 3.3 (U9), and Section 4.5 of `docs/FINAL_PLAN.md`.
+- **Backend Grounded Context Builder (fixes D11, Decision 12):**
+  - Added `GroundedFactsContext` schema in `backend/app/schemas/fitness_context.py` and linked it directly to `FitnessContext.grounded_facts`.
+  - In `backend/app/services/context_builder.py`, precomputed an authoritative ground facts block:
+    - Central weight resolved via `get_current_weight(db, user)`.
+    - Active goal type, target weight, and target date.
+    - Calorie target and protein target.
+    - 7-day and 28-day nutrition intake averages vs target calories and protein.
+    - Precomputed recommended protein range: $1.6$ to $2.2\text{ g/kg}$ multiplied by current weight, formatted in both g/kg and total grams (e.g. `"130g - 178g for your current 81.0 kg (1.6 to 2.2 g/kg)"`), completely relieving the LLM of performing any calculations.
+    - Last 3–5 workout sessions with exercises and completed set counts.
+    - Explicit `missing_data_flags` (e.g. `"insufficient logging data: no body-weight measurements recorded"`, `"insufficient logging data: no meals or nutrition logged in the last 7 days"`) when the user lacks logged history.
+  - Strict user data isolation: all subqueries in `context_builder.py` filter exclusively on `user.id`.
+- **Backend Coach Service & Chat History Deletion:**
+  - In `backend/app/services/coach_service.py`, refined `SYSTEM_PROMPT` to enforce Decision 12:
+    - The AI coach only reasons and explains — it never calculates or performs arithmetic.
+    - Cites only provided computed numbers; never invents estimates or performs arithmetic.
+    - Acknowledges missing data flags honestly and sets `data_quality` to `'sparse'` or `'minimal'`.
+    - Distinguishes known user facts (observations) from actionable suggestions (recommendations).
+  - Implemented `CoachService.clear_chat_history(db, user)` to safely wipe chat messages for the authenticated user.
+  - Added authenticated endpoint `DELETE /api/v1/coach/history` in `backend/app/api/v1/coach.py` enforcing strict user isolation (deleting only rows where `ChatMessage.user_id == current_user.id`).
+  - Unit tests mock all LLM completion calls via `ai_client.generate`.
+- **Frontend Coach Chat Interface (`/coach`) (fixes U9):**
+  - Updated `src/lib/api/coach.ts` to export `clearCoachHistoryApi()`.
+  - Implemented responsive, keyboard-friendly coach layout in `src/pages/coach/CoachPage.tsx`:
+    - Full-height flex layout using dynamic viewport units (`h-[calc(100dvh-5.5rem)]`) keeping the composer input pinned above the virtual keyboard.
+    - Auto-scrolling pinned message feed with `messagesEndRef`.
+    - Suggested prompt chips: *"How am I doing this week?"*, *"Is my protein on target?"*, *"What should I train tomorrow?"* in both the empty state and active conversation quick-action carousel.
+    - *"New conversation"* button with confirmation modal that invokes `DELETE /coach/history` and clears local messages.
+    - Privacy disclosure line: *"Coach uses your last 30 days of data. See what is shared."* opening a data minimization sheet detailing what is shared (active goal, weight, 7d/28d nutrition averages, recent 3-5 workouts, fitness score) and what is strictly never shared (medical notes, passwords, payment info).
+    - Non-medical disclaimer banner: *"FitMind AI Coach provides wellness education, not medical advice."*
+    - Structured message card rendering: main conversational answer in sentence case, collapsible *"Based on your data • Key Insights"* observations with category & severity badges, actionable recommendations checklist with priority badges and non-binding advice disclaimer, warnings in amber alert callouts, and data quality indicator badge.
+- **Verification & Test Results:**
+  - **Backend Test Suite:** **377 passed** (0 failures, 16 warnings) in 88.26s.
+  - **Frontend Test Suite:** **159 passed** (0 failures) across 23 test files in 3.20s.
+  - **TypeScript Static Verification:** `npx tsc -b --noEmit` passed with 0 errors.
+  - **Production Build:** `npm run build` completed successfully in 489ms (PWA precache 85 entries).
+  - **Static Analysis:** `npm run lint` reported 0 errors across 153 files.
+  - **Database Migrations:** Zero schema migrations needed. Alembic head verified at `2026_10_10_0015 (head)`.
+- **Screenshots:** Captured at 390x844 (mobile) and 1280x800 (desktop) saved in `docs/screens/m8/`:
+  - `coach_empty_mobile.png` (390x844)
+  - `coach_empty_desktop.png` (1280x800)
+  - `coach_chat_mobile.png` (390x844)
+  - `coach_chat_desktop.png` (1280x800)
+  - `coach_privacy_modal_desktop.png` (1280x800)
+
+
 
 
 

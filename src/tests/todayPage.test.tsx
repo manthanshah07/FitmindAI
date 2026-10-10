@@ -167,7 +167,11 @@ describe('Milestone M5 — Today Screen (DashboardPage / Appendix E)', () => {
   it('renders completed today workout summary card if already finished', async () => {
     vi.mocked(dashboardApi.getDashboardSummaryApi).mockResolvedValueOnce(mockSummaryBase);
 
-    const todayIso = new Date().toISOString();
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayIso = `${year}-${month}-${day}T12:00:00.000Z`;
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([
       {
         id: 'log-done-1',

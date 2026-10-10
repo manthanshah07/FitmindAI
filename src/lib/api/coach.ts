@@ -14,3 +14,8 @@ export async function getCoachHistoryApi(limit = 50): Promise<ChatMessageRespons
   });
   return response.data;
 }
+
+export async function clearCoachHistoryApi(): Promise<{ status: string; deleted_count: number }> {
+  const response = await api.delete<{ status: string; deleted_count: number }>('/coach/history');
+  return response.data;
+}

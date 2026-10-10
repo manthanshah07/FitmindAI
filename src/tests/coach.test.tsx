@@ -11,6 +11,7 @@ import type { CoachChatResponse, ChatMessageResponse } from '../types/coach';
 vi.mock('../lib/api/coach', () => ({
   sendCoachMessageApi: vi.fn(),
   getCoachHistoryApi: vi.fn(),
+  clearCoachHistoryApi: vi.fn(),
 }));
 
 const createTestQueryClient = () =>
@@ -254,4 +255,88 @@ describe('Phase 7 — FitMind AI Coach UI Component & Persistent History', () =>
 
     expect(screen.getAllByText(/invalid or empty response/i).length).toBeGreaterThan(0);
   });
+
+  it('opens and closes the privacy disclosure modal detailing data minimization', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
+
+    await act(async () => {
+      renderWithQuery(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
+
+    const privacyBtn = screen.getByText(/See what is shared/i);
+    fireEvent.click(privacyBtn);
+
+    expect(screen.getByText(/Data Shared with FitMind Coach/i)).toBeInTheDocument();
+    expect(screen.getByText(/What Is Never Shared/i)).toBeInTheDocument();
+    expect(screen.getByText(/Medical notes and clinical injury diagnoses/i)).toBeInTheDocument();
+
+    const closeBtn = screen.getByRole('button', { name: /Close/i });
+    fireEvent.click(closeBtn);
+
+    expect(screen.queryByText(/Data Shared with FitMind Coach/i)).not.toBeInTheDocument();
+  });
+
+  it('displays the non-medical disclaimer banner on the page', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi).mockResolvedValueOnce([]);
+
+    await act(async () => {
+      renderWithQuery(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
+
+    expect(
+      screen.getByText(/FitMind AI Coach provides wellness education, not medical advice/i),
+    ).toBeInTheDocument();
+  });
+
+  it('clears conversation history when user confirms New Conversation', async () => {
+    vi.mocked(coachApi.getCoachHistoryApi)
+      .mockResolvedValueOnce(mockHistoryResponse)
+      .mockResolvedValueOnce([]);
+    vi.mocked(coachApi.clearCoachHistoryApi).mockResolvedValueOnce({
+      status: 'success',
+      deleted_count: 2,
+    });
+
+    await act(async () => {
+      renderWithQuery(
+        <MemoryRouter initialEntries={['/coach']}>
+          <AppShell>
+            <CoachPage />
+          </AppShell>
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('What should I eat?')).toBeInTheDocument();
+    });
+
+    const newConvBtn = screen.getByRole('button', { name: /New conversation/i });
+    fireEvent.click(newConvBtn);
+
+    expect(screen.getByText(/Start New Conversation\?/i)).toBeInTheDocument();
+
+    const confirmClearBtn = screen.getByRole('button', { name: /Clear Conversation/i });
+    await act(async () => {
+      fireEvent.click(confirmClearBtn);
+    });
+
+    expect(coachApi.clearCoachHistoryApi).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.queryByText('What should I eat?')).not.toBeInTheDocument();
+    });
+  });
 });
+

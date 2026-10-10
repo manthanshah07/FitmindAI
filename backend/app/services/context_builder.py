@@ -21,9 +21,11 @@ from app.schemas.fitness_context import (
     FitnessScoreComponentContext,
     ChatMessageContext,
     AIMemoryContext,
+    GroundedFactsContext,
 )
 from app.models.chat_message import ChatMessage as ChatMessageModel
 from app.services.fitness_score_service import FitnessScoreService
+from app.services.nutrition_service import NutritionService
 from app.services.analytics_service import AnalyticsService
 from app.services.ai_memory_service import AIMemoryService
 from app.core.timezone_utils import (
@@ -35,6 +37,7 @@ from app.core.weight import get_current_weight
 
 
 logger = logging.getLogger(__name__)
+
 
 
 class ContextBuilder:
@@ -278,9 +281,120 @@ class ContextBuilder:
         except Exception as e:
             logger.warning("Could not fetch recent chat history for context: %s", e)
 
+        # 10. Explicit Grounded Facts Block (fixes D11, Decision 12)
+        missing_data_flags: List[str] = []
+
+        # Weigh-ins check
+        has_measurements = len(measurements) > 0
+        if not has_measurements:
+            missing_data_flags.append("insufficient logging data: no body-weight measurements recorded")
+
+        # Meal logs 7d & 28d calculation
+        nutrition_28d_cutoff_date = today_date - timedelta(days=27)
+        nutrition_28d_cutoff_dt, _ = get_timezone_aware_range(nutrition_28d_cutoff_date, today_date, user_tz)
+
+        meal_logs_28d = (
+            db.query(MealLog)
+            .options(joinedload(MealLog.items))
+            .filter(
+                MealLog.user_id == user.id,
+                MealLog.logged_at >= nutrition_28d_cutoff_dt,
+            )
+            .all()
+        )
+        daily_cals_28d: Dict[date, float] = {}
+        daily_prot_28d: Dict[date, float] = {}
+        for ml in meal_logs_28d:
+            m_dt = extract_date(ml.logged_at, user_tz)
+            if m_dt:
+                if m_dt not in daily_cals_28d:
+                    daily_cals_28d[m_dt] = 0.0
+                    daily_prot_28d[m_dt] = 0.0
+                for item in ml.items or []:
+                    daily_cals_28d[m_dt] += float(item.calculated_calories or 0)
+                    daily_prot_28d[m_dt] += float(item.calculated_protein or 0)
+
+        logged_days_7d = len(daily_totals)
+        if logged_days_7d == 0:
+            missing_data_flags.append("insufficient logging data: no meals or nutrition logged in the last 7 days")
+
+        logged_days_28d = len(daily_cals_28d)
+
+        avg_cals_7d = (
+            round(sum(daily_totals[d]["calories"] for d in daily_totals) / float(logged_days_7d), 1)
+            if logged_days_7d > 0
+            else None
+        )
+        avg_prot_7d = (
+            round(sum(daily_totals[d]["protein"] for d in daily_totals) / float(logged_days_7d), 1)
+            if logged_days_7d > 0
+            else None
+        )
+
+        avg_cals_28d = (
+            round(sum(daily_cals_28d.values()) / float(logged_days_28d), 1)
+            if logged_days_28d > 0
+            else None
+        )
+        avg_prot_28d = (
+            round(sum(daily_prot_28d.values()) / float(logged_days_28d), 1)
+            if logged_days_28d > 0
+            else None
+        )
+
+        user_targets = NutritionService.calculate_user_targets(db, user)
+        target_calories_val = float(user_targets.calories)
+        target_protein_val = float(user_targets.protein_g)
+
+        # Precompute protein range: 1.6 to 2.2 g/kg multiplied by current weight
+        if current_weight and current_weight > 0:
+            p_min = round(1.6 * current_weight, 1)
+            p_max = round(2.2 * current_weight, 1)
+            rec_protein_str = (
+                f"{int(round(p_min))}g - {int(round(p_max))}g for your current {current_weight} kg "
+                f"(1.6 to 2.2 g/kg)"
+            )
+        else:
+            rec_protein_str = "1.6 to 2.2 g/kg (record body weight to calculate total grams)"
+
+        # Recent workout history: last 3-5 sessions with exercise names and set counts
+        recent_workout_summaries: List[str] = []
+        for w_log in workout_logs[:5]:
+            w_date = extract_date(w_log.started_at, user_tz)
+            date_label = w_date.isoformat() if w_date else str(w_log.started_at)
+            exercise_counts: Dict[str, int] = {}
+            for le in w_log.logged_exercises or []:
+                ex_name = le.exercise.name if le.exercise else "Exercise"
+                exercise_counts[ex_name] = exercise_counts.get(ex_name, 0) + 1
+            ex_details = [f"{name} ({sets} sets)" for name, sets in exercise_counts.items()]
+            summary_str = f"{date_label}: " + (", ".join(ex_details) if ex_details else "session logged")
+            recent_workout_summaries.append(summary_str)
+
+        if not workout_logs:
+            missing_data_flags.append("insufficient logging data: no resistance workouts logged")
+
+        grounded_facts = GroundedFactsContext(
+            current_weight_kg=current_weight,
+            active_goal_type=active_goal.goal_type if active_goal else None,
+            target_weight_kg=float(active_goal.target_weight_kg) if (active_goal and active_goal.target_weight_kg) else None,
+            target_date=active_goal.target_date.isoformat() if (active_goal and active_goal.target_date) else None,
+            target_calories=target_calories_val,
+            target_protein_g=target_protein_val,
+            avg_calories_7d=avg_cals_7d,
+            avg_protein_7d=avg_prot_7d,
+            logged_days_7d=logged_days_7d,
+            avg_calories_28d=avg_cals_28d,
+            avg_protein_28d=avg_prot_28d,
+            logged_days_28d=logged_days_28d,
+            recommended_protein_range_str=rec_protein_str,
+            recent_workout_summaries=recent_workout_summaries,
+            missing_data_flags=missing_data_flags,
+        )
+
         return FitnessContext(
             profile=profile_ctx,
             active_goal=goal_ctx,
+            grounded_facts=grounded_facts,
             recent_workouts=workout_contexts,
             recent_nutrition=nutrition_contexts,
             recent_measurements=measurement_contexts,
@@ -289,4 +403,5 @@ class ContextBuilder:
             recent_chat_history=recent_chat_ctx,
             active_memories=active_memories_ctx,
         )
+
 

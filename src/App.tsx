@@ -172,6 +172,14 @@ export function App() {
                 </AppShell>
               }
             />
+            <Route
+              path="/dev/coach"
+              element={
+                <AppShell>
+                  <CoachPage />
+                </AppShell>
+              }
+            />
           </Routes>
         </Suspense>
       </div>

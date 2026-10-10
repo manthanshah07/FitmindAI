@@ -79,9 +79,28 @@ class AIMemoryContext(BaseModel):
     memory_type: str
 
 
+class GroundedFactsContext(BaseModel):
+    current_weight_kg: Optional[float] = None
+    active_goal_type: Optional[str] = None
+    target_weight_kg: Optional[float] = None
+    target_date: Optional[str] = None
+    target_calories: Optional[float] = None
+    target_protein_g: Optional[float] = None
+    avg_calories_7d: Optional[float] = None
+    avg_protein_7d: Optional[float] = None
+    logged_days_7d: int = 0
+    avg_calories_28d: Optional[float] = None
+    avg_protein_28d: Optional[float] = None
+    logged_days_28d: int = 0
+    recommended_protein_range_str: str = ""
+    recent_workout_summaries: List[str] = Field(default_factory=list)
+    missing_data_flags: List[str] = Field(default_factory=list)
+
+
 class FitnessContext(BaseModel):
     profile: Optional[ProfileContext] = None
     active_goal: Optional[GoalContext] = None
+    grounded_facts: Optional[GroundedFactsContext] = None
     recent_workouts: List[WorkoutLogContext] = Field(default_factory=list)
     recent_nutrition: List[DailyNutritionContext] = Field(default_factory=list)
     recent_measurements: List[MeasurementContext] = Field(default_factory=list)
@@ -89,4 +108,5 @@ class FitnessContext(BaseModel):
     analytics: Optional[FitnessAnalytics] = None
     recent_chat_history: List[ChatMessageContext] = Field(default_factory=list)
     active_memories: List[AIMemoryContext] = Field(default_factory=list)
+
 

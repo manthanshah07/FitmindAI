@@ -387,3 +387,58 @@ def test_system_message_and_user_message_remain_separate(auth_headers_user_a):
         # User input must be in user role message
         assert req.messages[1].role == "user"
         assert "Ignore previous instructions" in req.messages[1].content
+
+
+# 21. Test Delete History Clears History with Strict User Isolation
+def test_delete_history_clears_history_with_user_isolation(db, auth_headers_user_a, auth_headers_user_b):
+    headers_a, user_a = auth_headers_user_a
+    headers_b, user_b = auth_headers_user_b
+    from app.models.chat_message import ChatMessage
+
+    # Add messages for both users
+    msg_a = ChatMessage(user_id=user_a.id, role="user", content="User A question")
+    msg_b = ChatMessage(user_id=user_b.id, role="user", content="User B question")
+    db.add_all([msg_a, msg_b])
+    db.commit()
+
+    # User A deletes their history
+    res = client.delete("/api/v1/coach/history", headers=headers_a)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["deleted_count"] >= 1
+
+    # Verify User A history is now empty
+    res_a_hist = client.get("/api/v1/coach/history", headers=headers_a)
+    assert res_a_hist.status_code == 200
+    assert len(res_a_hist.json()) == 0
+
+    # Verify User B history is completely untouched
+    res_b_hist = client.get("/api/v1/coach/history", headers=headers_b)
+    assert res_b_hist.status_code == 200
+    assert any(m["content"] == "User B question" for m in res_b_hist.json())
+
+
+# 22. Test Grounded Facts Context and Missing Data Flags Passed to AI
+def test_grounded_facts_and_missing_data_flags_in_prompt(db, auth_headers_user_a):
+    headers, user_a = auth_headers_user_a
+    mock_llm_resp = LLMCompletionResponse(
+        content=make_mock_structured_json("Grounded facts verification"),
+        model="gemini-2.5-flash-lite",
+    )
+
+    with patch("app.services.coach_service.ai_client.generate", return_value=mock_llm_resp) as mock_gen:
+        res = client.post(
+            "/api/v1/coach/chat",
+            json={"message": "What is my protein range?"},
+            headers=headers,
+        )
+        assert res.status_code == 200
+        req = mock_gen.call_args[0][0]
+        user_prompt = req.messages[1].content
+        # Must include grounded_facts block
+        assert "grounded_facts" in user_prompt
+        assert "recommended_protein_range_str" in user_prompt
+        # Must flag missing data if no measurements/meals
+        assert "missing_data_flags" in user_prompt
+

@@ -40,3 +40,16 @@ def get_chat_history(
     Authenticated endpoint for retrieving conversation history for the current user.
     """
     return CoachService.get_chat_history(db, current_user, limit=limit)
+
+
+@router.delete("/history", status_code=status.HTTP_200_OK)
+def clear_chat_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Authenticated endpoint for clearing conversation history for the current user.
+    """
+    deleted_count = CoachService.clear_chat_history(db, current_user)
+    return {"status": "success", "deleted_count": deleted_count, "deleted_messages": deleted_count}
+

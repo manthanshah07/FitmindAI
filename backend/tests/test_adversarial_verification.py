@@ -273,7 +273,7 @@ class TestAdversarialFitnessScoreFreshness:
         # Log a workout today
         client.post("/api/v1/exercises/seed", headers=headers)
         ex_id = client.get("/api/v1/exercises", headers=headers).json()[0]["id"]
-        now_iso = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
+        now_iso = datetime.now(timezone.utc).isoformat()
 
         client.post(
             "/api/v1/workout/logs",
