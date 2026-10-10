@@ -1,7 +1,15 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  CalendarDays,
+  Dumbbell,
+  Utensils,
+  TrendingUp,
+  Bot,
+  Settings,
+  LogOut,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Button } from '../ui/Button';
 
 interface SidebarProps {
   className?: string;
@@ -9,14 +17,12 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { path: '/intelligence', label: 'Digital Twin', icon: '🧬' },
-  { path: '/coach', label: 'AI Coach', icon: '🤖' },
-  { path: '/workout', label: 'Workouts', icon: '🏋️' },
-  { path: '/nutrition', label: 'Nutrition', icon: '🥗' },
-  { path: '/progress', label: 'Progress', icon: '📈' },
-  { path: '/reports', label: 'Reports', icon: '📑' },
-  { path: '/profile', label: 'Profile', icon: '👤' },
+  { path: '/today', label: 'Today', icon: CalendarDays },
+  { path: '/workouts', label: 'Workouts', icon: Dumbbell },
+  { path: '/nutrition', label: 'Nutrition', icon: Utensils },
+  { path: '/progress', label: 'Progress', icon: TrendingUp },
+  { path: '/coach', label: 'Coach', icon: Bot },
+  { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick }) => {
@@ -28,57 +34,72 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
     navigate('/login', { replace: true });
   };
 
+  const displayName = user?.full_name || 'FitMind User';
+
   return (
     <aside
-      className={`w-64 bg-bone border-r border-borderLine flex flex-col justify-between p-6 ${className}`}
+      className={`w-[240px] flex-shrink-0 bg-surface border-r border-border flex flex-col justify-between p-4 ${className}`}
     >
-      {/* Brand Logo & Header */}
       <div>
-        <div className="mb-8 pb-6 border-b border-borderLine">
-          <NavLink to="/dashboard" className="flex items-center gap-2" onClick={onItemClick}>
-            <span className="font-mono text-xl font-bold tracking-tighter uppercase text-graphite">
-              FitMind <span className="text-olive">AI</span>
-            </span>
+        {/* Brand Header */}
+        <div className="mb-6 px-3 py-2">
+          <NavLink
+            to="/today"
+            className="flex items-center gap-2 font-semibold text-lg tracking-tight text-text hover:text-accent transition-colors"
+            onClick={onItemClick}
+          >
+            <span>FitMind</span>
+            <span className="text-accent">AI</span>
           </NavLink>
-          <span className="font-mono text-[9px] uppercase tracking-widest text-faded block mt-1">
-            Personal Fitness Coach
+          <span className="text-xs text-text-3 block mt-0.5">
+            Personal fitness coach
           </span>
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={onItemClick}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 font-mono text-xs uppercase tracking-wider transition-colors border ${
-                  isActive
-                    ? 'bg-graphite text-bone border-graphite font-bold'
-                    : 'text-graphite border-transparent hover:border-borderLine hover:bg-black/5'
-                }`
-              }
-            >
-              <span className="text-base">{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+        <nav aria-label="Main Navigation" className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={onItemClick}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-accent text-accent-contrast font-semibold shadow-sm'
+                      : 'text-text-2 hover:text-text hover:bg-surface-2'
+                  }`
+                }
+              >
+                <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 
-      {/* User Info Footer & Logout */}
-      <div className="pt-6 border-t border-borderLine flex flex-col gap-4">
-        <div className="flex flex-col">
-          <span className="font-sans text-sm font-bold text-graphite truncate">
-            {user?.full_name || 'FitMind User'}
+      {/* User Info & Quick Logout */}
+      <div className="pt-4 border-t border-border flex flex-col gap-3">
+        <div className="px-3 flex flex-col">
+          <span className="text-sm font-medium text-text truncate">
+            {displayName}
           </span>
-          <span className="font-mono text-[10px] text-faded truncate">{user?.email}</span>
+          {user?.email && (
+            <span className="text-xs text-text-3 truncate mt-0.5">{user.email}</span>
+          )}
         </div>
 
-        <Button variant="secondary" className="w-full text-xs py-2.5" onClick={handleLogout}>
-          Log Out
-        </Button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-3 hover:text-danger hover:bg-danger-soft transition-colors w-full text-left"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          <span>Log out</span>
+        </button>
       </div>
     </aside>
   );

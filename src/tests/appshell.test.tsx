@@ -114,7 +114,7 @@ describe('AppShell & Dashboard Shell', () => {
     );
 
     expect(screen.getAllByText(/FitMind/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Dashboard/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Today/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Workouts/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Nutrition/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Progress/i).length).toBeGreaterThan(0);

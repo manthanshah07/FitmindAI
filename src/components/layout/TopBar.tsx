@@ -1,66 +1,54 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/useAuthStore';
-import { Badge } from '../ui/Badge';
-import { Button } from '../ui/Button';
+import { useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
+import { AvatarMenu } from './AvatarMenu';
 
 interface TopBarProps {
   onMenuToggle?: () => void;
 }
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/intelligence': 'Personal Digital Twin',
+  '/today': 'Today',
+  '/dashboard': 'Today',
+  '/workouts': 'Workouts',
+  '/workout': 'Workouts',
+  '/nutrition': 'Nutrition',
+  '/progress': 'Progress',
   '/coach': 'AI Coach',
-  '/workout': 'Workout Overview',
-  '/nutrition': 'Nutrition Overview',
-  '/progress': 'Progress Tracking',
-  '/reports': 'Reports Archive',
-  '/profile': 'Profile & Settings',
+  '/settings': 'Settings',
+  '/profile': 'Settings',
+  '/reports': 'Reports',
+  '/intelligence': 'Forecast',
+  '/challenges': 'Challenges',
+  '/dev/ui': 'Design System Showcase',
 };
 
 export const TopBar: React.FC<TopBarProps> = ({ onMenuToggle }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
-
-  const title = PAGE_TITLES[location.pathname] || 'FitMind AI App';
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
+  const title = PAGE_TITLES[location.pathname] || 'FitMind AI';
 
   return (
-    <header className="h-16 bg-bone border-b border-borderLine px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
+    <header className="h-16 bg-surface/90 backdrop-blur-md border-b border-border px-4 md:px-8 flex items-center justify-between sticky top-0 z-20">
       {/* Left: Mobile Menu Toggle & Title */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {onMenuToggle && (
           <button
             type="button"
             onClick={onMenuToggle}
             aria-label="Toggle Mobile Navigation"
-            className="md:hidden p-2 text-graphite border border-borderLine hover:bg-black/5"
+            className="lg:hidden p-2 rounded-lg text-text-2 hover:text-text hover:bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
           >
-            ☰
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
         )}
-        <h1 className="font-sans text-lg md:text-xl font-bold tracking-tighter uppercase text-graphite">
+        <h1 className="text-lg md:text-xl font-semibold tracking-tight text-text">
           {title}
         </h1>
       </div>
 
-      {/* Right: Badge & Profile / Logout */}
+      {/* Right: Avatar Menu */}
       <div className="flex items-center gap-3">
-        <Badge variant="olive" className="hidden sm:inline-block">
-          FitMind AI
-        </Badge>
-        <span className="font-mono text-xs text-graphite font-bold hidden md:inline-block">
-          {user?.full_name || user?.email}
-        </span>
-        <Button variant="secondary" className="text-[10px] py-1.5 px-3" onClick={handleLogout}>
-          Log Out
-        </Button>
+        <AvatarMenu />
       </div>
     </header>
   );

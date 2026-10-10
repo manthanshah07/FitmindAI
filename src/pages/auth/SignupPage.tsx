@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
-import { Input } from '../../components/ui/Input';
+import { TextField } from '../../components/ui/TextField';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
+import { IconButton } from '../../components/ui/IconButton';
 
 const signupSchema = z.object({
   full_name: z
@@ -26,6 +27,7 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export const SignupPage: React.FC = () => {
   const navigate = useNavigate();
   const { register: registerUser, login, isLoading, error, setError } = useAuthStore();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -68,28 +70,31 @@ export const SignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 md:p-8 bg-bone">
-      <Card className="max-w-md w-full shadow-none border-borderLine">
-        <div className="mb-8">
-          <Badge variant="olive" className="mb-3">
-            Account Setup
-          </Badge>
-          <h1 className="text-3xl font-bold tracking-tighter uppercase font-sans text-graphite mb-2">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 md:p-8 bg-bg">
+      <Card className="max-w-md w-full p-8 shadow-sm border-border bg-surface">
+        <div className="mb-6">
+          <span className="text-xs font-semibold text-accent tracking-wide block mb-1">
+            FitMind AI
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-text mb-1.5">
             Create Account
           </h1>
-          <p className="text-sm text-charcoal font-sans">
-            Start your persistent AI-driven fitness transformation.
+          <p className="text-sm text-text-2">
+            Start your personalized fitness and coaching journey.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 border border-error bg-error/5 text-error font-mono text-xs uppercase tracking-wider" role="alert">
+          <div
+            role="alert"
+            className="mb-6 p-3.5 rounded-lg border border-danger/30 bg-danger-soft text-danger text-sm font-medium"
+          >
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" noValidate>
-          <Input
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5" noValidate>
+          <TextField
             label="Full Name"
             type="text"
             placeholder="John Doe"
@@ -100,7 +105,7 @@ export const SignupPage: React.FC = () => {
             {...register('full_name')}
           />
 
-          <Input
+          <TextField
             label="Email Address"
             type="email"
             placeholder="you@example.com"
@@ -111,29 +116,43 @@ export const SignupPage: React.FC = () => {
             {...register('email')}
           />
 
-          <Input
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            helperText="Minimum 8 characters"
-            autoComplete="new-password"
-            required
-            error={errors.password?.message}
-            disabled={isLoading}
-            {...register('password')}
-          />
+          <div className="relative">
+            <TextField
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              helperText="Minimum 8 characters"
+              autoComplete="new-password"
+              required
+              error={errors.password?.message}
+              disabled={isLoading}
+              className="pr-12"
+              {...register('password')}
+            />
+            <div className="absolute right-1 top-[28px]">
+              <IconButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                icon={showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                aria-label={showPassword ? 'Mask input' : 'Reveal input'}
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="text-text-3 hover:text-text"
+              />
+            </div>
+          </div>
 
-          <Button type="submit" isLoading={isLoading} fullWidth className="mt-2">
+          <Button type="submit" isLoading={isLoading} fullWidth className="mt-2" size="lg">
             Create Account
           </Button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-borderLine text-center">
-          <p className="font-mono text-xs text-faded uppercase tracking-wider">
+        <div className="mt-6 pt-5 border-t border-border text-center">
+          <p className="text-xs text-text-3">
             Already have an account?{' '}
             <Link
               to="/login"
-              className="text-graphite font-bold underline hover:text-olive transition-colors focus:outline-none focus:ring-1 focus:ring-olive"
+              className="text-accent font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-accent rounded-sm"
             >
               Sign In
             </Link>

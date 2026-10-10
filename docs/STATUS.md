@@ -158,4 +158,36 @@ All facts below were verified through code inspection, test runs, and CLI diagno
 | **Phase 7** | AI Coach & Persistent Memory | COMPLETE |
 | **Phase 8** | Automated Reports Module | COMPLETE |
 | **Milestone M0** | Baseline Audit, Hygiene & Database Guard | **COMPLETE** |
-| **Milestone M1** | Design System & App Shell Rebuild | NEXT |
+| **Milestone M1** | Design System & App Shell Rebuild | **COMPLETE** |
+| **Milestone M2** | Schema & Migrations | NEXT |
+
+---
+
+## 5. Milestone M1 Verified Implementation
+
+- **Branch:** `m1-design-system`
+- **Dependencies Installed:** `@fontsource-variable/inter`, `recharts`, `@radix-ui/react-dialog`, `@radix-ui/react-dropdown-menu`, `@radix-ui/react-tabs`, `vitest-axe` (dev).
+- **Design Tokens:** `src/styles/tokens.css` with light, dark, and workout mode tokens from Appendix A. Mapped into `tailwind.config.js` with legacy token retention under `legacy-`. Self-hosted Inter Variable and global `font-variant-numeric: tabular-nums`.
+- **UI Component Library:** All 23 components implemented in `src/components/ui/`:
+  - `PageHeader`, `Card`, `ListRow`, `StatTile`, `Button`, `IconButton`, `TextField`, `NumberStepper`, `Select`, `SegmentedControl`, `Tabs`, `Dialog`, `BottomSheet`, `Toast`, `Chip`, `ProgressBar`, `Ring`, `Skeleton`, `EmptyState`, `ErrorState`, `Banner`, `LineChart`, `BarChart`, `MacroBar`.
+- **AppShell Rebuild:**
+  - Phone (<768px): 5 bottom tabs (Today, Workouts, Nutrition, Progress, Coach) with `100dvh` and safe-area padding (`env(safe-area-inset-bottom)`).
+  - Desktop (>=1024px): 240px sidebar with 1120px max content column.
+  - Top bar: page title and single avatar menu (Settings, Theme toggle: light/dark/system, Log out) showing user initials and name.
+  - Removed duplicate logout buttons, "FITMIND AI" chips, and emojis (replaced with Lucide icons).
+- **Information Architecture & Route Map:** Section 5 route map applied with backwards-compatible redirects (`/dashboard` -> `/today`, `/profile` -> `/settings`, `/workout` -> `/workouts`, etc.). Full-screen `/workouts/session` mounted outside the AppShell.
+- **Formatter:** `src/lib/format.ts` with 16 unit tests passing.
+- **Auth Restyle:** Login and Signup pages restyled with design system components, show/hide password toggles, and accessible error alerts.
+- **Showcase:** `/dev/ui` route mounted demonstrating all tokens and components in light and dark mode.
+- **Test Results:**
+  - Frontend: **106 passed** (16 test files, 0 failures, 0 skipped).
+  - Backend: **334 passed** (0 failures, 0 skipped, 0 regressions).
+  - TypeScript: `npx tsc -b --noEmit` passed (0 errors).
+  - Production Build: `npm run build` succeeded (0 errors).
+  - Linter: `npm run lint` passed (0 errors).
+- **Screenshots:** Captured at 390x844 and 1280x800 and saved in `docs/screens/m1/`:
+  - `dev_ui_mobile.png`, `dev_ui_desktop.png`
+  - `login_mobile.png`, `login_desktop.png`
+  - `signup_mobile.png`, `signup_desktop.png`
+  - `today_mobile.png`, `today_desktop.png`
+
