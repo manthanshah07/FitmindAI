@@ -5,6 +5,7 @@ import type {
   WorkoutPlanCreate,
   WorkoutLog,
   WorkoutLogCreate,
+  LastPerformanceResponse,
 } from '../../types/workout';
 
 export async function getExercisesApi(params?: {
@@ -12,8 +13,25 @@ export async function getExercisesApi(params?: {
   category?: string;
   difficulty?: string;
   search?: string;
+  equipment?: string;
 }): Promise<Exercise[]> {
   const response = await api.get<Exercise[]>('/exercises', { params });
+  return response.data;
+}
+
+export async function getLastPerformanceApi(
+  exerciseIds: string[],
+): Promise<LastPerformanceResponse> {
+  if (!exerciseIds.length) {
+    return { performances: {} };
+  }
+  const params = new URLSearchParams();
+  for (const id of exerciseIds) {
+    params.append('exercise_ids', id);
+  }
+  const response = await api.get<LastPerformanceResponse>(
+    `/workout/last-performance?${params.toString()}`,
+  );
   return response.data;
 }
 

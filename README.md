@@ -84,6 +84,8 @@ Schema changes are version-controlled via Alembic (`backend/alembic/versions/`):
 | `2026_08_19_0010` | Creates `ai_memory` and `chat_messages` tables |
 | `2026_08_19_0011` | Adds user settings to `profiles` |
 | `2026_08_20_0012` | Adds `is_admin` to `users` |
+| `2026_10_10_0013` | Adds `idempotency_key` and `request_fingerprint` to `workout_logs` |
+| `2026_10_10_0014` | Adds `day_label` to `workout_plan_exercises` |
 
 ---
 
@@ -92,11 +94,11 @@ Schema changes are version-controlled via Alembic (`backend/alembic/versions/`):
 ```bash
 # Frontend tests (Vitest + React Testing Library)
 npm run test
-# → 90 tests passing across 15 test files
+# → 130 tests passing across 19 test files
 
 # Backend tests (Pytest)
 cd backend && .venv/bin/pytest -q
-# → 334 tests passing across 27 test modules (307 baseline + 27 DB safety guard tests)
+# → 356 tests passing across 29 test modules (307 baseline + 27 DB safety guard + 15 idempotency + 7 M4 tests)
 
 # TypeScript typecheck
 npx tsc -b --noEmit

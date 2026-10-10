@@ -280,4 +280,58 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `today_resume_mobile.png` (Today dashboard with dynamic resume entry point)
   - `workout_mode_dev_ui.png` (Design system UI showcase)
 
+---
+
+## 8. Milestone M4 Verified Implementation
+
+- **Branch:** `m4-workouts-hub`
+- **Specification:** Strictly adhered to Section 6 (Milestone M4), Section 3.2 (D13), Section 3.3 (U2), and docs/STATUS.md (V1, V2, V3 answers).
+- **Database Migration (`backend/alembic/versions/2026_10_10_0014_add_plan_exercise_day_label.py`):**
+  - Parent revision: `2026_10_10_0013`.
+  - Added nullable `day_label` (VARCHAR(50)) column to `workout_plan_exercises` via `op.batch_alter_table` for SQLite / PostgreSQL compatibility.
+  - Tested migration clean upgrade, downgrade, and re-upgrade cycles.
+  - Active Alembic Head: `2026_10_10_0014 (head)`.
+  - Updated `WorkoutPlanExercise` model in `backend/app/models/workout.py`.
+- **Exercise Catalog Expansion (Fixes D13):**
+  - Expanded `DEFAULT_EXERCISES` in `backend/app/services/exercise_service.py` to 44 realistic exercises across all muscle groups (chest, back, shoulders, arms, legs, core, full body) and equipment tiers (bodyweight, dumbbells, barbell, cables, machines).
+  - Every exercise includes full, realistic 2–4 sentence instructions with zero placeholder text.
+  - Added optional `equipment` filter parameter to `GET /api/v1/exercises`.
+  - Exercise search prioritizes exact and prefix matches before partial substring matches using SQLAlchemy `case()`.
+  - Updated `backend/app/seed_demo_data.py` to seed the expanded catalog.
+- **Deterministic Plan Generator v2 (`backend/app/services/workout_service.py`):**
+  - **Split Rules (2–6 days):**
+    - 2 days: Full Body A / Full Body B
+    - 3 days: Push / Pull / Legs
+    - 4 days: Upper A / Lower A / Upper B / Lower B
+    - 5 days: Push / Pull / Legs / Upper / Lower
+    - 6 days: PPL x2
+  - **Compound Lift Prioritization:** Exercises ranked by movement hierarchy (Priority 1: Squat, Deadlift, Bench Press, Overhead Press, Pull-up; Priority 2: Incline Dumbbell Press, Bent-over Row, Dips, Lunges, RDL). Priority 1 and 2 placed first in every session before accessory isolation movements.
+  - **Equipment Adaptation:** Filters available pool strictly by user profile equipment; falls back gracefully to bodyweight if equipment unavailable.
+  - **Volume & Goal Adaptation:** Generates 4–6 exercises per day. Target sets and rep ranges adapted deterministically by fitness goal (Muscle Gain: 3–4 sets x 8–12 reps; Fat Loss: 3 sets x 12–15 reps; Strength/Endurance: 4–5 sets x 4–6 reps).
+  - **Deterministic Day Labels:** Assigned structured labels (`Day 1: Push`, `Day 2: Pull`, etc.) persisted in `workout_plan_exercises.day_label`.
+- **Workout Read Endpoints & Enriched History:**
+  - Added `GET /api/v1/workout/last-performance` endpoint returning user's previous weights and reps per exercise from completed workout logs.
+  - Enriched `WorkoutLogResponse` with computed session metrics: `duration_seconds` (from `started_at` to `ended_at`), `total_volume_kg` (sum of `weight_kg * reps_completed`), `total_sets_completed`, session `name`, and `is_personal_record` flag per exercise log.
+- **Workouts Hub UI (`src/pages/workout/WorkoutOverviewPage.tsx`):**
+  - Rebuilt `/workouts` as a 3-segment hub (Plan, History, Exercises) using Radix UI Tabs with design tokens:
+    - **Plan Tab:** Week strip day selector, day cards with `day_label`, exercise list with target sets/reps, "Start Day X" CTA handoff prefilling `SessionTemplate` into Workout Mode, and "Regenerate Plan" modal.
+    - **History Tab:** Past sessions list with formatted date, duration, sets completed, volume in kg, PR indicators, and expandable exercise/set log view.
+    - **Exercises Tab:** Searchable catalog with search input, muscle group dropdown, equipment dropdown, and exercise detail `BottomSheet` with step-by-step form cues.
+  - Prefilled `SessionTemplate` handoff into Workout Mode (`/workouts/session`) automatically fetches previous performance benchmarks via `getLastPerformanceApi`.
+  - Re-skinned `WorkoutHistoryPage.tsx` and `ExerciseDetailPage.tsx` using design system components (`PageHeader`, `Card`, `Chip`, `Button`, `EmptyState`).
+- **Verification & Test Results:**
+  - Backend Test Suite: **356 passed** across 29 test modules (0 failures, 0 regressions, 7 new tests in M4):
+    - `test_plan_generator_v2.py`: 4 tests (split mapping, compound prioritization, determinism, goal adaptation).
+    - `test_workout_history_and_performance.py`: 3 tests (computed metrics, PR flags, last performance lookup, user isolation).
+  - Frontend Test Suite: **130 passed** across 19 test files (0 failures, 6 new tests in `workoutsHub.test.tsx`, 7 in `workout.test.tsx`).
+  - TypeScript Static Check: `npx tsc -b --noEmit` passed with 0 errors.
+  - Production Build: `npm run build` succeeded.
+  - Linter: `npm run lint` passed (0 errors).
+- **Screenshots:** Mobile (390x844) and desktop (1280x800) screenshots captured and saved in `docs/screens/m4/`:
+  - `workouts_hub_plan_mobile.png` (Mobile Plan view with week selector, day cards, exercise list)
+  - `workouts_hub_plan_desktop.png` (Desktop Plan view)
+  - `workouts_hub_dev_ui_mobile.png` (Mobile showcase view)
+  - `workouts_hub_dev_ui_desktop.png` (Desktop showcase view)
+
+
 

@@ -85,6 +85,7 @@ class WorkoutPlanExercise(Base):
         index=True,
     )
     day_of_week: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    day_label: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     sets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     reps: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

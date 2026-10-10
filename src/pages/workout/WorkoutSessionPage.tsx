@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWorkoutDraftStore } from '../../store/useWorkoutDraftStore';
 import {
   getActiveWorkoutPlanApi,
   getExercisesApi,
+  getLastPerformanceApi,
   logWorkoutSessionWithMetaApi,
 } from '../../lib/api/workout';
 import { copyDraftToClipboard, downloadDraftJson } from '../../lib/workoutDraft';
@@ -66,6 +67,7 @@ function triggerVibration() {
 
 export const WorkoutSessionPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const {
     draft,
@@ -166,9 +168,31 @@ export const WorkoutSessionPage: React.FC = () => {
     if (!existing) {
       const cr = useWorkoutDraftStore.getState().corruptRecovery;
       if (!cr) {
+        const passedTemplate = (location.state as { template?: SessionTemplate })?.template;
+        if (passedTemplate) {
+          initDraft(activeUserId, passedTemplate);
+          return;
+        }
+
         getActiveWorkoutPlanApi()
-          .then((plan) => {
+          .then(async (plan) => {
             if (plan && plan.plan_exercises.length > 0) {
+              const exerciseIds = plan.plan_exercises.map((pe) => pe.exercise_id);
+              let lastPerfMap: Record<string, string> = {};
+              try {
+                const perfRes = await getLastPerformanceApi(exerciseIds);
+                for (const [exId, item] of Object.entries(perfRes.performances)) {
+                  if (item.best_weight_kg) {
+                    lastPerfMap[exId] = `${item.best_weight_kg}kg × ${item.best_reps || 8}`;
+                  } else if (item.sets.length > 0) {
+                    const first = item.sets[0];
+                    lastPerfMap[exId] = `${first.weight_kg ?? 0}kg × ${first.reps_completed ?? 0}`;
+                  }
+                }
+              } catch {
+                // Ignore failure to fetch last performance
+              }
+
               const template: SessionTemplate = {
                 planId: plan.id,
                 name: plan.name,
@@ -178,6 +202,7 @@ export const WorkoutSessionPage: React.FC = () => {
                   targetSets: pe.sets || 3,
                   targetReps: pe.reps || '8-12',
                   restSeconds: pe.rest_seconds || 90,
+                  previousResult: lastPerfMap[pe.exercise_id] || null,
                 })),
               };
               initDraft(activeUserId, template);
@@ -234,7 +259,7 @@ export const WorkoutSessionPage: React.FC = () => {
           });
       }
     }
-  }, [user?.id, loadUserDraft, initDraft]);
+  }, [user?.id, loadUserDraft, initDraft, location.state]);
 
   // Live Elapsed Timer computed from startedAt
   useEffect(() => {

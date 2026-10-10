@@ -25,9 +25,12 @@ TabsList.displayName = RadixTabs.List.displayName;
 export const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof RadixTabs.Trigger>,
   React.ComponentPropsWithoutRef<typeof RadixTabs.Trigger>
->(({ className, ...props }, ref) => (
+>(({ className, onClick, ...props }, ref) => (
   <RadixTabs.Trigger
     ref={ref}
+    onClick={(e) => {
+      onClick?.(e);
+    }}
     className={twMerge(
       clsx(
         'inline-flex items-center justify-center whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors',

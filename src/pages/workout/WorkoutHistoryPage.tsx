@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
+import { Chip } from '../../components/ui/Chip';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { getWorkoutLogsApi, getWorkoutLogByIdApi } from '../../lib/api/workout';
 import { getErrorMessage } from '../../utils/apiError';
+import { formatDuration } from '../../lib/format';
 import type { WorkoutLog } from '../../types/workout';
+import { Award, ChevronLeft } from 'lucide-react';
 
 export const WorkoutHistoryPage: React.FC = () => {
   const [logs, setLogs] = useState<WorkoutLog[]>([]);
@@ -48,67 +52,48 @@ export const WorkoutHistoryPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 border border-borderLine bg-bone min-h-[300px]">
-        <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">
-          Workout Logs History
-        </span>
-        <h3 className="text-xl font-bold uppercase tracking-tighter animate-pulse font-mono">
-          Loading Workout History...
+      <div className="flex flex-col items-center justify-center p-12 border border-border bg-surface rounded-md min-h-[300px]">
+        <h3 className="text-sm font-semibold text-text animate-pulse">
+          Loading workout history...
         </h3>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
-        <div>
-          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Workout History & Analytics
-          </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter uppercase text-graphite">
-            Completed Workout Sessions
-          </h1>
-          <p className="text-sm text-charcoal font-sans mt-1">
-            Review your past workout sessions, logged sets, weights, and exertion ratings.
-          </p>
-        </div>
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-12">
+      <PageHeader
+        title="Workout History"
+        description="Review all recorded workout sessions, volume calculations, and personal records."
+        action={
+          <NavLink to="/workouts">
+            <Button variant="secondary" className="gap-1.5">
+              <ChevronLeft className="w-4 h-4" />
+              Back to Workouts
+            </Button>
+          </NavLink>
+        }
+      />
 
-        <NavLink to="/workout">
-          <Button variant="secondary">← Back to Overview</Button>
-        </NavLink>
-      </div>
-
-      {/* Error Alert */}
       {error && (
-        <div className="p-4 border border-error bg-error/5 text-error font-mono text-xs uppercase" role="alert">
+        <div className="p-4 rounded-md bg-danger-soft text-danger border border-danger/20 text-sm">
           {error}
         </div>
       )}
 
-      {/* Log History Grid / Empty State */}
       {logs.length === 0 ? (
-        <Card className="p-12 text-center flex flex-col items-center justify-center gap-4">
-          <span className="font-mono text-xs text-olive uppercase tracking-widest">
-            No Workout Logs Recorded
-          </span>
-          <h3 className="text-xl font-bold uppercase text-graphite font-mono">
-            You haven't logged any workout sessions yet.
-          </h3>
-          <p className="text-xs text-charcoal max-w-md">
-            Start your first live workout session to begin tracking set completion, volume, and exercise metrics.
-          </p>
-          <NavLink to="/workout/session">
-            <Button variant="primary">Start First Workout →</Button>
-          </NavLink>
-        </Card>
+        <EmptyState
+          title="No Workout Logs Yet"
+          description="You haven't logged any workout sessions yet. Start a session to track exercises, sets, and progress."
+          actionLabel="Start a Workout"
+          onAction={() => {}}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Left Column: Log List */}
-          <div className="md:col-span-1 flex flex-col gap-3">
-            <span className="font-mono text-xs font-bold uppercase text-graphite tracking-widest block mb-1">
-              History Sessions ({logs.length})
+          <div className="md:col-span-1 flex flex-col gap-2.5">
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-3 px-1">
+              Sessions ({logs.length})
             </span>
             {logs.map((log) => {
               const isSelected = selectedLog?.id === log.id;
@@ -117,25 +102,33 @@ export const WorkoutHistoryPage: React.FC = () => {
                 month: 'short',
                 day: 'numeric',
               });
+              const prCount = log.logged_exercises.filter((le) => le.is_personal_record).length;
 
               return (
                 <button
                   key={log.id}
                   type="button"
                   onClick={() => handleSelectLog(log.id)}
-                  className={`p-4 text-left border transition-all ${
+                  className={`p-3.5 text-left rounded-md border transition-all ${
                     isSelected
-                      ? 'border-olive bg-olive/10 font-bold'
-                      : 'border-borderLine bg-bone hover:border-graphite'
+                      ? 'border-accent bg-accent-soft text-text ring-1 ring-accent'
+                      : 'border-border bg-surface hover:border-text-3/50 text-text-2'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs uppercase text-graphite font-bold">{dateStr}</span>
-                    <Badge variant="olive">{log.logged_exercises.length} Sets</Badge>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-text">{dateStr}</span>
+                    {prCount > 0 && (
+                      <Chip variant="warning" className="text-[10px] py-0 px-1.5">
+                        {prCount} PR
+                      </Chip>
+                    )}
                   </div>
-                  <p className="text-xs text-charcoal mt-2 truncate">
-                    {log.notes || 'Workout session'}
+                  <p className="text-xs text-text-2 mt-1 truncate">
+                    {log.name || log.notes || 'Workout session'}
                   </p>
+                  <div className="text-[11px] text-text-3 mt-1.5 font-mono">
+                    {log.total_volume_kg ? `${log.total_volume_kg}kg` : ''} • {log.duration_seconds ? formatDuration(log.duration_seconds) : `${log.logged_exercises.length} sets`}
+                  </div>
                 </button>
               );
             })}
@@ -144,55 +137,69 @@ export const WorkoutHistoryPage: React.FC = () => {
           {/* Right Column: Selected Log Detail */}
           <div className="md:col-span-2">
             {isLoadingDetail ? (
-              <Card className="p-8 text-center animate-pulse font-mono text-xs uppercase">
-                Loading Session Details...
+              <Card className="p-8 text-center text-xs text-text-2 animate-pulse">
+                Loading session details...
               </Card>
             ) : selectedLog ? (
-              <Card className="p-6 md:p-8 flex flex-col gap-6">
-                <div className="flex items-center justify-between border-b border-borderLine pb-4">
+              <Card className="p-6 flex flex-col gap-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
                   <div>
-                    <span className="font-mono text-[10px] text-olive uppercase tracking-widest font-bold">
-                      Session Detail
-                    </span>
-                    <h3 className="text-2xl font-bold uppercase text-graphite font-mono">
-                      {new Date(selectedLog.started_at).toLocaleString()}
+                    <h3 className="text-lg font-semibold text-text">
+                      {selectedLog.name || 'Workout Session'}
                     </h3>
+                    <p className="text-xs text-text-2 mt-0.5">
+                      {new Date(selectedLog.started_at).toLocaleString(undefined, {
+                        dateStyle: 'full',
+                        timeStyle: 'short',
+                      })}
+                    </p>
                   </div>
-                  <Badge variant="olive">
-                    {selectedLog.logged_exercises.length} Sets Completed
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Chip variant="accent">
+                      {selectedLog.total_sets_completed ?? selectedLog.logged_exercises.length} Sets
+                    </Chip>
+                    {selectedLog.total_volume_kg && (
+                      <Chip variant="neutral">{selectedLog.total_volume_kg} kg volume</Chip>
+                    )}
+                  </div>
                 </div>
 
                 {selectedLog.notes && (
-                  <div>
-                    <span className="font-mono text-[10px] uppercase text-faded block mb-1">
-                      Session Reflection
-                    </span>
-                    <p className="text-xs text-graphite font-sans bg-bone/80 p-3 border border-borderLine">
-                      {selectedLog.notes}
-                    </p>
+                  <div className="p-3 rounded-md bg-surface-2 border border-border text-xs text-text">
+                    <span className="font-semibold block mb-0.5 text-text-2">Notes</span>
+                    "{selectedLog.notes}"
                   </div>
                 )}
 
                 {/* Performed Sets */}
                 <div>
-                  <span className="font-mono text-[10px] uppercase text-faded block mb-3 font-bold tracking-widest">
-                    Logged Sets & Load Performance
-                  </span>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-text-2 mb-3">
+                    Completed Sets & Performance
+                  </h4>
                   <div className="flex flex-col gap-2">
                     {selectedLog.logged_exercises.map((item, idx) => (
                       <div
                         key={item.id || idx}
-                        className="flex items-center justify-between p-3 border border-borderLine bg-bone text-xs font-mono"
+                        className="flex items-center justify-between p-3 rounded-sm border border-border bg-surface-2 text-xs"
                       >
-                        <div className="font-bold text-graphite">
-                          {item.exercise?.name || `Exercise Set #${item.set_number}`}
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-text">
+                            {item.exercise?.name || `Exercise Set #${item.set_number}`}
+                          </span>
+                          <span className="text-text-3 font-mono">Set {item.set_number}</span>
                         </div>
-                        <div className="flex items-center gap-4 text-charcoal">
-                          <span>Set {item.set_number}</span>
-                          <span>{item.reps_completed || 0} reps</span>
-                          <span className="font-bold text-olive">{item.weight_kg || 0} kg</span>
-                          {item.rpe && <span>RPE {item.rpe}</span>}
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-text font-medium">
+                            {item.weight_kg ?? 0}kg × {item.reps_completed ?? 0} reps
+                          </span>
+                          {item.rpe && (
+                            <span className="text-text-3 font-mono">RPE {item.rpe}</span>
+                          )}
+                          {item.is_personal_record && (
+                            <Chip variant="warning" className="gap-1 py-0 px-1.5 text-[10px]">
+                              <Award className="w-3 h-3" /> PR
+                            </Chip>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -200,8 +207,8 @@ export const WorkoutHistoryPage: React.FC = () => {
                 </div>
               </Card>
             ) : (
-              <Card className="p-8 text-center font-mono text-xs uppercase text-faded">
-                Select a completed session on the left to view detailed set logs.
+              <Card className="p-8 text-center text-xs text-text-3">
+                Select a completed session to view set details.
               </Card>
             )}
           </div>

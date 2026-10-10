@@ -18,12 +18,18 @@ def get_exercises(
     category: Optional[str] = Query(None, description="Filter by category"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
     search: Optional[str] = Query(None, description="Search exercise by name"),
+    equipment: Optional[str] = Query(None, description="Filter by required equipment"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> List[ExerciseResponse]:
     """Browse exercise database catalog."""
     return ExerciseService.get_exercises(
-        db, muscle=muscle, category=category, difficulty=difficulty, search=search
+        db,
+        muscle=muscle,
+        category=category,
+        difficulty=difficulty,
+        search=search,
+        equipment=equipment,
     )
 
 

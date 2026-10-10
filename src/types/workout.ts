@@ -16,6 +16,7 @@ export interface WorkoutPlanExercise {
   plan_id: string;
   exercise_id: string;
   day_of_week?: number | null;
+  day_label?: string | null;
   sets?: number | null;
   reps?: string | null;
   rest_seconds?: number | null;
@@ -67,6 +68,7 @@ export interface WorkoutLogExercise {
   weight_kg?: number | null;
   rpe?: number | null;
   notes?: string | null;
+  is_personal_record?: boolean | null;
   exercise?: Exercise | null;
 }
 
@@ -74,11 +76,34 @@ export interface WorkoutLog {
   id: string;
   user_id: string;
   plan_id?: string | null;
+  name?: string | null;
   started_at: string;
   ended_at?: string | null;
+  duration_seconds?: number | null;
+  total_volume_kg?: number | null;
+  total_sets_completed?: number | null;
   notes?: string | null;
   created_at: string;
   logged_exercises: WorkoutLogExercise[];
+}
+
+export interface LastPerformanceSet {
+  set_number: number;
+  weight_kg?: number | null;
+  reps_completed?: number | null;
+  rpe?: number | null;
+}
+
+export interface LastPerformanceItem {
+  exercise_id: string;
+  last_performed_at: string;
+  sets: LastPerformanceSet[];
+  best_weight_kg?: number | null;
+  best_reps?: number | null;
+}
+
+export interface LastPerformanceResponse {
+  performances: Record<string, LastPerformanceItem>;
 }
 
 // ----------------------------------------------------

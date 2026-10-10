@@ -37,6 +37,7 @@ class ExerciseResponse(ExerciseBase):
 class WorkoutPlanExerciseCreate(BaseModel):
     exercise_id: UUID
     day_of_week: Optional[int] = Field(None, ge=1, le=7)
+    day_label: Optional[str] = Field(None, max_length=50)
     sets: Optional[int] = Field(3, ge=1, le=20)
     reps: Optional[str] = Field("8-12", max_length=20)
     rest_seconds: Optional[int] = Field(60, ge=0, le=600)
@@ -49,6 +50,7 @@ class WorkoutPlanExerciseResponse(BaseModel):
     plan_id: UUID
     exercise_id: UUID
     day_of_week: Optional[int] = None
+    day_label: Optional[str] = None
     sets: Optional[int] = None
     reps: Optional[str] = None
     rest_seconds: Optional[int] = None
@@ -100,6 +102,7 @@ class WorkoutLogExerciseResponse(BaseModel):
     weight_kg: Optional[float] = None
     rpe: Optional[int] = None
     notes: Optional[str] = None
+    is_personal_record: Optional[bool] = False
     exercise: Optional[ExerciseResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -121,6 +124,33 @@ class WorkoutLogResponse(BaseModel):
     ended_at: Optional[datetime] = None
     notes: Optional[str] = None
     created_at: datetime
+    duration_seconds: Optional[int] = None
+    total_volume_kg: Optional[float] = None
+    total_sets_completed: Optional[int] = None
+    name: Optional[str] = None
     logged_exercises: List[WorkoutLogExerciseResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ----------------------------------------------------
+# Last Performance Schemas (Milestone M4)
+# ----------------------------------------------------
+
+class LastPerformanceSetResponse(BaseModel):
+    set_number: int
+    weight_kg: Optional[float] = None
+    reps_completed: Optional[int] = None
+    rpe: Optional[int] = None
+
+
+class LastPerformanceItemResponse(BaseModel):
+    exercise_id: UUID
+    last_performed_at: datetime
+    sets: List[LastPerformanceSetResponse]
+    best_weight_kg: Optional[float] = None
+    best_reps: Optional[int] = None
+
+
+class LastPerformanceResponse(BaseModel):
+    performances: dict[str, LastPerformanceItemResponse] = {}

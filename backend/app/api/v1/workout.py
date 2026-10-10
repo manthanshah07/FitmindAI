@@ -11,11 +11,23 @@ from app.schemas.workout import (
     WorkoutPlanResponse,
     WorkoutLogCreate,
     WorkoutLogResponse,
+    LastPerformanceResponse,
 )
 from app.services.workout_service import WorkoutService
 from app.core.idempotency import validate_idempotency_key
 
 router = APIRouter()
+
+
+@router.get("/last-performance", response_model=LastPerformanceResponse)
+def get_last_performance(
+    exercise_ids: List[UUID] = Query(..., alias="exercise_ids"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> LastPerformanceResponse:
+    """Get most recent performance per exercise for current user."""
+    return WorkoutService.get_last_performance(db, current_user, exercise_ids)
+
 
 
 @router.get("/plan", response_model=Optional[WorkoutPlanResponse])

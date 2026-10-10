@@ -287,37 +287,33 @@ DEMO_ACCOUNTS_CONFIG = TEST_SUBJECTS_CONFIG
 
 
 def seed_exercises(db: Session) -> Dict[str, Exercise]:
-    exercises_data = [
-        {"name": "Barbell Bench Press", "primary_muscle": "Chest", "equipment_required": ["barbell"]},
-        {"name": "Incline Dumbbell Press", "primary_muscle": "Chest", "equipment_required": ["dumbbells"]},
-        {"name": "Barbell Squat", "primary_muscle": "Quadriceps", "equipment_required": ["barbell"]},
-        {"name": "Leg Press", "primary_muscle": "Quadriceps", "equipment_required": ["full_gym"]},
-        {"name": "Romanian Deadlift", "primary_muscle": "Hamstrings", "equipment_required": ["barbell"]},
-        {"name": "Pull-Up", "primary_muscle": "Lats", "equipment_required": ["bodyweight"]},
-        {"name": "Barbell Row", "primary_muscle": "Upper Back", "equipment_required": ["barbell"]},
-        {"name": "Lat Pulldown", "primary_muscle": "Lats", "equipment_required": ["cables", "full_gym"]},
-        {"name": "Overhead Press", "primary_muscle": "Shoulders", "equipment_required": ["barbell"]},
-        {"name": "Dumbbell Bicep Curl", "primary_muscle": "Biceps", "equipment_required": ["dumbbells"]},
-        {"name": "Tricep Rope Pushdown", "primary_muscle": "Triceps", "equipment_required": ["cables"]},
-        {"name": "Bodyweight Squat", "primary_muscle": "Quadriceps", "equipment_required": ["bodyweight"]},
-        {"name": "Knee Push-Up", "primary_muscle": "Chest", "equipment_required": ["bodyweight"]},
-        {"name": "Plank Hold", "primary_muscle": "Core", "equipment_required": ["bodyweight"]},
-        {"name": "Stationary Cycling", "primary_muscle": "Cardio", "equipment_required": ["cardio_machines"]},
-    ]
+    from app.services.exercise_service import DEFAULT_EXERCISES
     catalog = {}
-    for item in exercises_data:
+    for item in DEFAULT_EXERCISES:
         ex = db.query(Exercise).filter(Exercise.name == item["name"]).first()
         if not ex:
-            ex = Exercise(
-                name=item["name"],
-                primary_muscle=item["primary_muscle"],
-                equipment_required=item["equipment_required"],
-                difficulty="intermediate",
-                category="cardio" if item["primary_muscle"] == "Cardio" else "strength",
-            )
+            ex = Exercise(**item)
             db.add(ex)
             db.flush()
+        else:
+            if not ex.instructions or "Standard training exercise" in (ex.description or ""):
+                ex.instructions = item["instructions"]
+                ex.description = item["description"]
+                ex.secondary_muscles = item["secondary_muscles"]
+                ex.equipment_required = item["equipment_required"]
+                ex.difficulty = item["difficulty"]
+                ex.category = item["category"]
+                db.flush()
         catalog[item["name"]] = ex
+
+    # Compatibility aliases for demo generators
+    if "Barbell Bent-Over Row" in catalog and "Barbell Row" not in catalog:
+        catalog["Barbell Row"] = catalog["Barbell Bent-Over Row"]
+    if "Pull-up" in catalog and "Pull-Up" not in catalog:
+        catalog["Pull-Up"] = catalog["Pull-up"]
+    if "Plank" in catalog and "Plank Hold" not in catalog:
+        catalog["Plank Hold"] = catalog["Plank"]
+
     return catalog
 
 

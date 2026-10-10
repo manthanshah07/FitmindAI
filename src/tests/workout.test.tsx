@@ -20,6 +20,7 @@ vi.mock('../lib/api/workout', () => ({
   seedExercisesApi: vi.fn(),
   logWorkoutSessionApi: vi.fn(),
   logWorkoutSessionWithMetaApi: vi.fn(),
+  getLastPerformanceApi: vi.fn().mockResolvedValue({ performances: {} }),
 }));
 
 const createTestQueryClient = () =>
@@ -142,7 +143,7 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
 
     expect(await screen.findByText(/Hypertrophy Routine/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Barbell Bench Press/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Database Catalog Explorer/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Exercises/i })).toBeInTheDocument();
   });
 
   it('allows starting a live session, logging sets, and renders Session Completion Summary', async () => {
@@ -192,9 +193,11 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Database Catalog Explorer/i)).toBeInTheDocument();
+    // Click Exercises Tab
+    const exercisesTab = await screen.findByRole('tab', { name: /Exercises/i });
+    fireEvent.mouseDown(exercisesTab, { button: 0 });
 
-    const searchInput = screen.getByPlaceholderText(/Search exercises by name.../i);
+    const searchInput = await screen.findByPlaceholderText(/Search by exercise name.../i);
     fireEvent.change(searchInput, { target: { value: 'Bench Press' } });
 
     await waitFor(() => {
@@ -206,7 +209,7 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
     });
   });
 
-  it('filters Exercise Catalog Explorer by difficulty and category dropdowns', async () => {
+  it('filters Exercise Catalog Explorer by equipment dropdown', async () => {
     vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValueOnce(mockPlan);
     vi.mocked(workoutApi.getWorkoutLogsApi).mockResolvedValueOnce([]);
     vi.mocked(workoutApi.getExercisesApi).mockResolvedValue([mockExercise]);
@@ -219,21 +222,23 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Database Catalog Explorer/i)).toBeInTheDocument();
+    // Click Exercises Tab
+    const exercisesTab = await screen.findByRole('tab', { name: /Exercises/i });
+    fireEvent.mouseDown(exercisesTab, { button: 0 });
+
+    // Wait for Exercise Tab content to mount
+    await screen.findByPlaceholderText(/Search by exercise name.../i);
 
     const selects = screen.getAllByRole('combobox');
-    // Select 0 is Muscle, Select 1 is Difficulty, Select 2 is Category
-    const difficultySelect = selects[1];
-    const categorySelect = selects[2];
+    // Select 0 is Muscle, Select 1 is Equipment
+    const equipmentSelect = selects[1];
 
-    fireEvent.change(difficultySelect, { target: { value: 'intermediate' } });
-    fireEvent.change(categorySelect, { target: { value: 'strength' } });
+    fireEvent.change(equipmentSelect, { target: { value: 'barbell' } });
 
     await waitFor(() => {
       expect(workoutApi.getExercisesApi).toHaveBeenCalledWith(
         expect.objectContaining({
-          difficulty: 'intermediate',
-          category: 'strength',
+          equipment: 'barbell',
         }),
       );
     });
@@ -251,14 +256,14 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Completed Workout Sessions/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Workout History/i })).toBeInTheDocument();
     expect(screen.getAllByText(/Felt strong today!/i).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getAllByText(/Felt strong today!/i)[0]);
 
     await waitFor(() => {
       expect(workoutApi.getWorkoutLogByIdApi).toHaveBeenCalledWith('log-1');
-      expect(screen.getByText(/Logged Sets & Load Performance/i)).toBeInTheDocument();
+      expect(screen.getByText(/Completed Sets & Performance/i)).toBeInTheDocument();
     });
   });
 
@@ -273,8 +278,8 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/No Workout Logs Recorded/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Start First Workout →/i })).toBeInTheDocument();
+    expect(await screen.findByText(/No Workout Logs Yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Start a Workout/i })).toBeInTheDocument();
   });
 
   it('displays Exercise Specification detail page for a valid exercise ID', async () => {
@@ -288,7 +293,7 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Barbell Bench Press/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: /Barbell Bench Press/i })).toBeInTheDocument();
     expect(screen.getByText(/Compound push exercise targeting upper body/i)).toBeInTheDocument();
   });
 });
