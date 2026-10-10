@@ -11,6 +11,7 @@ from alembic import context
 sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.core.config import settings
+from app.core.db_safety import enforce_database_safety
 from app.models.base import Base
 
 # Alembic Config object
@@ -22,6 +23,9 @@ if config.config_file_name:
 
 # Set database URL from settings
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
+# Safety guard: refuse execution if target database is remote without ALLOW_REMOTE_DB=1
+enforce_database_safety(settings.DATABASE_URL)
 
 target_metadata = Base.metadata
 

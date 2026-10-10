@@ -7,8 +7,11 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.core.database import Base, get_db
 from app.core.limiter import limiter
+from app.core.db_safety import enforce_database_safety
 
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+enforce_database_safety(SQLALCHEMY_DATABASE_URL)
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},

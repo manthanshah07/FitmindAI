@@ -26,6 +26,7 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+scratch/
 
 
 # Editor directories and files

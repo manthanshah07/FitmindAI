@@ -2,8 +2,10 @@
 
 FitMind AI is a full-stack fitness coaching platform: React 19 + TypeScript + Vite frontend (`src/`), FastAPI Python backend (`backend/`), PostgreSQL via SQLAlchemy/Alembic, Google Gemini AI coach.
 
+The master roadmap, milestone specifications, and architectural rules are defined in [`docs/FINAL_PLAN.md`](docs/FINAL_PLAN.md). Work proceeds strictly milestone-by-milestone according to that plan.
+
 ## Before Making Changes
-- Read relevant source files before editing. Don't guess at existing patterns.
+- Read [`docs/FINAL_PLAN.md`](docs/FINAL_PLAN.md) and relevant source files before editing. Don't guess at existing patterns.
 - Check `src/lib/api/` for frontend API modules and `backend/app/api/v1/` for backend routes.
 - Check `backend/alembic/versions/` before touching database schema.
 - The landing page sections in `src/sections/` must not be modified without explicit instruction.

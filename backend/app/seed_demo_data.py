@@ -29,6 +29,7 @@ from app.models.fitness_score import FitnessScore
 from app.models.refresh_token import RefreshToken
 from app.services.fitness_score_service import FitnessScoreService
 from app.core.config import settings
+from app.core.db_safety import enforce_database_safety
 
 TEST_SUBJECT_PASSWORD = "FitMindDemo@2026"
 DEMO_PASSWORD_PLAIN = TEST_SUBJECT_PASSWORD
@@ -471,6 +472,7 @@ def generate_daily_meals_for_user(
 
 def validate_production_seeding_safety():
     """Validates safety flags before performing demo seeding against production databases."""
+    enforce_database_safety(getattr(settings, "DATABASE_URL", None))
     is_prod_env = getattr(settings, "ENVIRONMENT", "development").lower() == "production"
     db_url = getattr(settings, "DATABASE_URL", "").lower()
     is_remote_db = bool(db_url) and not ("localhost" in db_url or "127.0.0.1" in db_url or "sqlite" in db_url)
