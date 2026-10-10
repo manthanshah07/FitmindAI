@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, JSON, Index
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Text, Numeric, Integer, JSON, Index, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
@@ -97,7 +97,10 @@ class WorkoutPlanExercise(Base):
 
 class WorkoutLog(Base):
     __tablename__ = "workout_logs"
-    __table_args__ = (Index("ix_workout_logs_user_started", "user_id", "started_at"),)
+    __table_args__ = (
+        Index("ix_workout_logs_user_started", "user_id", "started_at"),
+        UniqueConstraint("user_id", "idempotency_key", name="uq_workout_logs_user_idempotency"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         PG_UUID(as_uuid=True),
@@ -119,6 +122,8 @@ class WorkoutLog(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    request_fingerprint: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="workout_logs")

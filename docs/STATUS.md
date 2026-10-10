@@ -159,7 +159,8 @@ All facts below were verified through code inspection, test runs, and CLI diagno
 | **Phase 8** | Automated Reports Module | COMPLETE |
 | **Milestone M0** | Baseline Audit, Hygiene & Database Guard | **COMPLETE** |
 | **Milestone M1** | Design System & App Shell Rebuild | **COMPLETE** |
-| **Milestone M2** | Schema & Migrations | NEXT |
+| **Milestone M2** | Idempotent Workout API (Phase 3C-A) | **COMPLETE** |
+| **Milestone M3** | Exercise Library & Seed Data | NEXT |
 
 ---
 
@@ -185,9 +186,54 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - TypeScript: `npx tsc -b --noEmit` passed (0 errors).
   - Production Build: `npm run build` succeeded (0 errors).
   - Linter: `npm run lint` passed (0 errors).
-- **Screenshots:** Captured at 390x844 and 1280x800 and saved in `docs/screens/m1/`:
-  - `dev_ui_mobile.png`, `dev_ui_desktop.png`
-  - `login_mobile.png`, `login_desktop.png`
-  - `signup_mobile.png`, `signup_desktop.png`
-  - `today_mobile.png`, `today_desktop.png`
+- **Screenshots:** Captured at 390x844 and 1280x800 and saved in `docs/screens/m1/`.
+
+---
+
+## 6. Milestone M2 Verified Implementation
+
+- **Branch:** `m2-idempotent-workout-api`
+- **Specification:** Strictly adhered to Section 6 (Milestone M2) and Appendix B (Idempotent Workout Session API Contract).
+- **Database Migration:**
+  - Created additive migration `2026_10_10_0013_add_workout_log_idempotency.py` (parent: `2026_08_20_0012`).
+  - Added `idempotency_key` (VARCHAR(128), nullable) and `request_fingerprint` (VARCHAR(64), nullable) to `workout_logs`.
+  - Added unique constraint `uq_workout_logs_user_idempotency` on `(user_id, idempotency_key)`.
+  - Used `op.batch_alter_table("workout_logs")` for both `upgrade()` and `downgrade()` for SQLite/Postgres compatibility.
+  - Tested migration upgrade, downgrade, and re-upgrade cycles successfully.
+- **Canonicalisation & Fingerprint (`backend/app/core/idempotency.py`):**
+  - Implemented `normalize_weight` with `Decimal(str(val))` and `ROUND_HALF_UP` (80.504 -> 80.50, 80.505 -> 80.51, 80.506 -> 80.51).
+  - Implemented null discriminators ensuring `None`, `""`, `"   "`, and string values remain strictly distinct.
+  - Implemented order-independent sorting for exercises and sets (`exercise_id`, `set_number`).
+  - Preserved notes verbatim (no stripping, no lowercasing).
+  - Implemented SHA-256 fingerprint generation of compact canonical JSON (`separators=(',', ':')`, `sort_keys=True`).
+- **Idempotency Service & Route:**
+  - Keyed requests require `ended_at` (returns 422 if omitted).
+  - Validates key length <= 128 chars and non-whitespace (422).
+  - Initial lookup returns 200 OK + `X-Idempotency-Replay: true` on matching fingerprint, or raises 409 Conflict with code `idempotency_key_reused` on mismatch.
+  - Race-safe write transaction: immediate `db.rollback()` on `IntegrityError` before recovery query; recovers committed winner on idempotency constraint violation and re-raises non-idempotency integrity errors.
+  - Legacy unkeyed requests preserve 201 Created and optional `ended_at` behavior without `X-Idempotency-Replay` header.
+- **CORS Configuration (`backend/app/main.py`):**
+  - Added `"Idempotency-Key"` to `allow_headers`.
+  - Added `expose_headers=["X-Idempotency-Replay"]`.
+- **Test Suite (`backend/tests/test_workout_idempotency.py`):**
+  - 15 comprehensive unit and integration tests covering the complete Appendix B contract:
+    - First keyed submit (201 Created without replay header).
+    - Identical retry (200 OK with `X-Idempotency-Replay: true` and identical body).
+    - Changed payload with same key (409 Conflict with code `idempotency_key_reused`).
+    - Keyed submit missing `ended_at` (422).
+    - Empty, whitespace-only, and >128-char keys (422).
+    - Legacy unkeyed submit with and without `ended_at` (201).
+    - User isolation (User A and User B using same key independently both succeed with 201).
+    - Weight round-half-up normalization (80.504 -> 80.50, 80.505 -> 80.51, 80.506 -> 80.51).
+    - Canonical payload exercise and set order permutation invariance.
+    - Notes distinction (`None`, `""`, `"   "`, text).
+    - Notes verbatim preservation in canonical payload.
+    - Concurrency race-condition recovery with immediate rollback.
+    - Non-idempotency `IntegrityError` re-raising.
+    - CORS preflight `allow_headers` and actual request `expose_headers`.
+- **Test Results:**
+  - Backend: **349 passed** (0 failures, 0 skipped, 15 new tests in M2).
+  - Frontend: **106 passed** (16 test files, 0 failures).
+  - Active Alembic Head: `2026_10_10_0013 (head)`.
+
 

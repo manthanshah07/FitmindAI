@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
+from decimal import Decimal
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
+from app.core.idempotency import compute_request_fingerprint, normalize_weight
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.goal import Goal
@@ -132,7 +135,48 @@ class WorkoutService:
         return WorkoutPlanResponse.model_validate(created_plan)
 
     @staticmethod
-    def log_workout_session(db: Session, user: User, data: WorkoutLogCreate) -> WorkoutLogResponse:
+    def log_workout_session(
+        db: Session,
+        user: User,
+        data: WorkoutLogCreate,
+        idempotency_key: Optional[str] = None,
+    ) -> Tuple[WorkoutLogResponse, bool]:
+        fingerprint: Optional[str] = None
+
+        if idempotency_key:
+            # Keyed requests must include started_at and ended_at
+            if data.ended_at is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="ended_at is required for keyed workout submission",
+                )
+
+            fingerprint, _ = compute_request_fingerprint(data)
+
+            # 1. Initial lookup
+            existing = (
+                db.query(WorkoutLog)
+                .options(
+                    joinedload(WorkoutLog.logged_exercises).joinedload(WorkoutLogExercise.exercise)
+                )
+                .filter(
+                    WorkoutLog.user_id == user.id,
+                    WorkoutLog.idempotency_key == idempotency_key,
+                )
+                .first()
+            )
+            if existing:
+                if existing.request_fingerprint == fingerprint:
+                    return WorkoutLogResponse.model_validate(existing), True
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail={
+                            "code": "idempotency_key_reused",
+                            "message": "Idempotency key reused with different payload",
+                        },
+                    )
+
         if data.plan_id:
             plan = (
                 db.query(WorkoutPlan)
@@ -169,29 +213,67 @@ class WorkoutService:
         else:
             ended_at_utc = ended_at_utc.replace(tzinfo=timezone.utc)
 
-        log = WorkoutLog(
-            user_id=user.id,
-            plan_id=data.plan_id,
-            started_at=started_at_utc,
-            ended_at=ended_at_utc,
-            notes=data.notes,
-        )
-        db.add(log)
-        db.flush()
-
-        for item in data.logged_exercises or []:
-            log_ex = WorkoutLogExercise(
-                log_id=log.id,
-                exercise_id=item.exercise_id,
-                set_number=item.set_number,
-                reps_completed=item.reps_completed,
-                weight_kg=item.weight_kg,
-                rpe=item.rpe,
-                notes=item.notes,
+        # 2. Race-safe write transaction
+        try:
+            log = WorkoutLog(
+                user_id=user.id,
+                plan_id=data.plan_id,
+                started_at=started_at_utc,
+                ended_at=ended_at_utc,
+                notes=data.notes,
+                idempotency_key=idempotency_key,
+                request_fingerprint=fingerprint,
             )
-            db.add(log_ex)
+            db.add(log)
+            db.flush()
 
-        db.commit()
+            for item in data.logged_exercises or []:
+                norm_w = normalize_weight(item.weight_kg)
+                log_ex = WorkoutLogExercise(
+                    log_id=log.id,
+                    exercise_id=item.exercise_id,
+                    set_number=item.set_number,
+                    reps_completed=item.reps_completed,
+                    weight_kg=Decimal(norm_w) if norm_w is not None else None,
+                    rpe=item.rpe,
+                    notes=item.notes,
+                )
+                db.add(log_ex)
+
+            db.commit()
+        except IntegrityError as exc:
+            db.rollback()  # Rollback immediately before any recovery queries
+            if idempotency_key:
+                err_str = str(exc).lower()
+                is_idempotency_conflict = (
+                    "uq_workout_logs_user_idempotency" in err_str
+                    or "workout_logs.idempotency_key" in err_str
+                    or "idempotency_key" in err_str
+                )
+                if is_idempotency_conflict:
+                    winner = (
+                        db.query(WorkoutLog)
+                        .options(
+                            joinedload(WorkoutLog.logged_exercises).joinedload(WorkoutLogExercise.exercise)
+                        )
+                        .filter(
+                            WorkoutLog.user_id == user.id,
+                            WorkoutLog.idempotency_key == idempotency_key,
+                        )
+                        .first()
+                    )
+                    if winner:
+                        if winner.request_fingerprint == fingerprint:
+                            return WorkoutLogResponse.model_validate(winner), True
+                        else:
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail={
+                                    "code": "idempotency_key_reused",
+                                    "message": "Idempotency key reused with different payload",
+                                },
+                            )
+            raise exc
 
         created_log = (
             db.query(WorkoutLog)
@@ -202,7 +284,7 @@ class WorkoutService:
             .first()
         )
 
-        return WorkoutLogResponse.model_validate(created_log)
+        return WorkoutLogResponse.model_validate(created_log), False
 
     @staticmethod
     def get_workout_logs(

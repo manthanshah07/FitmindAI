@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,6 +13,7 @@ from app.schemas.workout import (
     WorkoutLogResponse,
 )
 from app.services.workout_service import WorkoutService
+from app.core.idempotency import validate_idempotency_key
 
 router = APIRouter()
 
@@ -53,11 +54,20 @@ def get_workout_logs(
 @router.post("/sessions", response_model=WorkoutLogResponse, status_code=status.HTTP_201_CREATED)
 def log_workout_session(
     req: WorkoutLogCreate,
+    response: Response,
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> WorkoutLogResponse:
     """Log a completed workout session with sets, reps, weight_kg, and RPE."""
-    return WorkoutService.log_workout_session(db, current_user, req)
+    validated_key = validate_idempotency_key(idempotency_key)
+    log_res, is_replay = WorkoutService.log_workout_session(
+        db, current_user, req, idempotency_key=validated_key
+    )
+    if is_replay:
+        response.status_code = status.HTTP_200_OK
+        response.headers["X-Idempotency-Replay"] = "true"
+    return log_res
 
 
 @router.get("/logs/{log_id}", response_model=WorkoutLogResponse)

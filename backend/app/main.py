@@ -55,7 +55,9 @@ if settings.CORS_ORIGINS:
             "Accept",
             "Origin",
             "X-Requested-With",
+            "Idempotency-Key",
         ],
+        expose_headers=["X-Idempotency-Replay"],
     )
 
 # Mount API v1 router
