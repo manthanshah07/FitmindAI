@@ -19,6 +19,12 @@ export interface DashboardTodayNutritionSection {
   consumed_protein_g: number;
   target_protein_g: number;
   remaining_protein_g: number;
+  consumed_carbs_g?: number;
+  target_carbs_g?: number;
+  remaining_carbs_g?: number;
+  consumed_fat_g?: number;
+  target_fat_g?: number;
+  remaining_fat_g?: number;
 }
 
 export interface DashboardWeeklySummarySection {

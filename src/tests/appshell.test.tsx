@@ -24,6 +24,11 @@ vi.mock('../lib/api/dashboard', () => ({
   getDashboardSummaryApi: vi.fn(),
 }));
 
+vi.mock('../lib/api/workout', () => ({
+  getActiveWorkoutPlanApi: vi.fn().mockResolvedValue(null),
+  getWorkoutLogsApi: vi.fn().mockResolvedValue([]),
+}));
+
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -152,11 +157,13 @@ describe('AppShell & Dashboard Shell', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/FitMind AI Dashboard/i)).toBeInTheDocument();
-    expect(await screen.findByText(/2669 kcal/i)).toBeInTheDocument();
-    expect(await screen.findByText(/MUSCLE GAIN/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/AI Coach/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Active AI Coach/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/kcal left/i)).toBeInTheDocument();
+    });
+
+    expect(await screen.findByText(/AppShell User/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Nutrition/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/This week/i)).toBeInTheDocument();
   });
 
   it('shows non-blocking onboarding card when onboarding_complete is false', async () => {
@@ -173,8 +180,8 @@ describe('AppShell & Dashboard Shell', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Your profile is not fully set up yet/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Complete Onboarding →/i })).toBeInTheDocument();
+    expect(await screen.findByText(/Onboarding Pending/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Complete onboarding/i })).toBeInTheDocument();
   });
 
   it('hides onboarding card when onboarding_complete is true', async () => {
@@ -189,10 +196,10 @@ describe('AppShell & Dashboard Shell', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/FitMind AI Dashboard/i)).toBeInTheDocument();
+      expect(screen.getByText(/AppShell User/i)).toBeInTheDocument();
     });
 
-    expect(screen.queryByText(/Your profile is not fully set up yet/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Onboarding Pending/i)).not.toBeInTheDocument();
   });
 
   it('navigates to login on logout button click', async () => {

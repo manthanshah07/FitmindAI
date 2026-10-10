@@ -1,7 +1,9 @@
+import uuid
 from datetime import datetime, date, timezone
 from typing import List, Optional
 from uuid import UUID
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from app.models.user import User
 from app.models.profile import Profile
@@ -10,6 +12,9 @@ from app.models.nutrition import Food, MealLog, MealLogItem
 from app.schemas.nutrition import (
     MealLogCreate,
     MealLogResponse,
+    MealLogItemResponse,
+    FoodResponse,
+    QuickAddMealCreate,
     DailyNutritionSummaryResponse,
     MacroNutrients,
 )
@@ -227,3 +232,146 @@ class NutritionService:
         if not log:
             return None
         return MealLogResponse.model_validate(log)
+
+    @staticmethod
+    def delete_meal_item(db: Session, user: User, item_id: UUID) -> None:
+        item = (
+            db.query(MealLogItem)
+            .options(joinedload(MealLogItem.meal_log))
+            .filter(MealLogItem.id == item_id)
+            .first()
+        )
+        if not item or item.meal_log.user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Meal item not found",
+            )
+
+        meal_log_id = item.meal_log_id
+        db.delete(item)
+        db.flush()
+
+        # Clean up empty parent meal log if no items remain
+        remaining_count = db.query(MealLogItem).filter(MealLogItem.meal_log_id == meal_log_id).count()
+        if remaining_count == 0:
+            empty_log = db.query(MealLog).filter(MealLog.id == meal_log_id).first()
+            if empty_log:
+                db.delete(empty_log)
+
+        db.commit()
+
+    @staticmethod
+    def delete_meal_log(db: Session, user: User, log_id: UUID) -> None:
+        meal_log = (
+            db.query(MealLog)
+            .filter(MealLog.id == log_id, MealLog.user_id == user.id)
+            .first()
+        )
+        if not meal_log:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Meal log not found",
+            )
+
+        db.delete(meal_log)
+        db.commit()
+
+    @staticmethod
+    def update_meal_item(db: Session, user: User, item_id: UUID, quantity_grams: float) -> MealLogItemResponse:
+        item = (
+            db.query(MealLogItem)
+            .options(joinedload(MealLogItem.meal_log), joinedload(MealLogItem.food))
+            .filter(MealLogItem.id == item_id)
+            .first()
+        )
+        if not item or item.meal_log.user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Meal item not found",
+            )
+
+        q = float(quantity_grams)
+        food = item.food
+        item.quantity_grams = q
+        item.calculated_calories = round(float(food.calories_per_100g) * q / 100.0, 2)
+        item.calculated_protein = round(float(food.protein_per_100g) * q / 100.0, 2)
+        item.calculated_carbs = round(float(food.carbs_per_100g) * q / 100.0, 2)
+        item.calculated_fat = round(float(food.fat_per_100g) * q / 100.0, 2)
+
+        db.commit()
+        db.refresh(item)
+        return MealLogItemResponse.model_validate(item)
+
+    @staticmethod
+    def get_recent_foods(db: Session, user: User, limit: int = 20) -> List[FoodResponse]:
+        subq = (
+            db.query(
+                MealLogItem.food_id,
+                func.max(MealLog.logged_at).label("last_logged"),
+            )
+            .join(MealLog, MealLogItem.meal_log_id == MealLog.id)
+            .filter(MealLog.user_id == user.id)
+            .group_by(MealLogItem.food_id)
+            .subquery()
+        )
+
+        recent_foods = (
+            db.query(Food)
+            .join(subq, Food.id == subq.c.food_id)
+            .order_by(subq.c.last_logged.desc())
+            .limit(limit)
+            .all()
+        )
+        return [FoodResponse.model_validate(f) for f in recent_foods]
+
+    @staticmethod
+    def quick_add_meal(db: Session, user: User, data: QuickAddMealCreate) -> MealLogResponse:
+        logged_at_utc = data.logged_at or datetime.now(timezone.utc)
+        if logged_at_utc.tzinfo is not None:
+            logged_at_utc = logged_at_utc.astimezone(timezone.utc)
+        else:
+            logged_at_utc = logged_at_utc.replace(tzinfo=timezone.utc)
+
+        # Create unique food for this quick add entry
+        food_name = f"{data.name or 'Quick Add'} ({uuid.uuid4().hex[:8]})"
+        custom_food = Food(
+            name=food_name,
+            brand="Quick Add",
+            calories_per_100g=float(data.calories),
+            protein_per_100g=float(data.protein_g),
+            carbs_per_100g=float(data.carbs_g),
+            fat_per_100g=float(data.fat_g),
+            is_verified=True,
+        )
+        db.add(custom_food)
+        db.flush()
+
+        meal_log = MealLog(
+            user_id=user.id,
+            meal_type=data.meal_type.lower(),
+            logged_at=logged_at_utc,
+            notes=data.notes,
+        )
+        db.add(meal_log)
+        db.flush()
+
+        log_item = MealLogItem(
+            meal_log_id=meal_log.id,
+            food_id=custom_food.id,
+            quantity_grams=100.0,
+            calculated_calories=round(float(data.calories), 2),
+            calculated_protein=round(float(data.protein_g), 2),
+            calculated_carbs=round(float(data.carbs_g), 2),
+            calculated_fat=round(float(data.fat_g), 2),
+        )
+        db.add(log_item)
+        db.commit()
+
+        created_log = (
+            db.query(MealLog)
+            .options(joinedload(MealLog.items).joinedload(MealLogItem.food))
+            .filter(MealLog.id == meal_log.id)
+            .first()
+        )
+        return MealLogResponse.model_validate(created_log)
+

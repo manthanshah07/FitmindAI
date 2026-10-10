@@ -135,10 +135,11 @@ describe('Phase 4 — Nutrition Frontend Module', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Today's Nutrition Summary/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/316.8 \/ 2200/i).length).toBeGreaterThan(0);
+    expect(await screen.findByText(/Calorie Balance/i)).toBeInTheDocument();
+    expect(screen.getByText(/1,883/i)).toBeInTheDocument();
+    expect(screen.getByText(/kcal remaining/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Whole Wheat Roti \(Chapati\)/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: /Log Meal \+/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Add food/i }).length).toBeGreaterThan(0);
   });
 
   it('allows selecting food, adjusting portion size, and logging a meal entry', async () => {

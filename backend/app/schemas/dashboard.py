@@ -28,6 +28,12 @@ class DashboardTodayNutritionSection(BaseModel):
     consumed_protein_g: float
     target_protein_g: float
     remaining_protein_g: float
+    consumed_carbs_g: float = 0.0
+    target_carbs_g: float = 0.0
+    remaining_carbs_g: float = 0.0
+    consumed_fat_g: float = 0.0
+    target_fat_g: float = 0.0
+    remaining_fat_g: float = 0.0
 
     model_config = ConfigDict(from_attributes=True)
 

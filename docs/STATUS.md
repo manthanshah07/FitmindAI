@@ -333,5 +333,70 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `workouts_hub_dev_ui_mobile.png` (Mobile showcase view)
   - `workouts_hub_dev_ui_desktop.png` (Desktop showcase view)
 
+---
+
+## 9. Milestone M5 Verified Implementation
+
+- **Branch:** `m5-today-and-nutrition`
+- **Specification:** Strictly adhered to Section 6 (Milestone M5), Section 3.2 (D5), Section 3.3 (U9), Section 4.5, Appendix E (Today Screen Wireframe), and docs/STATUS.md (V4 answer).
+- **Regional Food Database Expansion (Fixes D13):**
+  - Created `backend/app/core/food_catalog.py` with 174 realistic, unique regional Indian & global staple foods with verified per-100g nutritional facts (calories, protein, carbs, fat, fiber).
+  - Covers Indian staples: Roti/Chapati, Bajra/Jowar/Makki Roti, Paratha (Aloo, Paneer, Gobi), Dal (Moong, Tadka, Makhani, Chana, Toor), Sambar, Idli, Dosa (Plain, Masala), Uttapam, Poha, Upma, Khichdi, Rajma, Chana Masala, Paneer dishes (Bhurji, Tikka, Palak Paneer), Curd/Dahi, Chaas, Lassi, Biryani, Pulao, Egg Bhurji, and global staples (Oats, Eggs, Chicken Breast, Whey Protein, Greek Yogurt, Sweet Potato, Salmon, Fruits, Rice).
+  - Seeded via `FoodService.seed_default_foods` and called in `seed_demo_data.py`.
+  - Prefix-boosted search ranking using SQLAlchemy `case()` ensures exact/prefix matches appear first.
+- **Meal Item Edit, Delete & Recent Endpoints (Fixes V4):**
+  - `DELETE /api/v1/nutrition/items/{item_id}`: Deletes meal item, automatically deletes parent meal log if 0 items remain, enforces user isolation (404 on cross-user attempt).
+  - `DELETE /api/v1/nutrition/logs/{log_id}`: Deletes meal log and all child items.
+  - `PATCH /api/v1/nutrition/items/{item_id}`: Updates quantity in grams and recalculates calories, protein, carbs, and fat proportionally from parent food per-100g macros.
+  - `GET /api/v1/nutrition/recent`: Returns deduplicated past logged foods ordered by most recent consumption (`logged_at DESC`), limited to recent N items, strictly user-isolated.
+  - `POST /api/v1/nutrition/quick-add`: Creates a quick-add meal entry with user-specified custom calories, protein, carbs, fat, and optional name.
+  - `GET /api/v1/nutrition/today`: Supports optional `target_date` query parameter (defaults to today's date) with date-calibrated targets and consumed meals.
+- **Single Source of Truth (Fixes D5):**
+  - `DashboardService.get_dashboard_summary` directly invokes `NutritionService.get_today_summary` to source today's targets, consumed, and remaining calories and macros.
+  - Added carbs & fat fields to `DashboardTodayNutritionSection`: `consumed_carbs_g`, `target_carbs_g`, `remaining_carbs_g`, `consumed_fat_g`, `target_fat_g`, `remaining_fat_g`.
+- **Rebuilt Today Screen (`src/pages/dashboard/DashboardPage.tsx` / Appendix E):**
+  - Greeting header: Time-of-day greeting ("Good morning / afternoon / evening, [User]"), formatted date, and user initial avatar pill.
+  - Workout card:
+    - Active draft: Displays "In progress" chip, live elapsed timer continuously updating every second, and "Resume workout" CTA.
+    - Completed today: Displays "Completed" chip, checkmark icon, session name, total sets, and formatted duration.
+    - Scheduled day: Displays "Scheduled" chip, day label, exercise count, and "Start workout" CTA prefilling `SessionTemplate`.
+    - Rest day: Displays "Rest day" chip and recovery message.
+  - Nutrition card:
+    - Headline remaining calories with `Ring` progress meter.
+    - Macro progress bars (Protein, Carbs, Fat) with consumed/target numbers and color variants.
+    - Full-width "Add food" button opening `AddFoodSheet`.
+  - This Week card:
+    - Workouts completed dot indicators (e.g., 3 of 4).
+    - Food logged count (e.g., 5 of 7 days).
+    - Weight delta (e.g., -0.6 kg).
+    - Fitness score badge with delta linking directly to `/progress`.
+  - Deterministic insight line: Computed strictly from numbers (e.g. "You are 650 kcal under today's target") with zero LLM API calls.
+  - Non-blocking onboarding reminder banner when profile setup is incomplete.
+- **Rebuilt Nutrition Screen (`src/pages/nutrition/NutritionOverviewPage.tsx`):**
+  - Date navigation: Previous day, formatted date, Next day, and "Today" quick jump button.
+  - Calorie balance card: Headline remaining calories, consumed vs target, `Ring` meter, info popover explaining Mifflin-St Jeor metabolic calculations.
+  - Macro progress bars: Protein, Carbs, Fat with consumed/target metrics.
+  - Meal categories: Breakfast, Lunch, Dinner, Snacks cards with item count and subtotal calories.
+  - Interactive meal items: Tap item opens `EditMealItemDialog` with `NumberStepper` and Delete button.
+  - Add Food Sheet (`src/components/nutrition/AddFoodSheet.tsx`):
+    - Full-screen / bottom sheet modal with meal selector dropdown.
+    - Recent tab: Displays past logged foods with verified 3-tap quick add flow.
+    - All foods tab: Search catalog with live query filtering and serving size stepper.
+    - Quick add tab: Direct calorie and macro entry.
+- **Verification & Test Results:**
+  - Backend Test Suite: **364 passed** across 30 test modules in 86.49s (0 failures, 0 regressions, 8 new tests in `test_nutrition_items_and_recent.py`).
+  - Frontend Test Suite: **144 passed** across 21 test files in 3.07s (0 failures, 7 new tests in `todayPage.test.tsx`, 7 new tests in `nutritionPage.test.tsx`).
+  - TypeScript Static Check: `npx tsc -b --noEmit` passed with 0 errors.
+  - Production Build: `npm run build` succeeded in 517ms.
+  - Linter: `npm run lint` passed with 0 errors.
+  - Database Migration: Zero migrations required (existing tables `foods`, `meal_logs`, `meal_log_items` accommodate all functionality; active Alembic head remains `2026_10_10_0014 (head)`).
+- **Screenshots:** Captured at mobile (390x844) and desktop (1280x800) in `docs/screens/m5/`:
+  - `today_mobile.png` (390x844)
+  - `today_desktop.png` (1280x800)
+  - `nutrition_mobile.png` (390x844)
+  - `nutrition_desktop.png` (1280x800)
+  - `dev_ui_mobile.png` (390x844)
+
+
 
 

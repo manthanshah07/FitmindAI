@@ -155,6 +155,14 @@ export function App() {
                 </AppShell>
               }
             />
+            <Route
+              path="/dev/nutrition"
+              element={
+                <AppShell>
+                  <NutritionOverviewPage />
+                </AppShell>
+              }
+            />
           </Routes>
         </Suspense>
       </div>

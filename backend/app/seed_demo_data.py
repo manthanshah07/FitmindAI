@@ -28,6 +28,7 @@ from app.models.chat_message import ChatMessage
 from app.models.fitness_score import FitnessScore
 from app.models.refresh_token import RefreshToken
 from app.services.fitness_score_service import FitnessScoreService
+from app.services.food_service import FoodService
 from app.core.config import settings
 from app.core.db_safety import enforce_database_safety
 
@@ -318,6 +319,7 @@ def seed_exercises(db: Session) -> Dict[str, Exercise]:
 
 
 def seed_foods(db: Session) -> Dict[str, Food]:
+    FoodService.seed_default_foods(db)
     foods_data = [
         # Breakfast Items
         {"name": "Oatmeal with Milk", "calories": 180, "protein": 7.0, "carbs": 28.0, "fat": 4.5, "meal_types": ["breakfast"]},

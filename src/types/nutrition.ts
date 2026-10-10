@@ -16,6 +16,21 @@ export interface MealLogItemCreate {
   quantity_grams: number;
 }
 
+export interface MealLogItemUpdate {
+  quantity_grams: number;
+}
+
+export interface QuickAddMealPayload {
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  calories: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  name?: string;
+  notes?: string;
+  logged_at?: string;
+}
+
 export interface MealLogItem {
   id: string;
   meal_log_id: string;

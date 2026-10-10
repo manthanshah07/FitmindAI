@@ -86,35 +86,21 @@ class DashboardService:
             else None
         )
 
-        # 5. Today's Consumed Nutrition
-        start_dt, end_dt = get_timezone_aware_range(ref_date, ref_date, user_tz)
-
-
-        today_meals = (
-            db.query(MealLog)
-            .options(joinedload(MealLog.items))
-            .filter(
-                MealLog.user_id == user.id,
-                MealLog.logged_at >= start_dt,
-                MealLog.logged_at <= end_dt,
-            )
-            .all()
-        )
-
-        consumed_cals = 0.0
-        consumed_prot = 0.0
-        for m in today_meals:
-            for item in m.items:
-                consumed_cals += float(item.calculated_calories or 0)
-                consumed_prot += float(item.calculated_protein or 0)
-
+        # 5. Today's Consumed Nutrition (Single source of truth via NutritionService)
+        today_summary = NutritionService.get_today_summary(db=db, user=user, target_date=ref_date)
         today_nutrition_section = DashboardTodayNutritionSection(
-            consumed_calories=round(consumed_cals, 1),
-            target_calories=float(target_cals),
-            remaining_calories=round(max(0.0, float(target_cals) - consumed_cals), 1),
-            consumed_protein_g=round(consumed_prot, 1),
-            target_protein_g=float(target_protein),
-            remaining_protein_g=round(max(0.0, float(target_protein) - consumed_prot), 1),
+            consumed_calories=today_summary.consumed.calories,
+            target_calories=today_summary.targets.calories,
+            remaining_calories=today_summary.remaining.calories,
+            consumed_protein_g=today_summary.consumed.protein_g,
+            target_protein_g=today_summary.targets.protein_g,
+            remaining_protein_g=today_summary.remaining.protein_g,
+            consumed_carbs_g=today_summary.consumed.carbs_g,
+            target_carbs_g=today_summary.targets.carbs_g,
+            remaining_carbs_g=today_summary.remaining.carbs_g,
+            consumed_fat_g=today_summary.consumed.fat_g,
+            target_fat_g=today_summary.targets.fat_g,
+            remaining_fat_g=today_summary.remaining.fat_g,
         )
 
         # 6. Weekly Report Summary (Deterministic, NO Gemini calls, NO DB side-effects!)

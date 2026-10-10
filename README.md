@@ -94,11 +94,11 @@ Schema changes are version-controlled via Alembic (`backend/alembic/versions/`):
 ```bash
 # Frontend tests (Vitest + React Testing Library)
 npm run test
-# → 130 tests passing across 19 test files
+# → 144 tests passing across 21 test files
 
 # Backend tests (Pytest)
 cd backend && .venv/bin/pytest -q
-# → 356 tests passing across 29 test modules (307 baseline + 27 DB safety guard + 15 idempotency + 7 M4 tests)
+# → 364 tests passing across 30 test modules (307 baseline + 27 DB safety guard + 15 idempotency + 7 M4 tests + 8 M5 tests)
 
 # TypeScript typecheck
 npx tsc -b --noEmit

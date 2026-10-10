@@ -39,6 +39,21 @@ class MealLogItemCreate(BaseModel):
     quantity_grams: float = Field(..., ge=1.0, le=5000.0)
 
 
+class MealLogItemUpdate(BaseModel):
+    quantity_grams: float = Field(..., ge=1.0, le=5000.0)
+
+
+class QuickAddMealCreate(BaseModel):
+    meal_type: str = Field(..., pattern="^(breakfast|lunch|dinner|snack)$")
+    calories: float = Field(..., ge=0.0, le=5000.0)
+    protein_g: float = Field(0.0, ge=0.0, le=500.0)
+    carbs_g: float = Field(0.0, ge=0.0, le=500.0)
+    fat_g: float = Field(0.0, ge=0.0, le=500.0)
+    name: Optional[str] = Field("Quick Add", max_length=200)
+    notes: Optional[str] = Field(None, max_length=2000)
+    logged_at: Optional[datetime] = None
+
+
 class MealLogItemResponse(BaseModel):
     id: UUID
     meal_log_id: UUID

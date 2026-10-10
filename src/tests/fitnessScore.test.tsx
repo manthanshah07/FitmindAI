@@ -4,7 +4,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
 import { FitnessScoreCard } from '../components/progress/FitnessScoreCard';
-import { DashboardPage } from '../pages/dashboard/DashboardPage';
 import { ProgressOverviewPage } from '../pages/progress/ProgressOverviewPage';
 import { AppShell } from '../components/layout/AppShell';
 import * as scoreApi from '../lib/api/fitnessScore';
@@ -137,14 +136,12 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
     expect(screen.getByRole('button', { name: /Retry/i })).toBeInTheDocument();
   });
 
-  it('renders compact Fitness Score card on Dashboard', async () => {
+  it('renders compact Fitness Score card', async () => {
     vi.mocked(scoreApi.getFitnessScoreApi).mockResolvedValueOnce(mockScoreResponse);
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <AppShell>
-          <DashboardPage />
-        </AppShell>
+      <MemoryRouter>
+        <FitnessScoreCard compact={true} />
       </MemoryRouter>,
     );
 

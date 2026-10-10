@@ -106,18 +106,17 @@ describe('Cycle 7 — Dashboard Integration & Metric Consistency UI', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Weekly Progress Overview/i)).toBeInTheDocument();
+      expect(screen.getByText(/This week/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/HIGH ADHERENCE \(88.5%\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/4 \/ 4/i)).toBeInTheDocument();
-    expect(screen.getByText(/6 \/ 7 Days/i)).toBeInTheDocument();
-    expect(screen.getByText(/76 pts/i)).toBeInTheDocument();
+    expect(screen.getByText(/4 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/6 of 7 days/i)).toBeInTheDocument();
+    expect(screen.getByText(/76/i)).toBeInTheDocument();
     expect(screen.getByText(/-0.4 kg/i)).toBeInTheDocument();
 
-    const reportBtn = screen.getByRole('link', { name: /View Full Weekly Report →/i });
-    expect(reportBtn).toBeInTheDocument();
-    expect(reportBtn.getAttribute('href')).toBe('/reports');
+    const progressLink = screen.getByText(/Fitness score/i).closest('a');
+    expect(progressLink).toBeInTheDocument();
+    expect(progressLink?.getAttribute('href')).toBe('/progress');
   });
 
   it('handles error banner gracefully if dashboard summary API fails', async () => {
@@ -136,7 +135,7 @@ describe('Cycle 7 — Dashboard Integration & Metric Consistency UI', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Failed to load dashboard overview/i)).toBeInTheDocument();
+      expect(screen.getByText(/Unable to load dashboard/i)).toBeInTheDocument();
     });
   });
 });
