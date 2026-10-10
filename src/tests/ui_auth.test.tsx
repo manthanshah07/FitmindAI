@@ -254,11 +254,13 @@ describe('SignupPage Component', () => {
       expect(screen.getByText(/Dashboard Target Page/i)).toBeInTheDocument();
     });
 
-    expect(authApi.registerApi).toHaveBeenCalledWith({
-      full_name: 'Jane Doe',
-      email: 'newuser@example.com',
-      password: 'StrongPassword123!',
-    });
+    expect(authApi.registerApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        full_name: 'Jane Doe',
+        email: 'newuser@example.com',
+        password: 'StrongPassword123!',
+      }),
+    );
   });
 });
 

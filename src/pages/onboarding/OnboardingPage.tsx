@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  User,
+  Target,
+  Activity,
+  Sliders,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Info,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -42,7 +53,16 @@ const EQUIPMENT_OPTIONS = [
   { id: 'kettlebell', label: 'Kettlebells' },
   { id: 'pull_up_bar', label: 'Pull-up Bar' },
   { id: 'bench', label: 'Weight Bench' },
+  { id: 'machines', label: 'Gym Machines' },
   { id: 'resistance_bands', label: 'Resistance Bands' },
+];
+
+const STEP_LABELS = [
+  { number: 1, label: 'Profile', icon: User },
+  { number: 2, label: 'Goal', icon: Target },
+  { number: 3, label: 'Activity', icon: Activity },
+  { number: 4, label: 'Preferences', icon: Sliders },
+  { number: 5, label: 'Summary', icon: Sparkles },
 ];
 
 export const OnboardingPage: React.FC = () => {
@@ -173,9 +193,21 @@ export const OnboardingPage: React.FC = () => {
         errors.goal_type = 'Please select a primary fitness goal';
       }
       if (formData.target_weight_kg.trim()) {
-        const weight = parseFloat(formData.target_weight_kg);
-        if (isNaN(weight) || weight < 30 || weight > 300) {
+        const targetW = parseFloat(formData.target_weight_kg);
+        if (isNaN(targetW) || targetW < 30 || targetW > 300) {
           errors.target_weight_kg = 'Target weight must be between 30 and 300 kg';
+        } else {
+          const currentW = parseFloat(formData.weight_kg);
+          if (!isNaN(currentW)) {
+            if (
+              (formData.goal_type === 'fat_loss' || formData.goal_type === 'weight_loss') &&
+              targetW >= currentW
+            ) {
+              errors.target_weight_kg = `For fat loss, target weight (${targetW} kg) must be lower than your current weight (${currentW} kg).`;
+            } else if (formData.goal_type === 'muscle_gain' && targetW < currentW) {
+              errors.target_weight_kg = `For muscle gain, target weight (${targetW} kg) must be at or above your current weight (${currentW} kg).`;
+            }
+          }
         }
       }
     }
@@ -200,152 +232,137 @@ export const OnboardingPage: React.FC = () => {
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
-  const handleSubmitFinal = async () => {
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
-      setApiError('Please complete all required onboarding steps.');
-      return;
-    }
+  const handleSkipStep4 = () => {
+    // Optional step 4 can be skipped directly
+    setStep(5);
+  };
 
+  // Final Submission
+  const handleSubmit = async () => {
     setIsSubmitting(true);
     setApiError(null);
 
     try {
-      // 1. Submit Goal to backend goals API
-      if (formData.goal_type) {
-        await createGoalApi({
-          goal_type: formData.goal_type as GoalType,
-          target_weight_kg: formData.target_weight_kg ? parseFloat(formData.target_weight_kg) : undefined,
-          target_date: formData.target_date || undefined,
-        });
-      }
+      const height = parseFloat(formData.height_cm);
+      const weight = parseFloat(formData.weight_kg);
+      const targetWeight = formData.target_weight_kg.trim()
+        ? parseFloat(formData.target_weight_kg)
+        : undefined;
 
-      // 2. Submit Profile & complete onboarding to backend profile API
-      await completeOnboardingApi({
-        full_name: formData.full_name.trim(),
-        date_of_birth: formData.date_of_birth || undefined,
-        gender: (formData.gender as Gender) || undefined,
-        height_cm: parseFloat(formData.height_cm),
-        weight_kg: parseFloat(formData.weight_kg),
-        activity_level: (formData.activity_level as ActivityLevel) || undefined,
-        diet_preference: (formData.diet_preference as DietPreference) || undefined,
-        equipment: formData.equipment.length > 0 ? formData.equipment : undefined,
-        medical_notes: formData.medical_notes.trim() || undefined,
+      // 1. Submit Goal
+      await createGoalApi({
+        goal_type: formData.goal_type as GoalType,
+        target_weight_kg: targetWeight,
+        target_date: formData.target_date || undefined,
       });
 
-      // Update local store state and navigate to dashboard
-      const storeState = useAuthStore.getState();
-      if (storeState.user) {
-        useAuthStore.setState({
-          user: { ...storeState.user, full_name: formData.full_name.trim() },
-        });
-      }
+      // 2. Complete Profile Onboarding
+      await completeOnboardingApi({
+        full_name: formData.full_name,
+        date_of_birth: formData.date_of_birth || undefined,
+        gender: formData.gender ? (formData.gender as Gender) : undefined,
+        height_cm: height,
+        weight_kg: weight,
+        activity_level: formData.activity_level as ActivityLevel,
+        diet_preference: formData.diet_preference ? (formData.diet_preference as DietPreference) : undefined,
+        equipment: formData.equipment.length > 0 ? formData.equipment : ['bodyweight'],
+        medical_notes: formData.medical_notes.trim() ? formData.medical_notes.trim() : undefined,
+      });
 
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setApiError(getErrorMessage(err));
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Calculations for Step 5 Assessment using Mifflin-St Jeor formula
   const tdeeResult = calculateTDEE({
     weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : undefined,
     height_cm: formData.height_cm ? parseFloat(formData.height_cm) : undefined,
-    date_of_birth: formData.date_of_birth || undefined,
-    gender: formData.gender || undefined,
-    activity_level: formData.activity_level || undefined,
+    date_of_birth: formData.date_of_birth,
+    gender: formData.gender,
+    activity_level: formData.activity_level,
   });
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 md:p-8 bg-bone">
-      <Card className="max-w-2xl w-full shadow-none border-borderLine">
-        {/* Step Progress Header */}
+    <div className="min-h-screen bg-bg text-text py-8 px-4 flex justify-center items-center">
+      <Card className="w-full max-w-xl p-6 sm:p-8 bg-surface border border-border shadow-sm">
+        {/* Progress Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Badge variant="olive">Step {step} of 5</Badge>
-            <span className="font-mono text-xs text-faded uppercase tracking-widest font-bold">
-              {step * 20}% Completed
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs uppercase font-semibold text-accent tracking-wider">
+              Step {step} of 5 — {STEP_LABELS[step - 1].label}
+            </span>
+            <span className="text-xs text-text-3 font-mono">
+              {Math.round((step / 5) * 100)}% Completed
             </span>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-borderLine h-1.5 rounded-none overflow-hidden mb-6">
-            <div
-              className="bg-graphite h-full transition-all duration-300 ease-out"
-              style={{ width: `${step * 20}%` }}
-            />
+          {/* Progress Indicators */}
+          <div className="grid grid-cols-5 gap-2">
+            {STEP_LABELS.map((item) => (
+              <div
+                key={item.number}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  step >= item.number ? 'bg-accent' : 'bg-surface-2'
+                }`}
+              />
+            ))}
           </div>
+        </div>
 
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tighter uppercase font-sans text-graphite mb-1">
+        {/* Global Error Banner */}
+        {apiError && (
+          <div
+            role="alert"
+            className="mb-6 p-4 rounded-lg bg-danger-soft border border-danger/30 text-danger text-sm font-medium"
+          >
+            {apiError}
+          </div>
+        )}
+
+        {/* STEP HEADINGS */}
+        <div className="mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text mb-1">
             {step === 1 && 'Personal Information'}
             {step === 2 && 'Fitness Goals'}
             {step === 3 && 'Activity & Fitness Level'}
             {step === 4 && 'Preferences & Constraints'}
             {step === 5 && 'Initial Baseline Assessment'}
           </h1>
-          <p className="text-sm text-charcoal font-sans">
-            {step === 1 && 'Provide your biological metrics for accurate AI calibration.'}
-            {step === 2 && 'Set your primary fitness target and timeline.'}
-            {step === 3 && 'Estimate your baseline physical activity frequency.'}
-            {step === 4 && 'Specify dietary preferences, equipment, and health considerations.'}
-            {step === 5 && 'Your baseline evaluation and caloric targets have been calculated.'}
+          <p className="text-xs sm:text-sm text-text-2">
+            {step === 1 && 'Your baseline metrics calibrate accurate energy and nutrition targets.'}
+            {step === 2 && 'Define your objective so FitMind can design goal-aligned recommendations.'}
+            {step === 3 && 'Your daily energy burn determines total maintenance calories.'}
+            {step === 4 && 'Customize workout equipment and note any injuries or restrictions.'}
+            {step === 5 && 'Review your calibrated metabolic baseline and get started.'}
           </p>
         </div>
 
-        {apiError && (
-          <div
-            className="mb-6 p-4 border border-error bg-error/5 text-error font-mono text-xs uppercase tracking-wider"
-            role="alert"
-          >
-            {apiError}
-          </div>
-        )}
-
-        {/* STEP 1: PERSONAL INFO */}
+        {/* STEP 1: PERSONAL INFORMATION */}
         {step === 1 && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <Input
               label="Full Name"
-              type="text"
-              placeholder="Alex Johnson"
               required
+              placeholder="e.g. Alex Rivera"
               value={formData.full_name}
               onChange={(e) => updateField('full_name', e.target.value)}
               error={stepErrors.full_name}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Height (CM)"
-                type="number"
-                placeholder="175"
-                required
-                helperText="50 to 300 cm"
-                value={formData.height_cm}
-                onChange={(e) => updateField('height_cm', e.target.value)}
-                error={stepErrors.height_cm}
-              />
-
-              <Input
-                label="Current Weight (KG)"
-                type="number"
-                placeholder="75"
-                required
-                helperText="30 to 300 kg"
-                value={formData.weight_kg}
-                onChange={(e) => updateField('weight_kg', e.target.value)}
-                error={stepErrors.weight_kg}
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="dob-input" className="text-xs font-medium text-text-2">
+                Date of Birth (Optional)
+              </label>
+              <input
+                id="dob-input"
+                type="date"
+                value={formData.date_of_birth}
+                onChange={(e) => updateField('date_of_birth', e.target.value)}
+                className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
-
-            <Input
-              label="Date of Birth (Optional)"
-              type="date"
-              helperText="Used to compute age for TDEE energy expenditure calculation"
-              value={formData.date_of_birth}
-              onChange={(e) => updateField('date_of_birth', e.target.value)}
-            />
 
             <Select
               label="Gender (Optional)"
@@ -359,12 +376,35 @@ export const OnboardingPage: React.FC = () => {
                 { label: 'Prefer Not to Say', value: 'prefer_not_to_say' },
               ]}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Height (CM)"
+                required
+                type="number"
+                placeholder="175"
+                value={formData.height_cm}
+                onChange={(e) => updateField('height_cm', e.target.value)}
+                error={stepErrors.height_cm}
+              />
+
+              <Input
+                label="Current Weight (KG)"
+                required
+                type="number"
+                step="0.1"
+                placeholder="70"
+                value={formData.weight_kg}
+                onChange={(e) => updateField('weight_kg', e.target.value)}
+                error={stepErrors.weight_kg}
+              />
+            </div>
           </div>
         )}
 
         {/* STEP 2: FITNESS GOALS */}
         {step === 2 && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <Select
               label="Primary Goal"
               required
@@ -374,6 +414,7 @@ export const OnboardingPage: React.FC = () => {
               options={[
                 { label: 'Select Primary Goal', value: '' },
                 { label: 'Weight Loss', value: 'weight_loss' },
+                { label: 'Fat Loss', value: 'fat_loss' },
                 { label: 'Muscle Gain', value: 'muscle_gain' },
                 { label: 'Maintain Weight & Health', value: 'maintain' },
                 { label: 'Endurance & Stamina', value: 'endurance' },
@@ -381,27 +422,43 @@ export const OnboardingPage: React.FC = () => {
               ]}
             />
 
-            <Input
-              label="Target Weight (KG) — Optional"
-              type="number"
-              placeholder="70"
-              value={formData.target_weight_kg}
-              onChange={(e) => updateField('target_weight_kg', e.target.value)}
-              error={stepErrors.target_weight_kg}
-            />
+            <div>
+              <Input
+                label="Target Weight (KG) — Optional"
+                type="number"
+                step="0.1"
+                placeholder="e.g. 68"
+                value={formData.target_weight_kg}
+                onChange={(e) => updateField('target_weight_kg', e.target.value)}
+                error={stepErrors.target_weight_kg}
+              />
+              <p className="text-[11px] text-text-3 mt-1">
+                {formData.goal_type === 'fat_loss' || formData.goal_type === 'weight_loss'
+                  ? 'Must be lower than your current weight.'
+                  : formData.goal_type === 'muscle_gain'
+                  ? 'Must be at or above your current weight.'
+                  : 'Optional target weight.'}
+              </p>
+            </div>
 
-            <Input
-              label="Target Date — Optional"
-              type="date"
-              value={formData.target_date}
-              onChange={(e) => updateField('target_date', e.target.value)}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="target-date-input" className="text-xs font-medium text-text-2">
+                Target Date (Optional)
+              </label>
+              <input
+                id="target-date-input"
+                type="date"
+                value={formData.target_date}
+                onChange={(e) => updateField('target_date', e.target.value)}
+                className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
           </div>
         )}
 
         {/* STEP 3: FITNESS LEVEL */}
         {step === 3 && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             <Select
               label="Baseline Activity Level"
               required
@@ -422,7 +479,7 @@ export const OnboardingPage: React.FC = () => {
 
         {/* STEP 4: PREFERENCES */}
         {step === 4 && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             <Select
               label="Dietary Preference (Optional)"
               value={formData.diet_preference}
@@ -439,7 +496,7 @@ export const OnboardingPage: React.FC = () => {
             />
 
             <div>
-              <label className="font-mono text-xs uppercase tracking-widest text-graphite font-bold mb-2 block">
+              <label className="text-xs font-medium text-text-2 block mb-2">
                 Available Equipment (Select all that apply)
               </label>
               <div className="flex flex-wrap gap-2">
@@ -450,10 +507,10 @@ export const OnboardingPage: React.FC = () => {
                       key={item.id}
                       type="button"
                       onClick={() => toggleEquipment(item.id)}
-                      className={`font-mono text-xs uppercase tracking-wider px-3.5 py-2.5 border transition-colors ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                         selected
-                          ? 'bg-graphite text-bone border-graphite'
-                          : 'bg-bone text-graphite border-borderLine hover:border-graphite'
+                          ? 'bg-accent text-white border-accent'
+                          : 'bg-surface-2 text-text-2 border-border hover:border-accent/40'
                       }`}
                     >
                       {selected ? '✓ ' : '+ '}
@@ -465,7 +522,7 @@ export const OnboardingPage: React.FC = () => {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor="medical-notes" className="font-mono text-xs uppercase tracking-widest text-graphite font-bold">
+              <label htmlFor="medical-notes" className="text-xs font-medium text-text-2">
                 Medical Notes / Injuries (Optional)
               </label>
               <textarea
@@ -474,8 +531,11 @@ export const OnboardingPage: React.FC = () => {
                 placeholder="Mention any physical injuries, back pain, or medical conditions for AI safety..."
                 value={formData.medical_notes}
                 onChange={(e) => updateField('medical_notes', e.target.value)}
-                className="w-full bg-bone border border-borderLine rounded-none p-3.5 font-sans text-sm text-graphite placeholder:text-faded focus:outline-none focus:border-graphite focus:ring-2 focus:ring-olive"
+                className="w-full bg-surface-2 border border-border rounded-md p-3 text-sm text-text placeholder:text-text-3 focus:outline-none focus:ring-2 focus:ring-accent"
               />
+              <p className="text-[11px] text-text-3">
+                Factored into your AI Coach workout recommendations to protect against injury.
+              </p>
             </div>
           </div>
         )}
@@ -483,74 +543,103 @@ export const OnboardingPage: React.FC = () => {
         {/* STEP 5: INITIAL ASSESSMENT (HONEST DISPLAY) */}
         {step === 5 && (
           <div className="flex flex-col gap-6">
-            <div className="p-6 border border-borderLine bg-black/5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-mono text-xs uppercase tracking-widest text-olive font-bold">
+            <div className="p-4 rounded-lg border border-accent/30 bg-accent/10">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs uppercase tracking-wider font-semibold text-accent">
                   Baseline Evaluation
                 </span>
-                <Badge variant="olive">Ready</Badge>
+                <Badge variant="olive">Calibrated</Badge>
               </div>
-              <p className="text-xs text-charcoal leading-relaxed">
+              <p className="text-xs text-text-2 leading-relaxed">
                 Your physical metrics ({tdeeResult.heightUsed} cm, {tdeeResult.weightUsed} kg) and activity level have been calibrated.
-                Numeric fitness score tracking will activate after your first logged workout.
+                Numeric fitness score tracking will activate after your first logged workout session.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-6 border border-borderLine">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg border border-border bg-surface-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-3 block mb-1">
                   Estimated TDEE (Mifflin-St Jeor)
                 </span>
-                <span className="font-mono text-2xl font-bold text-graphite">{tdeeResult.tdee} kcal/day</span>
-                <p className="text-xs text-faded mt-1">
+                <span className="text-2xl font-bold text-text">
+                  {tdeeResult.tdee} kcal/day
+                </span>
+                <p className="text-xs text-text-3 mt-1">
                   BMR: {tdeeResult.bmr} kcal/day (Age: {tdeeResult.ageUsed}
                   {tdeeResult.isAgeDefaulted ? ' [Default]' : ''})
                 </p>
               </div>
 
-              <div className="p-6 border border-borderLine">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-faded block mb-1">
+              <div className="p-4 rounded-lg border border-border bg-surface-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-3 block mb-1">
                   Primary Goal Target
                 </span>
-                <span className="font-mono text-lg font-bold uppercase text-graphite">
+                <span className="text-lg font-bold capitalize text-text">
                   {formData.goal_type ? formData.goal_type.replace('_', ' ') : 'General Fitness'}
                 </span>
-                <p className="text-xs text-faded mt-1">
+                <p className="text-xs text-text-3 mt-1">
                   {formData.target_weight_kg ? `Target: ${formData.target_weight_kg} kg` : 'Target weight not specified'}
                 </p>
               </div>
             </div>
 
-            <div className="p-6 border border-borderLine">
-              <span className="font-mono text-xs uppercase tracking-widest text-graphite font-bold block mb-2">
-                Routine Setup
-              </span>
-              <p className="text-sm text-charcoal font-sans">
-                Your initial training structure will be assembled in your dashboard based on your {formData.activity_level || 'moderate'} activity level and selected equipment ({formData.equipment.join(', ')}).
-              </p>
+            <div className="p-4 rounded-lg border border-border bg-surface-2 text-xs text-text-2 flex items-start gap-2.5">
+              <Info className="w-4 h-4 shrink-0 mt-0.5 text-accent" />
+              <div>
+                <strong className="text-text block mb-0.5">Caloric Target Derivation</strong>
+                Your BMR represents the basal energy needed by your body at complete rest. FitMind applies your activity multiplier to calculate TDEE, then automatically structures your safe daily macronutrient and caloric deficit/surplus.
+              </div>
             </div>
           </div>
         )}
 
-        {/* Wizard Footer Controls */}
-        <div className="mt-8 pt-6 border-t border-borderLine flex items-center justify-between">
-          {step > 1 ? (
-            <Button variant="secondary" onClick={handleBack} disabled={isSubmitting}>
-              Back
-            </Button>
-          ) : (
-            <div />
-          )}
+        {/* NAVIGATION CONTROLS */}
+        <div className="mt-8 pt-4 border-t border-border flex items-center justify-between">
+          <div>
+            {step > 1 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleBack}
+                icon={<ArrowLeft className="w-4 h-4" />}
+              >
+                Back
+              </Button>
+            )}
+          </div>
 
-          {step < 5 ? (
-            <Button variant="primary" onClick={handleNext}>
-              Continue →
-            </Button>
-          ) : (
-            <Button variant="primary" isLoading={isSubmitting} onClick={handleSubmitFinal}>
-              View My Plan →
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {step === 4 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSkipStep4}
+              >
+                Skip Step
+              </Button>
+            )}
+
+            {step < 5 ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleNext}
+                icon={<ArrowRight className="w-4 h-4" />}
+              >
+                Continue
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={isSubmitting}
+                onClick={handleSubmit}
+                icon={<Check className="w-4 h-4" />}
+              >
+                {isSubmitting ? 'Saving...' : 'View My Plan'}
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
     </div>

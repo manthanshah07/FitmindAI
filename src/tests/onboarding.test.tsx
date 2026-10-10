@@ -196,4 +196,75 @@ describe('OnboardingPage Wizard', () => {
       medical_notes: undefined,
     });
   });
+
+  it('validates goal direction in step 2 (fat loss target must be below current weight)', async () => {
+    render(
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <Routes>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Step 1: Weight 80 kg
+    fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), { target: { value: '180' } });
+    fireEvent.change(screen.getByLabelText(/Current Weight \(KG\)/i), { target: { value: '80' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+
+    // Step 2: Goal selection
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Fitness Goals/i })).toBeInTheDocument());
+
+    // Select fat loss but input target weight >= 80 kg
+    fireEvent.change(screen.getByLabelText(/Primary Goal/i), { target: { value: 'fat_loss' } });
+    fireEvent.change(screen.getByLabelText(/Target Weight/i), { target: { value: '85' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/For fat loss, target weight/i)).toBeInTheDocument();
+    });
+
+    // Fix target weight to valid (75 kg)
+    fireEvent.change(screen.getByLabelText(/Target Weight/i), { target: { value: '75' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Activity & Fitness Level/i })).toBeInTheDocument();
+    });
+  });
+
+  it('allows explicitly skipping step 4 (preferences) to step 5 (summary)', async () => {
+    render(
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <Routes>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    // Step 1
+    fireEvent.change(screen.getByLabelText(/Height \(CM\)/i), { target: { value: '175' } });
+    fireEvent.change(screen.getByLabelText(/Current Weight \(KG\)/i), { target: { value: '70' } });
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+
+    // Step 2
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Fitness Goals/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+
+    // Step 3
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Activity & Fitness Level/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Continue/i }));
+
+    // Step 4
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Preferences & Constraints/i })).toBeInTheDocument());
+
+    // Click "Skip Step"
+    fireEvent.click(screen.getByRole('button', { name: /Skip Step/i }));
+
+    // Lands directly on Step 5
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /Initial Baseline Assessment/i })).toBeInTheDocument();
+      expect(screen.getByText(/Caloric Target Derivation/i)).toBeInTheDocument();
+    });
+  });
 });
+

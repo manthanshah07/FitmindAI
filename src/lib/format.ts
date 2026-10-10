@@ -12,7 +12,13 @@ export function formatDate(
   } = {},
 ): string {
   if (!input) return '';
-  const date = typeof input === 'string' || typeof input === 'number' ? new Date(input) : input;
+  let date: Date;
+  if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    const [y, m, d] = input.split('-').map(Number);
+    date = new Date(y, m - 1, d);
+  } else {
+    date = typeof input === 'string' || typeof input === 'number' ? new Date(input) : input;
+  }
   if (isNaN(date.getTime())) return '';
 
   const {
@@ -78,3 +84,50 @@ export function formatPercent(value: number | null | undefined, decimals = 0): s
   if (value === null || value === undefined || isNaN(value)) return '0%';
   return `${formatNumber(value, decimals)}%`;
 }
+
+export function formatWeightByUnit(
+  weightKg: number | null | undefined,
+  unitSystem: 'metric' | 'imperial' = 'metric',
+): string {
+  if (weightKg === null || weightKg === undefined || isNaN(weightKg)) {
+    return unitSystem === 'imperial' ? '0.0 lbs' : '0.0 kg';
+  }
+  if (unitSystem === 'imperial') {
+    return `${formatNumber(weightKg * 2.20462, 1)} lbs`;
+  }
+  return `${formatNumber(weightKg, 1)} kg`;
+}
+
+export function formatHeightByUnit(
+  heightCm: number | null | undefined,
+  unitSystem: 'metric' | 'imperial' = 'metric',
+): string {
+  if (heightCm === null || heightCm === undefined || isNaN(heightCm) || heightCm <= 0) {
+    return unitSystem === 'imperial' ? '0 ft 0 in' : '0 cm';
+  }
+  if (unitSystem === 'imperial') {
+    const totalInches = heightCm / 2.54;
+    let feet = Math.floor(totalInches / 12);
+    let inches = Math.round(totalInches % 12);
+    if (inches === 12) {
+      feet += 1;
+      inches = 0;
+    }
+    return `${feet} ft ${inches} in`;
+  }
+  return `${formatNumber(heightCm, 0)} cm`;
+}
+
+export function formatCircumferenceByUnit(
+  circCm: number | null | undefined,
+  unitSystem: 'metric' | 'imperial' = 'metric',
+): string {
+  if (circCm === null || circCm === undefined || isNaN(circCm) || circCm <= 0) {
+    return unitSystem === 'imperial' ? '0.0 in' : '0.0 cm';
+  }
+  if (unitSystem === 'imperial') {
+    return `${formatNumber(circCm / 2.54, 1)} in`;
+  }
+  return `${formatNumber(circCm, 1)} cm`;
+}
+

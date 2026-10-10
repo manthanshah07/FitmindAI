@@ -11,6 +11,12 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name?: string;
+  timezone?: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
 }
 
 export interface LoginRequest {

@@ -16,7 +16,7 @@ const LoginPage = lazy(() => import('./pages/auth/LoginPage').then((m) => ({ def
 const SignupPage = lazy(() => import('./pages/auth/SignupPage').then((m) => ({ default: m.SignupPage })));
 const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })));
 const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const ProfilePage = lazy(() => import('./pages/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const WorkoutOverviewPage = lazy(() => import('./pages/workout/WorkoutOverviewPage').then((m) => ({ default: m.WorkoutOverviewPage })));
 const WorkoutSessionPage = lazy(() => import('./pages/workout/WorkoutSessionPage').then((m) => ({ default: m.WorkoutSessionPage })));
@@ -118,7 +118,7 @@ export function App() {
 
               <Route path="/coach" element={<CoachPage />} />
 
-              <Route path="/settings" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="/profile" element={<Navigate to="/settings" replace />} />
 
               {/* M7 Consolidated Routes */}
@@ -179,6 +179,18 @@ export function App() {
                   <CoachPage />
                 </AppShell>
               }
+            />
+            <Route
+              path="/dev/settings"
+              element={
+                <AppShell>
+                  <SettingsPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/dev/onboarding"
+              element={<OnboardingPage />}
             />
           </Routes>
         </Suspense>

@@ -13,8 +13,11 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
     MessageResponse,
+    ChangePasswordRequest,
 )
 from app.services.auth_service import AuthService
+from app.api.deps import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -149,3 +152,18 @@ def logout(
 
     clear_refresh_cookie(response)
     return MessageResponse(message="Successfully logged out")
+
+
+@router.post("/change-password", response_model=MessageResponse, status_code=status.HTTP_200_OK)
+def change_password(
+    req: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Authenticated endpoint to change the current user's password.
+    Verifies current password, enforces complexity, updates hash, and revokes other refresh tokens.
+    """
+    AuthService.change_password(db, current_user, req)
+    return MessageResponse(message="Password changed successfully. Please log in with your new password.")
+

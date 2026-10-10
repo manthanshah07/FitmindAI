@@ -54,7 +54,11 @@ export const SignupPage: React.FC = () => {
   const onSubmit = async (data: SignupFormData) => {
     try {
       setError(null);
-      await registerUser(data);
+      const timezone =
+        typeof Intl !== 'undefined' && Intl.DateTimeFormat
+          ? Intl.DateTimeFormat().resolvedOptions().timeZone
+          : undefined;
+      await registerUser({ ...data, timezone });
       try {
         await login({ email: data.email, password: data.password });
         navigate('/dashboard', { replace: true });

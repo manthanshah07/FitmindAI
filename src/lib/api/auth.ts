@@ -6,6 +6,7 @@ import type {
   TokenResponse,
   User,
   MessageResponse,
+  ChangePasswordRequest,
 } from '../../types/auth';
 
 export async function registerApi(data: RegisterRequest): Promise<User> {
@@ -27,3 +28,9 @@ export async function logoutApi(data: RefreshTokenRequest = {}): Promise<Message
   const response = await api.post<MessageResponse>('/auth/logout', data);
   return response.data;
 }
+
+export async function changePasswordApi(data: ChangePasswordRequest): Promise<MessageResponse> {
+  const response = await api.post<MessageResponse>('/auth/change-password', data);
+  return response.data;
+}
+

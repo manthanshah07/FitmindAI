@@ -605,10 +605,59 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `coach_chat_desktop.png` (1280x800)
   - `coach_privacy_modal_desktop.png` (1280x800)
 
+---
 
+## 14. Milestone M9 Verified Implementation
 
-
-
-
-
+- **Branch:** `m9-settings-onboarding-account`
+- **Specification:** Strictly adhered to Section 6 (Milestone M9), Section 3.2 (findings D6, D7, D8), Section 3.3 (U9, U10), and Section 4.5 of `docs/FINAL_PLAN.md`.
+- **Backend Date of Birth, Timezone, and Units (fixes D7, D8, U3, U10):**
+  - Updated `backend/app/schemas/auth.py`: Added optional `timezone: Optional[str]` to `RegisterRequest` with IANA timezone validation (`validate_iana_timezone`), and created `ChangePasswordRequest`.
+  - Updated `backend/app/services/auth_service.py`: Auto-persists client `timezone` directly to `Profile.timezone` at signup. Added `change_password(db, user, req)` with verification of `current_password`, password complexity validation (min 8 chars, mixed case, digit/special char), and revocation of active refresh tokens on password change.
+  - Implemented `POST /api/v1/auth/change-password` endpoint.
+- **Backend Account Portability and Deletion Endpoints:**
+  - Created `backend/app/schemas/user.py` defining `DeleteAccountRequest` and `ExportResponse`.
+  - Created `backend/app/services/user_service.py`:
+    - `export_user_data(db, user)`: Generates complete, sanitized JSON archive of all user records (user details, profile, active & historic goals, body measurements, workout sessions & exercises, nutrition logs & meals, fitness score assessments, and AI coach chat messages) with strict user isolation (`user_id == current_user.id`).
+    - `delete_user_account(db, user, req)`: Requires current password confirmation; deletes user record and cascades all dependent records across database tables; revokes refresh tokens and clears auth cookies.
+  - Created `backend/app/api/v1/user.py`: Implemented `GET /api/v1/user/export` and `DELETE /api/v1/user/account`. Registered route under `/api/v1/user` in `backend/app/api/v1/router.py`.
+  - Backend tests in `backend/tests/test_account_api.py`: 8 comprehensive tests covering password changes (success, wrong current password, same as current, complexity reject), client timezone registration, user data export & strict isolation, wrong password account delete rejection, and successful account deletion cascading.
+- **Frontend Units & Formatting Centralization (fixes D7, D8, U10):**
+  - Created `src/store/usePreferencesStore.ts`: Persisted client store in `localStorage` under `fitmind_preferences` storing `units` (`'metric' | 'imperial'`), `screenWakeLock` (boolean), and `restTimerSound` (boolean).
+  - Extended `src/lib/format.ts`: Added unit-aware format helpers `formatWeightByUnit`, `formatHeightByUnit`, and `formatCircumferenceByUnit`. Fixed timezone-dependent Date parsing in `formatDate` for `YYYY-MM-DD` strings to prevent accidental day shifting across timezones (fixing D7).
+  - Auto-detected client timezone via `Intl.DateTimeFormat().resolvedOptions().timeZone` at signup in `src/pages/auth/SignupPage.tsx`.
+- **Rebuilt Settings Screen (`/settings`, redirects from `/profile`) (fixes U10):**
+  - Responsive architecture:
+    - Mobile (<768px): clean list of 6 sections navigating to sub-screens with back navigation.
+    - Desktop (>=768px): vertical navigation tabs on left, content panel on right.
+  - 6 dedicated sections:
+    1. **Profile:** Full name, Date of birth (displayed as standard readable text e.g. `15 Jun 1995` in view mode, never disabled greyed-out inputs; `YYYY-MM-DD` date picker in edit mode), sex/gender, current weight, height, and account email.
+    2. **Goal:** Active goal type chooser, target weight with inline direction validation (fat loss target must be lower than weight; muscle gain at or above), target date with safe recommended pace calculation (0.25 to 0.75 kg/wk, warning on >1.0 kg/wk), and M6 goal conflict validation notice.
+    3. **Training:** Equipment selector chips, target weekly workout days (1–7), and session duration (15–90 min).
+    4. **Preferences:** Units (Metric vs Imperial toggle), client timezone dropdown, interface theme (Light / Dark / System), screen wake lock toggle, and rest timer sound alert toggle.
+    5. **Health Notes:** Medical notes textarea with explicit AI Coach disclosure banner: *"These notes are directly factored into your AI Coach recommendations to protect against injury and respect movement constraints."*
+    6. **Account:** Change password dialog, JSON data export button (`fitmind_export_*.json`), and Delete Account dialog with password confirmation and danger styling.
+  - Per-section editing: dedicated "Edit", "Save changes", and "Cancel" buttons for each section.
+- **Restyled Onboarding Flow (`/onboarding`):**
+  - Retained 5-step flow restyled with design tokens and step progress indicator (Step 1–5 pills).
+  - One topic per screen with validation:
+    - Step 1: Personal profile & metrics.
+    - Step 2: Goal selection with goal direction validation (fat loss strictly below current weight; muscle gain at or above).
+    - Step 3: Baseline activity level.
+    - Step 4: Training & diet preferences (explicitly skippable via "Skip Step" button).
+    - Step 5: Baseline calibration summary with calculated BMR & TDEE (Mifflin-St Jeor) and plain-language explanation of caloric target derivation.
+- **Verification & Test Results:**
+  - **Backend Pytest Suite:** **385 passed** (0 failures, 16 warnings) in 90.38s.
+  - **Frontend Vitest Suite:** **168 passed** (0 failures) across 24 test files in 3.61s.
+  - **TypeScript Static Verification:** `npx tsc -b --noEmit` passed with 0 errors.
+  - **Static Analysis:** `npm run lint` reported 0 errors across 157 files.
+  - **Production Build:** `npm run build` completed successfully in 470ms with PWA generation intact.
+  - **Database Migrations:** Zero schema migrations needed. Alembic head verified at `2026_10_10_0015 (head)`.
+- **Screenshots:** Mobile (390x844) and desktop (1280x800) screenshots captured and saved in `docs/screens/m9/`:
+  - `settings_mobile.png` (390x844)
+  - `settings_desktop.png` (1280x800)
+  - `settings_goal_desktop.png` (1280x800)
+  - `settings_account_desktop.png` (1280x800)
+  - `onboarding_mobile.png` (390x844)
+  - `onboarding_desktop.png` (1280x800)
 

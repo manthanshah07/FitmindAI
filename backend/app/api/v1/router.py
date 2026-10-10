@@ -13,14 +13,19 @@ from app.api.v1.reports import router as reports_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.intelligence import router as intelligence_router
+from app.api.v1.user import router as user_router
 
 api_v1_router = APIRouter()
 
 # Include auth endpoints
 api_v1_router.include_router(auth_router)
 
+# Include user account endpoints
+api_v1_router.include_router(user_router, prefix="/user")
+
 # Include admin endpoints
 api_v1_router.include_router(admin_router)
+
 
 
 # Include dashboard endpoints

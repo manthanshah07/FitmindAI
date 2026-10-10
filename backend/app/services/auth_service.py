@@ -7,7 +7,13 @@ from fastapi import HTTPException, status
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.refresh_token import RefreshToken
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse, UserResponse
+from app.schemas.auth import (
+    RegisterRequest,
+    LoginRequest,
+    TokenResponse,
+    UserResponse,
+    ChangePasswordRequest,
+)
 from app.core.security import (
     hash_password,
     verify_password,
@@ -55,9 +61,11 @@ class AuthService:
         # This prevents the registration full_name from being silently discarded.
         # If no name provided, fall back to the email prefix (same as lazy creation path).
         display_name = (req.full_name or "").strip() or normalized_email.split("@")[0].capitalize()
+        user_tz = req.timezone or "UTC"
         profile = Profile(
             user_id=user.id,
             full_name=display_name,
+            timezone=user_tz,
             onboarding_complete=False,
         )
         db.add(profile)
@@ -230,3 +238,21 @@ class AuthService:
         except Exception:
             # Logout should fail silently/gracefully without leaking internal errors
             pass
+
+    @staticmethod
+    def change_password(db: Session, user: User, req: ChangePasswordRequest) -> None:
+        if not verify_password(req.current_password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect",
+            )
+        if req.current_password == req.new_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be different from current password",
+            )
+        user.password_hash = hash_password(req.new_password)
+        # Revoke other active refresh tokens for the user
+        db.query(RefreshToken).filter(RefreshToken.user_id == user.id).delete(synchronize_session=False)
+        db.commit()
+

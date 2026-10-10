@@ -4,10 +4,14 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
 
 
+from app.schemas.profile import validate_iana_timezone
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128, description="Password must be at least 8 characters with letters and digits")
     full_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    timezone: Optional[str] = Field(None, max_length=50)
 
     @field_validator("password")
     @classmethod
@@ -17,6 +21,31 @@ class RegisterRequest(BaseModel):
         if not any(c.isdigit() for c in v):
             raise ValueError("Password must contain at least one digit")
         return v
+
+    @field_validator("timezone")
+    @classmethod
+    def validate_timezone(cls, v: Optional[str]) -> Optional[str]:
+        return validate_iana_timezone(v)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="New password must be at least 8 characters with letters and digits",
+    )
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        if not any(c.isalpha() for c in v):
+            raise ValueError("Password must contain at least one letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
+
 
 
 

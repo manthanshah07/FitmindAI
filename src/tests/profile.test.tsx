@@ -13,6 +13,18 @@ vi.mock('../lib/api/profile', () => ({
   completeOnboardingApi: vi.fn(),
 }));
 
+vi.mock('../lib/api/goals', () => ({
+  getActiveGoalApi: vi.fn().mockResolvedValue({
+    id: 'g-1',
+    user_id: 'u-123',
+    goal_type: 'fat_loss',
+    target_weight_kg: 78.0,
+    target_date: '2026-12-31',
+    is_active: true,
+  }),
+  createGoalApi: vi.fn(),
+}));
+
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -51,8 +63,7 @@ const mockProfile = {
   updated_at: new Date().toISOString(),
 };
 
-
-describe('Phase 2B — User Profile & Settings Screen', () => {
+describe('Milestone M9 — User Profile & Settings Screen', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -73,22 +84,20 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     vi.clearAllMocks();
   });
 
-  it('loads and displays user profile data from GET /api/v1/profile', async () => {
+  it('loads and displays user profile data from GET /api/v1/profile in view mode as readable text', async () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/profile']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <AppShell>
           <ProfilePage />
         </AppShell>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByDisplayValue('Alex Rivera')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('1995-06-15')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('82.5')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('182')).toBeInTheDocument();
-    expect(screen.getByDisplayValue(/Mild right knee discomfort/i)).toBeInTheDocument();
+    expect(await screen.findByText('15 Jun 1995')).toBeInTheDocument();
+    expect(screen.getByText('82.5 kg')).toBeInTheDocument();
+    expect(screen.getByText('182 cm')).toBeInTheDocument();
   });
 
   it('allows user to enter edit mode, modify fields, and save changes via PUT /api/v1/profile', async () => {
@@ -100,14 +109,14 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     });
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/profile']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <AppShell>
           <ProfilePage />
         </AppShell>
       </MemoryRouter>,
     );
 
-    await screen.findByDisplayValue('Alex Rivera');
+    await screen.findByRole('button', { name: /Edit Profile/i });
 
     // Enter Edit Mode
     fireEvent.click(screen.getByRole('button', { name: /Edit Profile/i }));
@@ -137,14 +146,14 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/profile']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <AppShell>
           <ProfilePage />
         </AppShell>
       </MemoryRouter>,
     );
 
-    await screen.findByDisplayValue('Alex Rivera');
+    await screen.findByRole('button', { name: /Edit Profile/i });
 
     // Enter Edit Mode
     fireEvent.click(screen.getByRole('button', { name: /Edit Profile/i }));
@@ -157,22 +166,22 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     // Click Cancel
     fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
 
-    expect(screen.getByDisplayValue('Alex Rivera')).toBeInTheDocument();
-    expect(screen.queryByDisplayValue('Temporary Name')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Alex Rivera').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Temporary Name')).not.toBeInTheDocument();
   });
 
-  it('prevents saving invalid height or weight values with validation errors', async () => {
+  it('prevents saving invalid weight values with validation errors', async () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/profile']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <AppShell>
           <ProfilePage />
         </AppShell>
       </MemoryRouter>,
     );
 
-    await screen.findByDisplayValue('Alex Rivera');
+    await screen.findByRole('button', { name: /Edit Profile/i });
 
     fireEvent.click(screen.getByRole('button', { name: /Edit Profile/i }));
 
@@ -182,7 +191,7 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Weight must be at least 30 kg/i)).toBeInTheDocument();
+      expect(screen.getByText(/Weight must be between 30 and 300 kg/i)).toBeInTheDocument();
     });
 
     expect(profileApi.updateProfileApi).not.toHaveBeenCalled();
@@ -195,14 +204,14 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     );
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/profile']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <AppShell>
           <ProfilePage />
         </AppShell>
       </MemoryRouter>,
     );
 
-    await screen.findByDisplayValue('Alex Rivera');
+    await screen.findByRole('button', { name: /Edit Profile/i });
 
     fireEvent.click(screen.getByRole('button', { name: /Edit Profile/i }));
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
@@ -212,24 +221,27 @@ describe('Phase 2B — User Profile & Settings Screen', () => {
     });
   });
 
-  it('toggles training equipment options correctly in edit mode', async () => {
+  it('toggles training equipment options correctly in edit mode in training section', async () => {
     vi.mocked(profileApi.getProfileApi).mockResolvedValueOnce(mockProfile);
     vi.mocked(profileApi.updateProfileApi).mockResolvedValueOnce(mockProfile);
 
     renderWithQuery(
-      <MemoryRouter initialEntries={['/profile']}>
+      <MemoryRouter initialEntries={['/settings']}>
         <AppShell>
           <ProfilePage />
         </AppShell>
       </MemoryRouter>,
     );
 
-    await screen.findByDisplayValue('Alex Rivera');
+    await screen.findByRole('button', { name: /Edit Profile/i });
 
-    fireEvent.click(screen.getByRole('button', { name: /Edit Profile/i }));
+    // Switch to Training Section
+    fireEvent.click(screen.getByRole('button', { name: /Training/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Edit Training/i }));
 
     // Toggle Kettlebells
-    const kettlebellBtn = screen.getByText(/Kettlebells/i);
+    const kettlebellBtn = screen.getByText(/\+ Kettlebells/i);
     fireEvent.click(kettlebellBtn);
 
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }));
