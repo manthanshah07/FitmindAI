@@ -104,6 +104,8 @@ class PlanOptimizerService:
         candidates: List[PlanCandidate] = []
         candidate_idx = 1
 
+        goal_type = active_goal.goal_type if active_goal else None
+
         for c_off in cal_offsets:
             cand_cals = round(current_cals + c_off, 1)
             # Configured product constraint: not below 1200 kcal or 0.7 * BMR
@@ -115,12 +117,21 @@ class PlanOptimizerService:
                 cand_prot = round(max(current_prot + p_off, 40.0), 1)
 
                 for act in activity_candidates:
+                    cand_tdee = round(bmr * float(act), 1)
+
+                    # Goal alignment constraint (Fixes D2):
+                    # - muscle_gain: candidate intake must be >= maintenance TDEE (surplus or maintenance)
+                    # - fat_loss: candidate intake must be <= maintenance TDEE (deficit or maintenance)
+                    if goal_type == "muscle_gain" and cand_cals < cand_tdee:
+                        continue
+                    if goal_type == "fat_loss" and cand_cals > cand_tdee:
+                        continue
+
                     # Modify feature dict consistently
                     feat_dict = deepcopy(base_features)
 
                     # Activity
                     feat_dict["F16"] = float(act)
-                    cand_tdee = round(bmr * float(act), 1)
                     feat_dict["F07"] = cand_tdee
 
                     # Calories
@@ -174,8 +185,32 @@ class PlanOptimizerService:
                     else:
                         rating = "CHALLENGING"
 
+                    # Generate human-readable title and rationale (Fixes D9)
+                    diff_tdee = cand_cals - cand_tdee
+                    if diff_tdee < -250:
+                        title = f"Moderate Deficit ({int(c_off):+d} kcal)" if c_off != 0 else "Moderate Deficit Plan"
+                        rationale = f"Creates a ~{abs(int(diff_tdee))} kcal daily deficit below maintenance for steady fat loss."
+                    elif diff_tdee < -50:
+                        title = f"Mild Deficit ({int(c_off):+d} kcal)" if c_off != 0 else "Mild Deficit Plan"
+                        rationale = f"Maintains a sustainable ~{abs(int(diff_tdee))} kcal deficit protecting training performance."
+                    elif diff_tdee > 250:
+                        title = f"Moderate Surplus ({int(c_off):+d} kcal)" if c_off != 0 else "Moderate Surplus Plan"
+                        rationale = f"Provides a +{int(diff_tdee)} kcal surplus to maximize hypertrophy with minimal fat gain."
+                    elif diff_tdee > 50:
+                        title = f"Lean Surplus ({int(c_off):+d} kcal)" if c_off != 0 else "Lean Surplus Plan"
+                        rationale = f"Supplies a +{int(diff_tdee)} kcal lean surplus to fuel muscular growth."
+                    else:
+                        title = f"Maintenance Balance ({int(c_off):+d} kcal)" if c_off != 0 else "Maintenance Balance Plan"
+                        rationale = "Matches estimated daily expenditure for recomposition or weight stability."
+
+                    if act > current_act:
+                        title += " + Increased Activity"
+                        rationale += " Includes an increased daily activity multiplier."
+
                     cand = PlanCandidate(
                         candidate_id=f"plan_c{candidate_idx:02d}",
+                        title=title,
+                        rationale=rationale,
                         daily_calories=cand_cals,
                         daily_protein_g=cand_prot,
                         activity_multiplier=act,
@@ -196,6 +231,8 @@ class PlanOptimizerService:
             baseline_proj_28d = ModelService.predict_delta_weight_28d(base_features)
             best = PlanCandidate(
                 candidate_id="plan_c00",
+                title="Current Baseline Intake",
+                rationale="Maintains your current 28-day average intake and activity.",
                 daily_calories=current_cals,
                 daily_protein_g=current_prot,
                 activity_multiplier=current_act,
@@ -216,7 +253,9 @@ class PlanOptimizerService:
             target_date=target_date_val.isoformat(),
             required_weekly_rate_kg=required_weekly_rate,
             current_intake_kcal=current_cals,
+            baseline_description="Your 28-day average intake",
             best_candidate=best,
             alternative_candidates=alternatives,
             objective_description=cls.OBJECTIVE_DESCRIPTION,
         )
+

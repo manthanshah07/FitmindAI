@@ -56,6 +56,8 @@ const mockWeeklyReport: FitnessReportResponse = {
     completion_rate_pct: 100,
     total_duration_minutes: 180,
     total_sets_completed: 24,
+    sets_completed: 24,
+    sets_planned: 24,
     total_exercises_completed: 8,
     most_frequent_muscles: ['Chest', 'Triceps', 'Back'],
     has_data: true,
@@ -103,10 +105,13 @@ const mockSparseWeeklyReport: FitnessReportResponse = {
     completion_rate_pct: null,
     total_duration_minutes: null,
     total_sets_completed: null,
+    sets_completed: 0,
+    sets_planned: 24,
     total_exercises_completed: null,
     most_frequent_muscles: [],
     has_data: false,
   },
+
   nutrition: {
     logged_days_count: 0,
     total_days_in_period: 7,

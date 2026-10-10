@@ -101,6 +101,8 @@ class ScenarioSimulationResponse(BaseModel):
 class PlanCandidate(BaseModel):
     """A ranked candidate plan under FitMind's deterministic candidate-ranking heuristic."""
     candidate_id: str
+    title: Optional[str] = Field(None, description="Human-readable title (e.g. 'Moderate Deficit (-300 kcal)')")
+    rationale: Optional[str] = Field(None, description="Short deterministic rationale for why this plan works")
     daily_calories: float
     daily_protein_g: float
     activity_multiplier: float
@@ -123,9 +125,11 @@ class PlanOptimizationResponse(BaseModel):
     target_date: str
     required_weekly_rate_kg: float
     current_intake_kcal: float
+    baseline_description: str = Field("Your 28-day average intake", description="Honest label for current intake")
     best_candidate: PlanCandidate
     alternative_candidates: List[PlanCandidate]
     objective_description: str
+
 
 
 class AdaptationStatusResponse(BaseModel):

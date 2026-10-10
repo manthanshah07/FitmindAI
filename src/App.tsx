@@ -27,9 +27,8 @@ const FoodLoggerPage = lazy(() => import('./pages/nutrition/FoodLoggerPage').the
 const NutritionHistoryPage = lazy(() => import('./pages/nutrition/NutritionHistoryPage').then((m) => ({ default: m.NutritionHistoryPage })));
 const ProgressOverviewPage = lazy(() => import('./pages/progress/ProgressOverviewPage').then((m) => ({ default: m.ProgressOverviewPage })));
 const CoachPage = lazy(() => import('./pages/coach/CoachPage').then((m) => ({ default: m.CoachPage })));
-const ReportsPage = lazy(() => import('./pages/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
-const IntelligencePage = lazy(() => import('./pages/intelligence/IntelligencePage').then((m) => ({ default: m.IntelligencePage })));
 const DevUiPage = lazy(() => import('./pages/dev/DevUiPage').then((m) => ({ default: m.DevUiPage })));
+
 
 const PageLoadingFallback = () => (
   <div className="min-h-[50vh] flex items-center justify-center p-8 bg-bg text-accent">
@@ -122,8 +121,10 @@ export function App() {
               <Route path="/settings" element={<ProfilePage />} />
               <Route path="/profile" element={<Navigate to="/settings" replace />} />
 
-              <Route path="/intelligence" element={<IntelligencePage />} />
-              <Route path="/reports" element={<ReportsPage />} />
+              {/* M7 Consolidated Routes */}
+              <Route path="/intelligence" element={<Navigate to="/progress?tab=forecast" replace />} />
+              <Route path="/reports" element={<Navigate to="/progress?tab=review" replace />} />
+              <Route path="/reports/*" element={<Navigate to="/progress?tab=review" replace />} />
             </Route>
 
             {/* Dev UI & Today Showcase (Developer accessible) */}

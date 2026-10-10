@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Scale, Target, Info } from 'lucide-react';
+import { Plus, Scale } from 'lucide-react';
+
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -15,12 +16,15 @@ import { TextField } from '../../components/ui/TextField';
 import { ListRow } from '../../components/ui/ListRow';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
+import { WeeklyReviewTab } from '../../components/progress/WeeklyReviewTab';
+import { ForecastTab } from '../../components/progress/ForecastTab';
 import { getProgressSummaryApi, createMeasurementApi } from '../../lib/api/progress';
 import { getActiveGoalApi } from '../../lib/api/goals';
 import { getErrorMessage } from '../../utils/apiError';
 import { inchesToCm, formatInches } from '../../utils/unitConversion';
 
 type RangeOption = '4w' | '12w' | '6m' | 'all';
+
 
 export const ProgressOverviewPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -371,30 +375,14 @@ export const ProgressOverviewPage: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* ================= WEEKLY REVIEW PLACEHOLDER (M7) ================= */}
+        {/* ================= WEEKLY REVIEW TAB (M7) ================= */}
         <TabsContent value="review" className="mt-6">
-          <Card className="p-8 text-center space-y-3">
-            <div className="mx-auto w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-text-2">
-              <Info className="w-5 h-5 text-accent" />
-            </div>
-            <h3 className="text-base font-semibold text-text">Weekly Review</h3>
-            <p className="text-xs text-text-2 max-w-md mx-auto leading-relaxed">
-              Comprehensive weekly and monthly retrospective reviews, progress highlights, and automated check-in summaries are arriving in Milestone M7.
-            </p>
-          </Card>
+          <WeeklyReviewTab />
         </TabsContent>
 
-        {/* ================= FORECAST PLACEHOLDER (M7) ================= */}
+        {/* ================= FORECAST TAB (M7) ================= */}
         <TabsContent value="forecast" className="mt-6">
-          <Card className="p-8 text-center space-y-3">
-            <div className="mx-auto w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-text-2">
-              <Target className="w-5 h-5 text-accent" />
-            </div>
-            <h3 className="text-base font-semibold text-text">Weight & Goal Forecast</h3>
-            <p className="text-xs text-text-2 max-w-md mx-auto leading-relaxed">
-              Predictive rate-of-loss projections, goal completion date estimates, and scenario planning simulations are arriving in Milestone M7.
-            </p>
-          </Card>
+          <ForecastTab />
         </TabsContent>
       </Tabs>
 

@@ -207,7 +207,7 @@ class TestReportsAPI:
             model="gemini-2.5-flash-lite",
         )
 
-        res = client.get("/api/v1/reports/weekly?date=2026-08-19", headers=auth_headers_user_a)
+        res = client.get("/api/v1/reports/weekly?date=2026-08-19&ai=true", headers=auth_headers_user_a)
         assert res.status_code == 200
         data = res.json()
 
@@ -219,8 +219,21 @@ class TestReportsAPI:
         assert "nutrition" in data
         assert "progress" in data
         assert "fitness_score" in data
+        assert "what_went_well" in data
+        assert "what_needs_attention" in data
+        assert "next_period_focus" in data
+        assert "deltas" in data
         assert data["narrative"] == "Mock executive summary of your weekly progress."
         assert data["ai_generated"] is True
+
+    def test_get_weekly_report_default_ai_is_false(
+        self, client, auth_headers_user_a
+    ):
+        res = client.get("/api/v1/reports/weekly?date=2026-08-19", headers=auth_headers_user_a)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["ai_generated"] is False
+        assert data["narrative"] is None
 
     @patch("app.core.ai_client.ai_client.generate")
     def test_get_monthly_report_authenticated_success(
@@ -238,6 +251,32 @@ class TestReportsAPI:
         assert data["report_type"] == "monthly"
         assert data["start_date"] == "2026-08-01"
         assert data["end_date"] == "2026-08-31"
+        assert "deltas" in data
+        assert "what_went_well" in data
+
+    @patch("app.core.ai_client.ai_client.generate")
+    def test_post_ai_summary_endpoint(
+        self, mock_generate, client, auth_headers_user_a
+    ):
+        mock_generate.return_value = LLMCompletionResponse(
+            content="On-demand AI generated narrative summary.",
+            model="gemini-2.5-flash-lite",
+        )
+
+        payload = {"report_type": "weekly", "date": "2026-08-19"}
+        res = client.post("/api/v1/reports/ai-summary", json=payload, headers=auth_headers_user_a)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["ai_generated"] is True
+        assert data["narrative"] == "On-demand AI generated narrative summary."
+        assert data["cached"] is False
+
+        # Second request should be cached
+        res2 = client.post("/api/v1/reports/ai-summary", json=payload, headers=auth_headers_user_a)
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["cached"] is True
+        assert data2["narrative"] == data["narrative"]
 
     @patch("app.core.ai_client.ai_client.generate")
     def test_ai_narrative_failure_does_not_fail_report(
@@ -246,7 +285,7 @@ class TestReportsAPI:
         # AI engine raises an exception
         mock_generate.side_effect = Exception("AI Provider Unavailable")
 
-        res = client.get("/api/v1/reports/weekly?date=2026-08-19", headers=auth_headers_user_a)
+        res = client.get("/api/v1/reports/weekly?date=2026-08-19&ai=true", headers=auth_headers_user_a)
         assert res.status_code == 200
         data = res.json()
 
@@ -265,3 +304,4 @@ class TestReportsAPI:
         # User B requests weekly report -> receives User B's report isolated
         res_b = client.get("/api/v1/reports/weekly", headers=auth_headers_user_b)
         assert res_b.status_code == 200
+

@@ -88,6 +88,8 @@ export interface ScenarioSimulationResponse {
 
 export interface PlanCandidate {
   candidate_id: string;
+  title?: string | null;
+  rationale?: string | null;
   daily_calories: number;
   daily_protein_g: number;
   activity_multiplier: number;
@@ -108,6 +110,7 @@ export interface PlanOptimizationResponse {
   target_date: string;
   required_weekly_rate_kg: number;
   current_intake_kcal: number;
+  baseline_description?: string;
   best_candidate: PlanCandidate;
   alternative_candidates: PlanCandidate[];
   objective_description: string;

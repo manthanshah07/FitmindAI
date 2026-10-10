@@ -8,7 +8,11 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.schemas.report import FitnessReportResponse
+from app.schemas.report import (
+    FitnessReportResponse,
+    ReportAiSummaryRequest,
+    ReportAiSummaryResponse,
+)
 from app.services.report_service import ReportService
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -19,7 +23,7 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 def get_weekly_report(
     request: Request,
     date_ref: Optional[date] = Query(None, alias="date", description="Target reference date (YYYY-MM-DD) for weekly 7-day report period"),
-    ai: bool = Query(True, description="Whether to generate AI narrative summary"),
+    ai: bool = Query(False, description="Whether to generate AI narrative summary (defaults to False for instant load)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> FitnessReportResponse:
@@ -39,7 +43,7 @@ def get_weekly_report(
 def get_monthly_report(
     request: Request,
     date_ref: Optional[date] = Query(None, alias="date", description="Target reference date (YYYY-MM-DD) for calendar-month report period"),
-    ai: bool = Query(True, description="Whether to generate AI narrative summary"),
+    ai: bool = Query(False, description="Whether to generate AI narrative summary (defaults to False for instant load)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> FitnessReportResponse:
@@ -52,3 +56,29 @@ def get_monthly_report(
         target_date=date_ref,
         include_ai_narrative=ai,
     )
+
+
+@router.post("/ai-summary", response_model=ReportAiSummaryResponse, status_code=status.HTTP_200_OK)
+@limiter.limit(settings.RATE_LIMIT_REPORTS)
+def generate_ai_summary(
+    request: Request,
+    body: ReportAiSummaryRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ReportAiSummaryResponse:
+    """
+    On-demand AI narrative summary for a given report period with server-side caching.
+    """
+    narrative, is_cached, headline = ReportService.generate_ai_summary(
+        db=db,
+        user=current_user,
+        report_type=body.report_type,
+        target_date=body.date_ref,
+    )
+    return ReportAiSummaryResponse(
+        narrative=narrative,
+        ai_generated=True,
+        cached=is_cached,
+        headline=headline,
+    )
+

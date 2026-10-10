@@ -1,7 +1,11 @@
 import { api } from './client';
-import type { FitnessReportResponse } from '../../types/reports';
+import type {
+  FitnessReportResponse,
+  ReportAiSummaryRequest,
+  ReportAiSummaryResponse,
+} from '../../types/reports';
 
-export async function getWeeklyReportApi(dateStr?: string, ai = true): Promise<FitnessReportResponse> {
+export async function getWeeklyReportApi(dateStr?: string, ai = false): Promise<FitnessReportResponse> {
   const params: Record<string, string | boolean> = { ai };
   if (dateStr) {
     params.date = dateStr;
@@ -10,7 +14,7 @@ export async function getWeeklyReportApi(dateStr?: string, ai = true): Promise<F
   return response.data;
 }
 
-export async function getMonthlyReportApi(dateStr?: string, ai = true): Promise<FitnessReportResponse> {
+export async function getMonthlyReportApi(dateStr?: string, ai = false): Promise<FitnessReportResponse> {
   const params: Record<string, string | boolean> = { ai };
   if (dateStr) {
     params.date = dateStr;
@@ -18,3 +22,9 @@ export async function getMonthlyReportApi(dateStr?: string, ai = true): Promise<
   const response = await api.get<FitnessReportResponse>('/reports/monthly', { params });
   return response.data;
 }
+
+export async function generateReportAiSummaryApi(payload: ReportAiSummaryRequest): Promise<ReportAiSummaryResponse> {
+  const response = await api.post<ReportAiSummaryResponse>('/reports/ai-summary', payload);
+  return response.data;
+}
+

@@ -503,6 +503,59 @@ All facts below were verified through code inspection, test runs, and CLI diagno
     - 390px (Standard Phone): `today_390.png`, `workouts_390.png`, `workout_session_390.png`, `nutrition_390.png`, `progress_390.png`.
     - 430px (Large Phone): `today_430.png`, `workouts_430.png`, `workout_session_430.png`, `nutrition_430.png`, `progress_430.png`.
 
+---
+
+## 12. Milestone M7 Verified Implementation
+
+- **Branch:** `m7-weekly-review-and-forecast`
+- **Specification:** Strictly adhered to Section 6 (Milestone M7), Section 3.2 (findings D2, D9, D10, D12), Section 3.3 (U7), and Section 4.5 of `docs/FINAL_PLAN.md`.
+- **Backend Weekly Review & Deterministic Assessment (fixes D10, D12, Decision 12):**
+  - Updated `backend/app/schemas/report.py` and `backend/app/services/report_service.py`:
+    - Added `sets_completed` and `sets_planned` fields to `WorkoutReportSection`.
+    - Implemented period-over-period comparisons (`deltas`) computing exact differences vs the preceding 7-day or 30-day period for completed sets, workout count, nutrition logged days, average calories, average protein, weight change, and fitness score.
+    - Implemented deterministic, rule-based assessment lists: `what_went_well`, `what_needs_attention`, and `next_period_focus`, maintaining a factual, neutral tone without false cheerleading.
+    - Configured default `ai=False` on `GET /api/v1/reports/weekly` and `GET /api/v1/reports/monthly` for instant deterministic response times (< 50ms).
+    - Implemented `POST /api/v1/reports/ai-summary` with in-memory server caching for on-demand generation of grounded coaching narratives.
+- **Backend Goal-Aligned Forecast & Readable Recommendations (fixes D2, D9, D10):**
+  - In `backend/app/services/intelligence/optimizer_service.py` and schemas:
+    - Enforced strict goal alignment: for `muscle_gain` goals, candidate intake must be $\ge \text{TDEE}$ (surplus or maintenance); for `fat_loss` goals, candidate intake must be $\le \text{TDEE}$ (deficit or maintenance).
+    - Replaced raw cryptic candidate IDs with descriptive human-readable titles (e.g. *"Moderate Deficit (-300 kcal)"*, *"Lean Surplus (+200 kcal)"*, *"Maintenance Balance Plan"*) and clear deterministic rationales.
+    - Added `baseline_description: "Your 28-day average intake"` to transparently inform the user of the reference intake.
+- **Frontend Weekly Review Tab (`Progress -> Weekly review`):**
+  - Implemented `src/components/progress/WeeklyReviewTab.tsx`:
+    - Weekly (7-day) and Monthly (calendar) toggle with period navigator (`<` / `>`).
+    - Period Headline Card showcasing current period range, Fitness Score, trend badge, and overall adherence badge.
+    - 4 Stat Tiles showing Completed Sets, Workout sessions, Nutrition logged days, and Average Protein alongside period-over-period deltas.
+    - 3 structured cards displaying the deterministic assessment lists (*What Went Well*, *What Needs Attention*, *Next Period Focus*).
+    - On-demand *"Write Summary"* card invoking `/reports/ai-summary` with loading spinner, cached text display, and regenerate capability.
+- **Frontend Forecast Tab (`Progress -> Forecast`):**
+  - Implemented `src/components/progress/ForecastTab.tsx`:
+    - Plain-language pace headline answering target pace and estimated goal date.
+    - Dynamic confidence note derived from measurement tracking frequency (*"Based on X recent weigh-ins"*).
+    - 28-day projected weight trajectory chart with 90% benchmark confidence interval and goal target line.
+    - Recommended plan card with readable titles, rationale, metrics breakdown, collapsible *"See other options"* alternative plans list, and *"How this is chosen"* disclosure.
+    - Interactive *"Try a different plan"* simulator featuring 3 presets (*Moderate Deficit*, *Lean Surplus*, *Maintenance Plan*), sliders for calories and protein, activity select dropdown, and simulation comparison outcome card.
+    - Explicit *"Use this plan"* modal allowing users to confirm and apply simulated targets to their profile.
+- **Routing Consolidation:**
+  - Mounted `WeeklyReviewTab` and `ForecastTab` inside `src/pages/progress/ProgressOverviewPage.tsx`.
+  - In `src/App.tsx`, added redirects:
+    - `/intelligence` $\rightarrow$ `/progress?tab=forecast`
+    - `/reports` and `/reports/*` $\rightarrow$ `/progress?tab=review`
+- **Verification & Test Results:**
+  - **Backend Test Suite:** **375 passed** (0 failures, 16 warnings) in 86.86s.
+  - **Frontend Test Suite:** **156 passed** (0 failures) across 23 test files in 3.57s.
+  - **TypeScript Static Verification:** `npx tsc -b --noEmit` passed with 0 errors.
+  - **Production Build:** `npm run build` completed successfully in 516ms (PWA precache 85 entries).
+  - **Static Analysis:** `npm run lint` reported 0 errors across 153 files.
+  - **Database Migrations:** Zero database mutations required. Alembic head remains verified at `2026_10_10_0015 (head)`.
+- **Screenshots:** Mobile (390x844) and desktop (1280x800) screenshots captured and saved in `docs/screens/m7/`:
+  - `weekly_review_mobile.png` (390x844)
+  - `weekly_review_desktop.png` (1280x800)
+  - `forecast_mobile.png` (390x844)
+  - `forecast_desktop.png` (1280x800)
+  - `progress_overview_mobile.png` (390x844)
+
+
 
 
 

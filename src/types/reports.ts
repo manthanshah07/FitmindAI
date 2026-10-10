@@ -4,6 +4,8 @@ export interface WorkoutReportSection {
   completion_rate_pct?: number | null;
   total_duration_minutes?: number | null;
   total_sets_completed?: number | null;
+  sets_completed: number;
+  sets_planned?: number | null;
   total_exercises_completed?: number | null;
   most_frequent_muscles: string[];
   has_data: boolean;
@@ -41,6 +43,16 @@ export interface FitnessScoreReportSection {
   has_data: boolean;
 }
 
+export interface ReportDeltas {
+  sets_delta?: number | null;
+  workouts_delta?: number | null;
+  logged_days_delta?: number | null;
+  average_calories_delta?: number | null;
+  average_protein_delta?: number | null;
+  weight_change_delta?: number | null;
+  fitness_score_delta?: number | null;
+}
+
 export interface FitnessReportResponse {
   report_type: 'weekly' | 'monthly';
   start_date: string;
@@ -51,6 +63,10 @@ export interface FitnessReportResponse {
   adherence_label?: string | null;
   adherence_breakdown?: Record<string, number> | null;
   summary_facts: string[];
+  what_went_well?: string[];
+  what_needs_attention?: string[];
+  next_period_focus?: string[];
+  deltas?: ReportDeltas | null;
   workouts: WorkoutReportSection;
   nutrition: NutritionReportSection;
   progress: ProgressReportSection;
@@ -58,3 +74,16 @@ export interface FitnessReportResponse {
   narrative?: string | null;
   ai_generated: boolean;
 }
+
+export interface ReportAiSummaryRequest {
+  report_type: 'weekly' | 'monthly';
+  date?: string;
+}
+
+export interface ReportAiSummaryResponse {
+  narrative: string;
+  ai_generated: boolean;
+  cached: boolean;
+  headline?: string | null;
+}
+

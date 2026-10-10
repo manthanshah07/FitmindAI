@@ -367,6 +367,31 @@ class TestPlanOptimizer:
         assert len(data1["alternative_candidates"]) >= 1
         assert "FitMind Candidate-Plan Ranking Heuristic" in data1["objective_description"]
         assert "0.60 * normalized_target_error" in data1["objective_description"]
+        assert data1["baseline_description"] == "Your 28-day average intake"
+        assert data1["best_candidate"]["title"] is not None
+        assert data1["best_candidate"]["rationale"] is not None
+
+    def test_optimizer_goal_alignment_muscle_gain(self):
+        headers = get_auth_headers("musclegainuser@example.com")
+        future_date = (date.today() + timedelta(days=90)).isoformat()
+        client.post(
+            "/api/v1/goals",
+            json={
+                "goal_type": "muscle_gain",
+                "target_weight_kg": 85.0,
+                "target_date": future_date,
+            },
+            headers=headers,
+        )
+        res = client.post("/api/v1/intelligence/optimize-plan", json={}, headers=headers)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["best_candidate"]["title"] is not None
+        assert data["best_candidate"]["rationale"] is not None
+        for cand in [data["best_candidate"]] + data["alternative_candidates"]:
+            # Surplus or maintenance plan for muscle gain
+            assert "Surplus" in cand["title"] or "Maintenance" in cand["title"] or "Baseline" in cand["title"]
+
 
 
 # =====================================================================
