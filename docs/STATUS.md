@@ -397,6 +397,65 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `nutrition_desktop.png` (1280x800)
   - `dev_ui_mobile.png` (390x844)
 
+---
+
+## 10. Milestone M6 Verified Implementation
+
+- **Branch:** `m6-progress-and-metrics`
+- **Specification:** Strictly adhered to Section 6 (Milestone M6), Section 3.2 (findings D1, D3, D4, D5, D6, D12), Section 3.3 (U7, U10), Section 4.5, Appendix E, and docs/STATUS.md (V9 and V10 answers).
+- **Database Migration:**
+  - Migration revision: `backend/alembic/versions/2026_10_10_0015_add_fitness_score_formula_version.py` (parent: `2026_10_10_0014`).
+  - Added `formula_version` (`INTEGER`, default `2`, nullable `False`) to `fitness_scores` table using SQLite-safe `op.batch_alter_table`.
+  - Tested upgrade, downgrade, and re-upgrade on local database. Alembic head is `2026_10_10_0015 (head)`.
+  - Updated `FitnessScore` model in `backend/app/models/fitness_score.py` and response schemas.
+- **Central Weight Resolver (Fixes D6):**
+  - Implemented `get_current_weight(db, user)` in `backend/app/core/weight.py`.
+  - Hierarchy: Checks latest `Measurement` record with `weight_kg IS NOT NULL` (ordered by `measured_at DESC`), falling back to `profile.weight_kg`.
+  - Wired into `NutritionService`, `DashboardService`, `ContextBuilder`, and `ReportService`. All numeric logic across the entire platform now operates on a single unified weight value.
+- **Unified Metrics Engine (Fixes D5, D4):**
+  - Created `backend/app/services/metrics_service.py` defining single deterministic adherence functions:
+    - `calculate_calorie_adherence`: Ratio of average calories to target, capped at 100.0%.
+    - `calculate_protein_adherence`: Ratio of average protein to target, capped at 100.0%.
+    - `calculate_workout_session_credit`: Adversarial work-done rule (<3 sets = 0.0 credit; credit = min(1.0, completed / planned)).
+    - `get_planned_sets_for_day`: Matches day_label or day_of_week; computes average sets per day across plan; fallback 12 sets.
+    - `calculate_weekly_workout_adherence`: Sum of session credits / target_days_per_week * 100.0, capped at 100.0%.
+    - `calculate_logging_consistency`: Active logging days (workout or nutrition) / 7 * 100.0, capped at 100.0%.
+  - Documented full formula, component weights, edge cases, and design rationale in `docs/FITNESS_SCORE.md`.
+- **Fitness Score Formula V2 Redesign (Fixes D3):**
+  - Completely removed the 75.0 recovery baseline constant (zero invented data).
+  - Formula weights: Workouts 35%, Calories 25%, Protein 20%, Consistency 20% (strictly sums to 100%).
+  - Snapshot on read: Computes score on read and persists at most one daily snapshot row with `formula_version = 2`.
+  - Removed manual "Recalculate" button from UI and API endpoints.
+  - Exposes `sets_completed` and `sets_planned` volume metrics in response payload.
+- **Goal Validation & Conflict Integrity (Fixes D1):**
+  - Reject conflicting goals on write with HTTP 422 Unprocessable Entity:
+    - `fat_loss`: requires `target_weight_kg < current_weight`.
+    - `muscle_gain`: requires `target_weight_kg >= current_weight`.
+    - `maintenance`: requires `abs(target_weight_kg - current_weight) <= 1.5 kg`.
+  - Non-blocking conflict detection: Exposes `has_goal_conflict` and `conflict_reason` on `GoalResponse` for legacy data without corrupting or deleting existing user rows.
+  - Fixed demo seed in `backend/app/seed_demo_data.py`: `demo.full` target weight updated to 84.0 kg for `muscle_gain` starting at 79.5 kg.
+- **Rebuilt Progress Screen (`src/pages/progress/ProgressOverviewPage.tsx` / Fixes D12, U7, U10):**
+  - Radix UI Tabs: Overview, Body Measurements, Weekly Review (M7 placeholder), Forecast (M7 placeholder). Direct deep-linking supported via `?tab=` query parameter.
+  - Fitness Score Card (`src/components/progress/FitnessScoreCard.tsx`): 4-bar breakdown (Workouts 35%, Calories 25%, Protein 20%, Consistency 20%), dynamic "What to improve" line with actionable coaching guidance for lowest component, expandable "How this is calculated" disclosure with exact formula, removed recalculate button.
+  - Trimmed Y-axis `LineChart`: Added `yDomain` prop to `src/components/ui/LineChart.tsx` avoiding visual compression of subtle body weight changes.
+  - StatTiles: Current Weight, Weight Change over selected range (4w, 12w, 6m, all), Distance to Goal.
+  - Goal conflict warning banner: Alert banner rendered when `has_goal_conflict` is true.
+  - Body Measurements Tab: Unnested natural scrolling measurement log (no nested scroll boxes, fixes U7), measurement entries with date, weight, circumferences (formatted via `formatInches`), and body fat %, "Add Measurement" modal with validation.
+- **Verification & Test Results:**
+  - Backend Test Suite: **372 passed** across 32 test modules in 89.86s (0 failures, 0 regressions, new tests in `test_metrics_engine.py`, `test_weight_resolution.py`, and updated `test_goals.py`, `test_fitness_score.py`, and `test_adversarial_verification.py`).
+  - Frontend Test Suite: **144 passed** across 21 test files in 3.09s (0 failures, 4 tests in `progress.test.tsx`, 3 tests in `fitnessScore.test.tsx`).
+  - TypeScript Static Check: `npx tsc -b --noEmit` passed with 0 errors.
+  - Production Build: `npm run build` completed successfully in 544ms.
+  - Linter: `npm run lint` passed with 0 errors.
+  - Database Migration: Alembic head verified at `2026_10_10_0015 (head)`.
+- **Screenshots:** Mobile (390x844) and desktop (1280x800) screenshots captured and saved in `docs/screens/m6/`:
+  - `progress_overview_mobile.png` (390x844)
+  - `progress_overview_desktop.png` (1280x800)
+  - `progress_body_mobile.png` (390x844)
+  - `progress_body_desktop.png` (1280x800)
+  - `dev_ui_mobile.png` (390x844)
+
+
 
 
 

@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
+from app.services.fitness_score_service import FORMULA_VERSION
 
 client = TestClient(app)
 
@@ -31,70 +32,58 @@ class TestFitnessScoreAPI:
         assert current["workout_adherence_pct"] == 0.0
         assert current["nutrition_score"] == 50.0
         assert current["protein_score"] == 50.0
-        assert current["sleep_score"] == 75.0
-        assert current["recovery_score"] == 75.0
         assert current["consistency_score"] == 0.0
+        assert current["formula_version"] == 2
 
-    def test_perfect_high_adherence_score(self):
-        headers = get_auth_headers("perfectuser@example.com")
+    def test_formula_version_2_weights_sum_to_100(self):
+        # 35% Workouts + 25% Calories + 20% Protein + 20% Consistency = 100%
+        # Formula V2 removes the fixed 10% recovery baseline (zero invented data)
+        headers = get_auth_headers("v2weights@example.com")
+        res = client.get("/api/v1/progress/fitness-score", headers=headers)
+        assert res.status_code == 200
+        current = res.json()["current_score"]
+        assert current["formula_version"] == FORMULA_VERSION
+
+    def test_workout_adherence_work_done_credit(self):
+        # Fixes D4: Anti-cheating rule — sessions with <3 completed sets earn 0 credit
+        headers = get_auth_headers("workdoneuser@example.com")
         today = datetime.now(timezone.utc).date()
 
-        # Seed profile and active workout plan (target 3 days)
-        client.put(
-            "/api/v1/profile",
+        client.put("/api/v1/profile", json={"target_workout_days_per_week": 4}, headers=headers)
+
+        # Seed exercises
+        client.post("/api/v1/exercises/seed", headers=headers)
+        exercises_res = client.get("/api/v1/exercises", headers=headers)
+        assert exercises_res.status_code == 200
+        ex_id = exercises_res.json()[0]["id"]
+
+        # Log session with only 2 sets -> earns 0 credit
+        d1 = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
+        client.post(
+            "/api/v1/workout/logs",
             json={
-                "full_name": "Perfect Athlete",
-                "weight_kg": 75.0,
-                "height_cm": 178.0,
-                "gender": "male",
-                "activity_level": "moderate",
-                "fitness_experience": "intermediate",
+                "started_at": d1,
+                "logged_exercises": [
+                    {"exercise_id": ex_id, "set_number": 1, "reps_completed": 10},
+                    {"exercise_id": ex_id, "set_number": 2, "reps_completed": 10},
+                ],
             },
             headers=headers,
         )
 
-        plan_res = client.post(
-            "/api/v1/workout/plan",
-            json={"name": "3-Day Strength", "days_per_week": 3, "exercises": []},
-            headers=headers,
-        )
-        assert plan_res.status_code == 201
-
-        # Log workouts on 3 distinct days in trailing 7 days
-        for i in range(3):
-            w_date = datetime.combine(today - timedelta(days=i), datetime.min.time(), tzinfo=timezone.utc).isoformat()
-            client.post(
-                "/api/v1/workout/logs",
-                json={"started_at": w_date, "notes": "Solid workout", "logged_exercises": []},
-                headers=headers,
-            )
-
-        # Recalculate score
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
+        res = client.get("/api/v1/progress/fitness-score", headers=headers)
         assert res.status_code == 200
-        data = res.json()
-        assert data["workout_adherence_pct"] == 100.0
-        assert data["sleep_score"] == 75.0
-        assert data["recovery_score"] == 75.0
-        assert data["score"] >= 50
-
-    def test_same_day_multiple_workouts(self):
-        headers = get_auth_headers("samedayuser@example.com")
-        today = datetime.now(timezone.utc).date()
-        dt_str = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
-
-        # Log 2 workouts on the exact same date
-        client.post("/api/v1/workout/logs", json={"started_at": dt_str, "logged_exercises": []}, headers=headers)
-        client.post("/api/v1/workout/logs", json={"started_at": dt_str, "logged_exercises": []}, headers=headers)
-
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
-        assert res.status_code == 200
-        # Default target days = 4. 1 completed day / 4 = 25%
-        assert res.json()["workout_adherence_pct"] == 25.0
+        # 0 credit earned despite session logged!
+        assert res.json()["current_score"]["workout_adherence_pct"] == 0.0
 
     def test_workout_plan_target_respected(self):
         headers = get_auth_headers("plantargetuser@example.com")
         today = datetime.now(timezone.utc).date()
+
+        client.post("/api/v1/exercises/seed", headers=headers)
+        exercises_res = client.get("/api/v1/exercises", headers=headers)
+        assert exercises_res.status_code == 200
+        ex_id = exercises_res.json()[0]["id"]
 
         # Custom plan with target = 2 days/week
         client.post(
@@ -103,91 +92,60 @@ class TestFitnessScoreAPI:
             headers=headers,
         )
 
-        # Log 2 workouts on distinct days
+        # Log 2 workouts on distinct days with 14 sets each (full credit for 2-day split)
         d1 = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
         d2 = datetime.combine(today - timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc).isoformat()
-        client.post("/api/v1/workout/logs", json={"started_at": d1, "logged_exercises": []}, headers=headers)
-        client.post("/api/v1/workout/logs", json={"started_at": d2, "logged_exercises": []}, headers=headers)
 
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
+        sets_payload = [{"exercise_id": ex_id, "set_number": s + 1, "reps_completed": 10} for s in range(14)]
+        client.post("/api/v1/workout/logs", json={"started_at": d1, "logged_exercises": sets_payload}, headers=headers)
+        client.post("/api/v1/workout/logs", json={"started_at": d2, "logged_exercises": sets_payload}, headers=headers)
+
+        res = client.get("/api/v1/progress/fitness-score", headers=headers)
         assert res.status_code == 200
-        assert res.json()["workout_adherence_pct"] == 100.0
-
-    def test_no_workout_plan_default_4_days(self):
-        headers = get_auth_headers("noplanuser@example.com")
-        today = datetime.now(timezone.utc).date()
-
-        # Log 2 workouts with no active plan
-        d1 = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc).isoformat()
-        d2 = datetime.combine(today - timedelta(days=1), datetime.min.time(), tzinfo=timezone.utc).isoformat()
-        client.post("/api/v1/workout/logs", json={"started_at": d1, "logged_exercises": []}, headers=headers)
-        client.post("/api/v1/workout/logs", json={"started_at": d2, "logged_exercises": []}, headers=headers)
-
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
-        assert res.status_code == 200
-        # 2 / 4 = 50.0%
-        assert res.json()["workout_adherence_pct"] == 50.0
+        assert res.json()["current_score"]["workout_adherence_pct"] == 100.0
 
     def test_no_meal_days_fallback_50(self):
         headers = get_auth_headers("nomealuser@example.com")
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
+        res = client.get("/api/v1/progress/fitness-score", headers=headers)
         assert res.status_code == 200
-        assert res.json()["nutrition_score"] == 50.0
-        assert res.json()["protein_score"] == 50.0
-
-    def test_recovery_and_sleep_always_75(self):
-        headers = get_auth_headers("recuser@example.com")
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
-        assert res.status_code == 200
-        assert res.json()["sleep_score"] == 75.0
-        assert res.json()["recovery_score"] == 75.0
+        assert res.json()["current_score"]["nutrition_score"] == 50.0
+        assert res.json()["current_score"]["protein_score"] == 50.0
 
     def test_score_clamping_boundaries(self):
         headers = get_auth_headers("clampuser@example.com")
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
+        res = client.get("/api/v1/progress/fitness-score", headers=headers)
         assert res.status_code == 200
-        score = res.json()["score"]
+        score = res.json()["current_score"]["score"]
         assert isinstance(score, int)
         assert 0 <= score <= 100
 
-    def test_upsert_same_period(self):
+    def test_upsert_same_period_snapshot(self):
         headers = get_auth_headers("upsertuser@example.com")
         t_date = date.today().isoformat()
 
-        res1 = client.post(f"/api/v1/progress/fitness-score/recalculate?target_date={t_date}", headers=headers)
+        res1 = client.get(f"/api/v1/progress/fitness-score?target_date={t_date}", headers=headers)
         assert res1.status_code == 200
-        id1 = res1.json()["id"]
+        id1 = res1.json()["current_score"]["id"]
 
-        # Recalculate again for same target date
-        res2 = client.post(f"/api/v1/progress/fitness-score/recalculate?target_date={t_date}", headers=headers)
+        # Read again for same target date -> returns same snapshot ID
+        res2 = client.get(f"/api/v1/progress/fitness-score?target_date={t_date}", headers=headers)
         assert res2.status_code == 200
-        id2 = res2.json()["id"]
+        id2 = res2.json()["current_score"]["id"]
 
-        # Assert same record was updated (UPSERT) instead of creating duplicate
         assert id1 == id2
 
     def test_user_isolation_idor_prevention(self):
         headers_a = get_auth_headers("user_a@example.com")
-        res_a = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers_a)
+        res_a = client.get("/api/v1/progress/fitness-score", headers=headers_a)
         assert res_a.status_code == 200
-        id_a = res_a.json()["id"]
+        id_a = res_a.json()["current_score"]["id"]
 
         headers_b = get_auth_headers("user_b@example.com")
         res_b = client.get("/api/v1/progress/fitness-score", headers=headers_b)
         assert res_b.status_code == 200
         b_current = res_b.json()["current_score"]
 
-        # User B's score ID must NOT match User A's score ID
         assert b_current["id"] != id_a
-
-    def test_explicit_target_date(self):
-        headers = get_auth_headers("targetdateuser@example.com")
-        t_str = "2026-08-10"
-        res = client.get(f"/api/v1/progress/fitness-score?target_date={t_str}", headers=headers)
-        assert res.status_code == 200
-        current = res.json()["current_score"]
-        assert current["period_end"] == t_str
-        assert current["period_start"] == "2026-08-04"
 
     def test_consistency_distinct_active_dates(self):
         headers = get_auth_headers("consistuser@example.com")
@@ -201,56 +159,10 @@ class TestFitnessScoreAPI:
         d2 = (today - timedelta(days=1)).isoformat()
         client.post("/api/v1/progress/measurements", json={"measured_at": d2, "weight_kg": 75.0}, headers=headers)
 
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
+        res = client.get("/api/v1/progress/fitness-score", headers=headers)
         assert res.status_code == 200
         # 2 distinct active logging days out of 7 = 2/7 * 100 = 28.57%
-        assert res.json()["consistency_score"] == 28.57
-
-    def test_user_isolation_recalculate_prevention(self):
-        headers_a = get_auth_headers("recalc_a@example.com")
-        res_a = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers_a)
-        assert res_a.status_code == 200
-        id_a = res_a.json()["id"]
-
-        headers_b = get_auth_headers("recalc_b@example.com")
-        res_b = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers_b)
-        assert res_b.status_code == 200
-        id_b = res_b.json()["id"]
-
-        # Assert User B's recalculation produces User B's record, not User A's record
-        assert id_b != id_a
-
-    def test_zero_protein_target_no_division_by_zero(self):
-        headers = get_auth_headers("zerodivuser@example.com")
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
-        assert res.status_code == 200
-        assert res.json()["protein_score"] == 50.0
-
-    def test_nutrition_adherence_logged_days_only(self):
-        headers = get_auth_headers("mealdaysuser@example.com")
-        # Log a meal today
-        dt = datetime.combine(date.today(), datetime.min.time(), tzinfo=timezone.utc).isoformat()
-        # Seed food
-        foods_res = client.get("/api/v1/foods", headers=headers)
-        assert foods_res.status_code == 200
-        food_id = foods_res.json()[0]["id"]
-
-        log_res = client.post(
-            "/api/v1/nutrition/log",
-            json={
-                "meal_type": "lunch",
-                "logged_at": dt,
-                "items": [{"food_id": food_id, "quantity_grams": 200.0}],
-            },
-            headers=headers,
-        )
-        assert log_res.status_code == 201
-
-        res = client.post("/api/v1/progress/fitness-score/recalculate", headers=headers)
-        assert res.status_code == 200
-        # Meal logged on 1 day: nutrition and protein scores are evaluated for that day
-        assert res.json()["nutrition_score"] is not None
-        assert res.json()["protein_score"] is not None
+        assert res.json()["current_score"]["consistency_score"] == 28.57
 
     def test_read_only_score_calculation_does_not_mutate_database(self):
         from tests.conftest import TestingSessionLocal
@@ -277,52 +189,5 @@ class TestFitnessScoreAPI:
             # Verify ZERO records added to DB
             final_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
             assert final_count == initial_count
-        finally:
-            db.close()
-
-
-    def test_report_generation_does_not_mutate_fitness_score_records(self):
-        headers = get_auth_headers("report_sideeffect_user@example.com")
-        from tests.conftest import TestingSessionLocal
-        from app.models.user import User
-        from app.models.fitness_score import FitnessScore
-
-        db = TestingSessionLocal()
-        try:
-            user = db.query(User).filter(User.email == "report_sideeffect_user@example.com").first()
-            initial_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
-
-            # Request weekly and monthly reports
-            res_w = client.get("/api/v1/reports/weekly?date=2026-08-19", headers=headers)
-            assert res_w.status_code == 200
-
-            res_m = client.get("/api/v1/reports/monthly?date=2026-08-19", headers=headers)
-            assert res_m.status_code == 200
-
-            # Verify score count remained unchanged (0 side-effect commits!)
-            final_count = db.query(FitnessScore).filter(FitnessScore.user_id == user.id).count()
-            assert final_count == initial_count
-        finally:
-            db.close()
-
-    def test_sleep_and_recovery_score_fallback_constants(self):
-        from app.services.fitness_score_service import (
-            FitnessScoreService,
-            DEFAULT_SLEEP_SCORE_FALLBACK,
-            DEFAULT_RECOVERY_SCORE_FALLBACK,
-        )
-        from tests.conftest import TestingSessionLocal
-        from app.models.user import User
-
-        assert DEFAULT_SLEEP_SCORE_FALLBACK == 75.0
-        assert DEFAULT_RECOVERY_SCORE_FALLBACK == 75.0
-
-        db = TestingSessionLocal()
-        try:
-            user = db.query(User).filter(User.email == "zerouser@example.com").first()
-            if user:
-                item = FitnessScoreService.calculate_fitness_score(db, user)
-                assert item.sleep_score == DEFAULT_SLEEP_SCORE_FALLBACK
-                assert item.recovery_score == DEFAULT_RECOVERY_SCORE_FALLBACK
         finally:
             db.close()

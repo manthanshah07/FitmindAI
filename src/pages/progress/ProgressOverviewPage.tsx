@@ -1,21 +1,39 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Scale, Target, Info } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Badge } from '../../components/ui/Badge';
+import { StatTile } from '../../components/ui/StatTile';
+import { Banner } from '../../components/ui/Banner';
+import { LineChart } from '../../components/ui/LineChart';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/Tabs';
+import { Dialog } from '../../components/ui/Dialog';
+import { TextField } from '../../components/ui/TextField';
+import { ListRow } from '../../components/ui/ListRow';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
 import { getProgressSummaryApi, createMeasurementApi } from '../../lib/api/progress';
+import { getActiveGoalApi } from '../../lib/api/goals';
 import { getErrorMessage } from '../../utils/apiError';
 import { inchesToCm, formatInches } from '../../utils/unitConversion';
 
+type RangeOption = '4w' | '12w' | '6m' | 'all';
+
 export const ProgressOverviewPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+  const [rangeFilter, setRangeFilter] = useState<RangeOption>('12w');
+  const [selectedMetric, setSelectedMetric] = useState<string>('waist_cm');
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [showModal, setShowModal] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Form State (User inputs circumferences in Inches)
+  // Measurement Form State
   const [measuredAt, setMeasuredAt] = useState<string>(new Date().toISOString().split('T')[0]);
   const [weightKg, setWeightKg] = useState<string>('');
   const [chestIn, setChestIn] = useState<string>('');
@@ -25,16 +43,15 @@ export const ProgressOverviewPage: React.FC = () => {
   const [thighIn, setThighIn] = useState<string>('');
   const [bodyFatPct, setBodyFatPct] = useState<string>('');
 
-  const {
-    data: summary,
-    isLoading,
-    error: queryError,
-  } = useQuery({
+  const { data: summary } = useQuery({
     queryKey: ['progressSummary'],
     queryFn: () => getProgressSummaryApi(),
   });
 
-  const error = queryError ? getErrorMessage(queryError) : null;
+  const { data: activeGoal } = useQuery({
+    queryKey: ['activeGoal'],
+    queryFn: () => getActiveGoalApi(),
+  });
 
   const handleAddMeasurement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +80,6 @@ export const ProgressOverviewPage: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-
-      // Convert user-entered Inches to canonical Centimeters for backend API & DB storage
       await createMeasurementApi({
         measured_at: measuredAt,
         weight_kg: weightVal,
@@ -76,8 +91,7 @@ export const ProgressOverviewPage: React.FC = () => {
         body_fat_pct: fatVal,
       });
 
-      setShowModal(false);
-      // Reset form
+      setShowAddModal(false);
       setWeightKg('');
       setChestIn('');
       setWaistIn('');
@@ -86,8 +100,9 @@ export const ProgressOverviewPage: React.FC = () => {
       setThighIn('');
       setBodyFatPct('');
 
-      // Invalidate progressSummary query cache
       await queryClient.invalidateQueries({ queryKey: ['progressSummary'] });
+      await queryClient.invalidateQueries({ queryKey: ['fitnessScore'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } catch (err) {
       setFormError(getErrorMessage(err));
     } finally {
@@ -95,313 +110,388 @@ export const ProgressOverviewPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 border border-borderLine bg-bone min-h-[400px]">
-        <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">
-          FitMind Analytics Engine
-        </span>
-        <h3 className="text-xl font-bold uppercase tracking-tighter animate-pulse font-mono">
-          Calculating Weight & Body Progress...
-        </h3>
-      </div>
-    );
+  const history = summary?.history || [];
+
+  // Filter history based on rangeFilter
+  const now = new Date();
+  const filteredHistory = history.filter((item) => {
+    if (rangeFilter === 'all') return true;
+    const itemDate = new Date(item.measured_at);
+    const diffDays = (now.getTime() - itemDate.getTime()) / (1000 * 3600 * 24);
+    if (rangeFilter === '4w') return diffDays <= 28;
+    if (rangeFilter === '12w') return diffDays <= 84;
+    if (rangeFilter === '6m') return diffDays <= 182;
+    return true;
+  });
+
+  // Prepare weight chart data
+  const weightDataPoints = filteredHistory
+    .filter((m) => m.weight_kg !== null && m.weight_kg !== undefined)
+    .map((m) => ({
+      date: m.measured_at.slice(5), // "MM-DD"
+      fullDate: m.measured_at,
+      weight: Number(m.weight_kg),
+      goal: activeGoal?.target_weight_kg ? Number(activeGoal.target_weight_kg) : undefined,
+    }));
+
+  // Calculate trimmed Y domain (never start at 0 kg for weight)
+  let yDomain: [number, number] | undefined = undefined;
+  if (weightDataPoints.length > 0) {
+    const weights = weightDataPoints.map((d) => d.weight);
+    if (activeGoal?.target_weight_kg) {
+      weights.push(Number(activeGoal.target_weight_kg));
+    }
+    const minW = Math.min(...weights);
+    const maxW = Math.max(...weights);
+    const pad = Math.max(1, Math.round((maxW - minW) * 0.15) || 2);
+    yDomain = [Math.floor(minW - pad), Math.ceil(maxW + pad)];
   }
 
-  if (error || !summary) {
-    return (
-      <div className="flex flex-col gap-4 p-8 border border-error bg-error/5 text-error">
-        <h3 className="font-mono text-lg font-bold uppercase">Progress Error</h3>
-        <p className="text-xs font-sans">{error || 'Could not load progress data.'}</p>
-        <Button variant="secondary" onClick={() => queryClient.invalidateQueries({ queryKey: ['progressSummary'] })}>
-          Retry Loading
-        </Button>
-      </div>
-    );
-  }
+  // Current stats
+  const latestWeight = summary?.latest_weight_kg ?? null;
+  const targetWeight = activeGoal?.target_weight_kg ?? null;
+  const distanceToGoal =
+    latestWeight !== null && targetWeight !== null
+      ? (latestWeight - targetWeight).toFixed(1)
+      : null;
 
-  const { latest_weight_kg, weight_change_kg, trend_direction, total_entries, history } = summary;
+  // Measurement chart data for Body tab
+  const metricOptions = [
+    { value: 'waist_cm', label: 'Waist' },
+    { value: 'chest_cm', label: 'Chest' },
+    { value: 'hips_cm', label: 'Hips' },
+    { value: 'bicep_cm', label: 'Biceps' },
+    { value: 'thigh_cm', label: 'Thighs' },
+    { value: 'body_fat_pct', label: 'Body Fat %' },
+  ];
 
-  const getTrendBadge = () => {
-    if (trend_direction === 'losing') return <Badge variant="olive">↓ {Math.abs(weight_change_kg || 0)} kg (Losing)</Badge>;
-    if (trend_direction === 'gaining') return <Badge variant="olive">↑ {weight_change_kg} kg (Gaining)</Badge>;
-    if (trend_direction === 'maintaining') return <Badge variant="faded">~ 0.0 kg (Maintaining)</Badge>;
-    return <Badge variant="faded">No Data</Badge>;
-  };
-
-  // Extract entries that have weight logged for visual bar calculation
-  const weightHistory = history.filter((m) => m.weight_kg !== null && m.weight_kg !== undefined);
-  const maxWeight = Math.max(...weightHistory.map((m) => m.weight_kg || 0), 100);
+  const bodyMetricDataPoints = history
+    .filter((m) => (m as any)[selectedMetric] !== null && (m as any)[selectedMetric] !== undefined)
+    .map((m) => ({
+      date: m.measured_at.slice(5),
+      value: Number((m as any)[selectedMetric]),
+    }));
 
   return (
-    <div className="flex flex-col gap-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
-        <div>
-          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
-            Body Progress
-          </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-graphite">
-            Progress & Fitness Score
-          </h1>
-          <p className="text-sm text-charcoal font-sans mt-1">
-            Track your weight history, weekly fitness score, and body circumference changes over time.
-          </p>
-        </div>
-
-        <Button variant="primary" onClick={() => setShowModal(true)}>
-          + Record Measurement
-        </Button>
-      </div>
-
-      {/* Fitness Score Card Section */}
-      <FitnessScoreCard />
-
-      {/* Summary Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-5 bg-white border border-borderLine">
-          <span className="font-mono text-[10px] uppercase text-faded block mb-1">Latest Weight</span>
-          <h3 className="text-2xl font-bold text-graphite font-mono">
-            {latest_weight_kg ? `${latest_weight_kg} kg` : 'N/A'}
-          </h3>
-        </Card>
-
-        <Card className="p-5 bg-white border border-borderLine">
-          <span className="font-mono text-[10px] uppercase text-faded block mb-1">Weight Net Change</span>
-          <div className="mt-1">{getTrendBadge()}</div>
-        </Card>
-
-        <Card className="p-5 bg-white border border-borderLine">
-          <span className="font-mono text-[10px] uppercase text-faded block mb-1">Recorded Sessions</span>
-          <h3 className="text-2xl font-bold text-graphite font-mono">{total_entries}</h3>
-        </Card>
-
-        <Card className="p-5 bg-white border border-borderLine">
-          <span className="font-mono text-[10px] uppercase text-faded block mb-1">Latest Entry Date</span>
-          <h3 className="text-lg font-bold text-graphite font-mono truncate">
-            {history.length > 0 ? history[0].measured_at : 'No records'}
-          </h3>
-        </Card>
-      </div>
-
-      {/* Empty State */}
-      {history.length === 0 ? (
-        <Card className="p-12 text-center flex flex-col items-center justify-center gap-4">
-          <span className="font-mono text-xs text-olive uppercase tracking-widest">
-            No Progress Data Recorded
-          </span>
-          <h3 className="text-2xl font-bold uppercase text-graphite font-mono">
-            Start Tracking Body Weight & Circumference
-          </h3>
-          <p className="text-xs text-charcoal max-w-md">
-            Log your first weight or circumference measurement to visualize your fitness transformation over time.
-          </p>
-          <Button variant="primary" onClick={() => setShowModal(true)}>
-            Record First Measurement →
+    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 space-y-6">
+      <PageHeader
+        title="Progress & Metrics"
+        subtitle="Track your fitness score, body composition, and adherence progress."
+        action={
+          <Button variant="primary" onClick={() => setShowAddModal(true)}>
+            <Plus className="w-4 h-4 mr-1.5" />
+            Add Measurement
           </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Weight Trend Chart */}
-          <Card className="lg:col-span-2 p-6 md:p-8 flex flex-col gap-6">
-            <div className="flex items-center justify-between border-b border-borderLine pb-4">
-              <h2 className="font-mono text-base font-bold uppercase text-graphite">
-                Body Weight History Trend
-              </h2>
-              <span className="font-mono text-xs text-faded">
-                {weightHistory.length} weight entries
-              </span>
-            </div>
+        }
+      />
 
-            {weightHistory.length === 0 ? (
-              <p className="text-xs text-faded font-mono py-8 text-center">
-                No weight measurements recorded yet.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-3 py-2">
-                {weightHistory.slice(0, 10).map((record) => {
-                  const pct = Math.round(((record.weight_kg || 0) / maxWeight) * 100);
-                  return (
-                    <div key={record.id} className="flex items-center gap-4">
-                      <span className="font-mono text-xs text-graphite w-24">
-                        {record.measured_at}
-                      </span>
-                      <div className="flex-1 bg-bone border border-borderLine h-4">
-                        <div
-                          className="bg-olive h-full transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <span className="font-mono text-xs font-bold text-graphite w-16 text-right">
-                        {record.weight_kg} kg
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-
-          {/* Historical Log Entries (Displaying Inches to User) */}
-          <Card className="p-6 md:p-8 flex flex-col gap-6">
-            <div className="border-b border-borderLine pb-4">
-              <h2 className="font-mono text-base font-bold uppercase text-graphite">
-                Historical Logs ({history.length})
-              </h2>
-            </div>
-
-            <div className="flex flex-col gap-3 max-h-[400px] overflow-y-auto pr-1">
-              {history.map((record) => (
-                <div
-                  key={record.id}
-                  className="p-3 bg-bone border border-borderLine flex flex-col gap-1 text-xs font-mono"
-                >
-                  <div className="flex justify-between font-bold text-graphite border-b border-borderLine pb-1">
-                    <span>{record.measured_at}</span>
-                    <span className="text-olive">{record.weight_kg ? `${record.weight_kg} kg` : 'Metrics logged'}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-[11px] text-charcoal pt-1">
-                    {record.chest_cm != null && <span>Chest: {formatInches(record.chest_cm)}</span>}
-                    {record.waist_cm != null && <span>Waist: {formatInches(record.waist_cm)}</span>}
-                    {record.hips_cm != null && <span>Hips: {formatInches(record.hips_cm)}</span>}
-                    {record.bicep_cm != null && <span>Arms: {formatInches(record.bicep_cm)}</span>}
-                    {record.thigh_cm != null && <span>Thigh: {formatInches(record.thigh_cm)}</span>}
-                    {record.body_fat_pct != null && <span>Body Fat: {record.body_fat_pct}%</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
+      {/* Goal Conflict Alert Banner */}
+      {activeGoal?.has_goal_conflict && (
+        <Banner
+          variant="warning"
+          title="Goal Configuration Conflict"
+          className="my-2"
+        >
+          {activeGoal.conflict_reason ||
+            'Your target weight contradicts your active goal type. Update your goal in Settings to maintain accurate coaching projections.'}
+        </Banner>
       )}
 
-      {/* Record Measurement Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="max-w-lg w-full p-6 md:p-8 flex flex-col gap-6 bg-bone max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-borderLine pb-4">
+      {/* Tabs: Overview, Body, Weekly Review (M7), Forecast (M7) */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview" onClick={() => setActiveTab('overview')}>Overview</TabsTrigger>
+          <TabsTrigger value="body" onClick={() => setActiveTab('body')}>Body Measurements</TabsTrigger>
+          <TabsTrigger value="review" onClick={() => setActiveTab('review')}>Weekly Review</TabsTrigger>
+          <TabsTrigger value="forecast" onClick={() => setActiveTab('forecast')}>Forecast</TabsTrigger>
+        </TabsList>
+
+        {/* ================= OVERVIEW TAB ================= */}
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* Fitness Score Card with 4-bar breakdown */}
+          <FitnessScoreCard />
+
+          {/* Stat Tiles: Current Weight, Change over Range, Distance to Goal */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatTile
+              label="Current Weight"
+              value={latestWeight !== null ? `${latestWeight}` : '—'}
+              unit="kg"
+              subtext={summary?.trend_direction ? `Trend: ${summary.trend_direction}` : undefined}
+            />
+            <StatTile
+              label="Weight Change"
+              value={summary?.weight_change_kg !== null && summary?.weight_change_kg !== undefined ? `${summary.weight_change_kg > 0 ? '+' : ''}${summary.weight_change_kg}` : '0.0'}
+              unit="kg"
+              subtext="Over recorded history"
+            />
+            <StatTile
+              label="Distance to Goal"
+              value={distanceToGoal !== null ? `${Math.abs(Number(distanceToGoal))}` : '—'}
+              unit="kg"
+              subtext={
+                targetWeight !== null
+                  ? `Target: ${targetWeight} kg (${Number(distanceToGoal) > 0 ? 'to lose' : 'to gain'})`
+                  : 'No active target set'
+              }
+            />
+          </div>
+
+          {/* Weight Line Chart Card with Trimmed Y-Axis */}
+          <Card className="p-6 md:p-8 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border">
               <div>
-                <span className="font-mono text-[10px] text-olive uppercase tracking-widest block font-bold">
-                  Progress Station
-                </span>
-                <h2 className="text-xl font-bold uppercase text-graphite font-mono">
-                  Record Measurements
-                </h2>
+                <h3 className="text-base font-semibold text-text">Weight History & Trend</h3>
+                <p className="text-xs text-text-2 mt-0.5">
+                  Body weight progression compared against your target goal.
+                </p>
               </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="font-mono text-sm text-faded hover:text-graphite font-bold"
-              >
-                ✕
-              </button>
+              <SegmentedControl<RangeOption>
+                value={rangeFilter}
+                onChange={setRangeFilter}
+                options={[
+                  { value: '4w', label: '4W' },
+                  { value: '12w', label: '12W' },
+                  { value: '6m', label: '6M' },
+                  { value: 'all', label: 'All' },
+                ]}
+              />
             </div>
 
-            {formError && (
-              <div className="p-3 border border-error bg-error/5 text-error font-mono text-xs uppercase">
-                {formError}
+            {weightDataPoints.length > 0 ? (
+              <div className="pt-2">
+                <LineChart
+                  data={weightDataPoints}
+                  xAxisKey="date"
+                  yDomain={yDomain}
+                  yAxisUnit="kg"
+                  height={260}
+                  series={[
+                    { dataKey: 'weight', name: 'Weight (kg)', color: 'var(--accent, #0F766E)', strokeWidth: 2.5 },
+                    ...(activeGoal?.target_weight_kg
+                      ? [{ dataKey: 'goal', name: 'Goal (kg)', color: '#94a3b8', strokeWidth: 1.5 }]
+                      : []),
+                  ]}
+                  ariaLabel="Weight progression chart"
+                />
+              </div>
+            ) : (
+              <EmptyState
+                icon={<Scale className="w-6 h-6" />}
+                title="No weight data for this range"
+                description="Add your first weigh-in to begin tracking weight progression over time."
+                actionLabel="Add Weigh-in"
+                onAction={() => setShowAddModal(true)}
+              />
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* ================= BODY TAB ================= */}
+        <TabsContent value="body" className="space-y-6 mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-text">Body Circumferences & Fat %</h2>
+              <p className="text-xs text-text-2">
+                Track body tape measurements and body fat trends across time.
+              </p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={() => setShowAddModal(true)}>
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              New Entry
+            </Button>
+          </div>
+
+          {/* Metric Selector & Chart */}
+          <Card className="p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+              <span className="text-sm font-medium text-text">Measurement Progression</span>
+              <SegmentedControl
+                value={selectedMetric}
+                onChange={setSelectedMetric}
+                options={metricOptions}
+              />
+            </div>
+
+            {bodyMetricDataPoints.length > 0 ? (
+              <LineChart
+                data={bodyMetricDataPoints}
+                xAxisKey="date"
+                height={220}
+                yAxisUnit={selectedMetric === 'body_fat_pct' ? '%' : 'cm'}
+                series={[
+                  {
+                    dataKey: 'value',
+                    name: metricOptions.find((m) => m.value === selectedMetric)?.label || 'Value',
+                    color: 'var(--accent, #0F766E)',
+                  },
+                ]}
+                ariaLabel="Circumference metric trend chart"
+              />
+            ) : (
+              <div className="py-8 text-center text-xs text-text-muted">
+                No entries recorded for this metric yet.
               </div>
             )}
-
-            <form onSubmit={handleAddMeasurement} className="flex flex-col gap-4">
-              <Input
-                label="Date Measured"
-                type="date"
-                value={measuredAt}
-                onChange={(e) => setMeasuredAt(e.target.value)}
-                disabled={isSubmitting}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Body Weight (kg)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 75.5"
-                  value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label="Body Fat (%)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 15.0"
-                  value={bodyFatPct}
-                  onChange={(e) => setBodyFatPct(e.target.value)}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <span className="font-mono text-xs uppercase font-bold text-graphite tracking-widest pt-2 border-t border-borderLine">
-                Body Circumferences (in inches)
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  label="Chest (in)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 40.0"
-                  value={chestIn}
-                  onChange={(e) => setChestIn(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label="Waist (in)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 32.0"
-                  value={waistIn}
-                  onChange={(e) => setWaistIn(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label="Hips (in)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 38.0"
-                  value={hipsIn}
-                  onChange={(e) => setHipsIn(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label="Arms/Bicep (in)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 15.0"
-                  value={bicepIn}
-                  onChange={(e) => setBicepIn(e.target.value)}
-                  disabled={isSubmitting}
-                />
-                <Input
-                  label="Thigh (in)"
-                  type="number"
-                  step="0.1"
-                  placeholder="e.g. 22.0"
-                  value={thighIn}
-                  onChange={(e) => setThighIn(e.target.value)}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-borderLine">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowModal(false)}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" variant="primary" isLoading={isSubmitting}>
-                  Save Entry ✓
-                </Button>
-              </div>
-            </form>
           </Card>
-        </div>
-      )}
+
+          {/* Natural Unnested Scrolling List of Measurement History (Fixes U10) */}
+          <Card className="p-0 overflow-hidden divide-y divide-border">
+            <div className="p-4 bg-surface-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-2">
+                Measurement Log ({history.length} {history.length === 1 ? 'entry' : 'entries'})
+              </span>
+            </div>
+
+            {history.length > 0 ? (
+              history.map((m) => (
+                <ListRow
+                  key={m.id}
+                  title={m.measured_at}
+                  subtitle={
+                    <span className="space-x-3 text-xs text-text-2">
+                      {m.weight_kg !== null && <span>Weight: <strong>{m.weight_kg} kg</strong></span>}
+                      {m.waist_cm !== null && <span>Waist: <strong>{formatInches(m.waist_cm)}</strong></span>}
+                      {m.chest_cm !== null && <span>Chest: <strong>{formatInches(m.chest_cm)}</strong></span>}
+                      {m.body_fat_pct !== null && <span>Body Fat: <strong>{m.body_fat_pct}%</strong></span>}
+                    </span>
+                  }
+                />
+              ))
+            ) : (
+              <div className="p-8">
+                <EmptyState
+                  title="No measurements logged"
+                  description="Log your weight and body circumferences to track progress over time."
+                  actionLabel="Add Measurement"
+                  onAction={() => setShowAddModal(true)}
+                />
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+
+        {/* ================= WEEKLY REVIEW PLACEHOLDER (M7) ================= */}
+        <TabsContent value="review" className="mt-6">
+          <Card className="p-8 text-center space-y-3">
+            <div className="mx-auto w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-text-2">
+              <Info className="w-5 h-5 text-accent" />
+            </div>
+            <h3 className="text-base font-semibold text-text">Weekly Review</h3>
+            <p className="text-xs text-text-2 max-w-md mx-auto leading-relaxed">
+              Comprehensive weekly and monthly retrospective reviews, progress highlights, and automated check-in summaries are arriving in Milestone M7.
+            </p>
+          </Card>
+        </TabsContent>
+
+        {/* ================= FORECAST PLACEHOLDER (M7) ================= */}
+        <TabsContent value="forecast" className="mt-6">
+          <Card className="p-8 text-center space-y-3">
+            <div className="mx-auto w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center text-text-2">
+              <Target className="w-5 h-5 text-accent" />
+            </div>
+            <h3 className="text-base font-semibold text-text">Weight & Goal Forecast</h3>
+            <p className="text-xs text-text-2 max-w-md mx-auto leading-relaxed">
+              Predictive rate-of-loss projections, goal completion date estimates, and scenario planning simulations are arriving in Milestone M7.
+            </p>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Add Measurement Dialog Sheet */}
+      <Dialog
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        title="Add Body Measurement"
+        description="Record your weigh-in and tape measurements. Circumferences are entered in inches."
+      >
+        <form onSubmit={handleAddMeasurement} className="space-y-4 mt-2">
+          {formError && (
+            <Banner variant="danger" className="text-xs">
+              {formError}
+            </Banner>
+          )}
+
+          <TextField
+            label="Date"
+            type="date"
+            value={measuredAt}
+            onChange={(e) => setMeasuredAt(e.target.value)}
+            required
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <TextField
+              label="Weight (kg)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 78.5"
+              value={weightKg}
+              onChange={(e) => setWeightKg(e.target.value)}
+            />
+            <TextField
+              label="Body Fat (%)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 15.0"
+              value={bodyFatPct}
+              onChange={(e) => setBodyFatPct(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <TextField
+              label="Waist (in)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 32.0"
+              value={waistIn}
+              onChange={(e) => setWaistIn(e.target.value)}
+            />
+            <TextField
+              label="Chest (in)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 40.0"
+              value={chestIn}
+              onChange={(e) => setChestIn(e.target.value)}
+            />
+            <TextField
+              label="Hips (in)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 38.0"
+              value={hipsIn}
+              onChange={(e) => setHipsIn(e.target.value)}
+            />
+            <TextField
+              label="Biceps (in)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 14.5"
+              value={bicepIn}
+              onChange={(e) => setBicepIn(e.target.value)}
+            />
+            <TextField
+              label="Thigh (in)"
+              type="number"
+              step="0.1"
+              placeholder="e.g. 23.0"
+              value={thighIn}
+              onChange={(e) => setThighIn(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
+            <Button variant="secondary" type="button" onClick={() => setShowAddModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" isLoading={isSubmitting}>
+              Save Measurement
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 };
-

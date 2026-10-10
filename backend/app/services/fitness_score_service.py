@@ -1,24 +1,28 @@
 import uuid
 from datetime import date, datetime, timedelta, timezone
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session, joinedload
 from app.models.user import User
-from app.models.workout import WorkoutLog, WorkoutPlan
+from app.models.workout import WorkoutLog, WorkoutPlan, WorkoutLogExercise
 from app.models.nutrition import MealLog, MealLogItem
 from app.models.progress import Measurement
 from app.models.fitness_score import FitnessScore
 from app.schemas.fitness_score import FitnessScoreItem, FitnessScoreResponse
 from app.services.nutrition_service import NutritionService
-from app.core.calculations import calculate_calorie_adherence
+from app.services.metrics_service import (
+    calculate_calorie_adherence,
+    calculate_protein_adherence,
+    calculate_weekly_workout_adherence,
+    get_planned_sets_for_day,
+    calculate_logging_consistency,
+)
 from app.core.timezone_utils import (
     extract_date,
     get_timezone_aware_range,
     get_user_today_date,
 )
 
-# Neutral baseline score (0-100 scale) applied for sleep & recovery when direct log data is unavailable.
-DEFAULT_SLEEP_SCORE_FALLBACK = 75.0
-DEFAULT_RECOVERY_SCORE_FALLBACK = 75.0
+FORMULA_VERSION = 2
 
 
 def get_score_label(score: int) -> str:
@@ -38,7 +42,14 @@ class FitnessScoreService:
         db: Session, user: User, target_date: Optional[date] = None
     ) -> FitnessScoreItem:
         """
-        Pure, side-effect free calculation of fitness score for target_date.
+        Pure, side-effect free calculation of fitness score (Formula V2) for target_date.
+        Weights:
+        - Workouts: 35% (based on work-done adherence: completed vs planned sets)
+        - Calories: 25% (caloric adherence vs target)
+        - Protein: 20% (protein adherence vs target)
+        - Logging Consistency: 20% (active tracking days / 7)
+        - Recovery: 0% (zero invented data)
+        Sum = 100%.
         Does NOT execute db.commit(), db.add(), or mutate persistent database state.
         """
         user_tz = user.profile.timezone if (user and user.profile and user.profile.timezone) else "UTC"
@@ -47,12 +58,15 @@ class FitnessScoreService:
 
         start_dt, end_dt = get_timezone_aware_range(period_start, period_end, user_tz)
 
-
         # -------------------------------------------------------------
-        # A. WORKOUT ADHERENCE (30%)
+        # A. WORKOUT ADHERENCE (35%) — Work Done (Fixes D4)
         # -------------------------------------------------------------
         period_workout_logs = (
             db.query(WorkoutLog)
+            .options(
+                joinedload(WorkoutLog.logged_exercises),
+                joinedload(WorkoutLog.plan).joinedload(WorkoutPlan.plan_exercises),
+            )
             .filter(
                 WorkoutLog.user_id == user.id,
                 WorkoutLog.started_at >= start_dt,
@@ -60,26 +74,36 @@ class FitnessScoreService:
             )
             .all()
         )
-        workout_dates = set()
-        for log in period_workout_logs:
-            d = extract_date(log.started_at, user_tz)
-            if d:
-                workout_dates.add(d)
-
-        completed_workout_days = len(workout_dates)
 
         active_plan = (
             db.query(WorkoutPlan)
+            .options(joinedload(WorkoutPlan.plan_exercises))
             .filter(WorkoutPlan.user_id == user.id, WorkoutPlan.is_active == True)
             .first()
         )
         target_days = (
             active_plan.days_per_week
             if (active_plan and active_plan.days_per_week and active_plan.days_per_week > 0)
-            else 4
+            else (user.profile.target_workout_days_per_week if (user and user.profile and user.profile.target_workout_days_per_week) else 4)
         )
-        workout_adherence_pct = min(
-            100.0, (completed_workout_days / float(max(1, target_days))) * 100.0
+
+        workout_dates = set()
+        session_data: List[Tuple[int, int]] = []
+
+        for log in period_workout_logs:
+            d = extract_date(log.started_at, user_tz)
+            if d:
+                workout_dates.add(d)
+
+            # Count completed sets (WorkoutLogExercise rows for this session)
+            completed_sets = len(log.logged_exercises) if log.logged_exercises else 0
+            plan_for_log = log.plan or active_plan
+            planned_sets = get_planned_sets_for_day(plan_for_log, session_date=d)
+            session_data.append((completed_sets, planned_sets))
+
+        workout_adherence_pct, total_sets_completed, total_sets_planned = calculate_weekly_workout_adherence(
+            session_data=session_data,
+            target_days_per_week=target_days,
         )
 
         # -------------------------------------------------------------
@@ -127,10 +151,10 @@ class FitnessScoreService:
                 sum(valid_scores) / float(len(valid_scores)) if valid_scores else 50.0
             )
             avg_protein = sum(daily_protein.values()) / float(len(meal_dates))
-            protein_score = min(100.0, (avg_protein / target_protein) * 100.0)
+            protein_score = calculate_protein_adherence(avg_protein, target_protein)
 
         # -------------------------------------------------------------
-        # D. LOGGING CONSISTENCY (15%) & RECOVERY BASELINE (10%)
+        # D. LOGGING CONSISTENCY (20%) (Zero Invented Recovery Data)
         # -------------------------------------------------------------
         period_measurements = (
             db.query(Measurement)
@@ -148,17 +172,14 @@ class FitnessScoreService:
                 measurement_dates.add(d)
 
         active_logging_days = len(workout_dates | meal_dates | measurement_dates)
-        consistency_score = (active_logging_days / 7.0) * 100.0
+        consistency_score = calculate_logging_consistency(active_logging_days, total_days=7)
 
-        sleep_score = DEFAULT_SLEEP_SCORE_FALLBACK
-        recovery_score = DEFAULT_RECOVERY_SCORE_FALLBACK
-
+        # Formula V2 Weights: 35% Workouts + 25% Calories + 20% Protein + 20% Consistency = 100%
         weighted_score = (
-            (0.30 * workout_adherence_pct)
+            (0.35 * workout_adherence_pct)
             + (0.25 * nutrition_score)
             + (0.20 * protein_score)
-            + (0.15 * consistency_score)
-            + (0.10 * recovery_score)
+            + (0.20 * consistency_score)
         )
         total_score = max(0, min(100, int(round(weighted_score))))
 
@@ -185,9 +206,12 @@ class FitnessScoreService:
             workout_adherence_pct=round(workout_adherence_pct, 2),
             nutrition_score=round(nutrition_score, 2),
             protein_score=round(protein_score, 2),
-            sleep_score=round(sleep_score, 2),
-            recovery_score=round(recovery_score, 2),
+            sleep_score=None,
+            recovery_score=None,
             consistency_score=round(consistency_score, 2),
+            formula_version=FORMULA_VERSION,
+            sets_completed=total_sets_completed,
+            sets_planned=total_sets_planned,
             calculated_at=calc_at,
         )
 
@@ -196,7 +220,8 @@ class FitnessScoreService:
         db: Session, user: User, target_date: Optional[date] = None
     ) -> FitnessScoreItem:
         """
-        Explicit write/sync path: calculates fitness score AND persists/commits to database.
+        Explicit write/sync path: calculates fitness score AND persists/commits snapshot to database.
+        Ensures at most one snapshot per user per day.
         """
         item = FitnessScoreService.calculate_fitness_score(db, user, target_date=target_date)
 
@@ -223,25 +248,33 @@ class FitnessScoreService:
         score_record.workout_adherence_pct = item.workout_adherence_pct
         score_record.nutrition_score = item.nutrition_score
         score_record.protein_score = item.protein_score
-        score_record.sleep_score = item.sleep_score
-        score_record.recovery_score = item.recovery_score
+        score_record.sleep_score = None
+        score_record.recovery_score = None
         score_record.consistency_score = item.consistency_score
+        score_record.formula_version = FORMULA_VERSION
         score_record.calculated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(score_record)
 
-        return FitnessScoreItem.model_validate(score_record)
+        res = FitnessScoreItem.model_validate(score_record)
+        res.sets_completed = item.sets_completed
+        res.sets_planned = item.sets_planned
+        return res
 
     @staticmethod
     def get_fitness_score_summary(
         db: Session, user: User, target_date: Optional[date] = None
     ) -> FitnessScoreResponse:
         """
-        Read-only endpoint path: calculates current period score in memory without DB side-effects.
+        Read endpoint path: calculates current period score, automatically snapshots on read
+        for target_date (at most once per day), and returns history.
         """
-        p_end = target_date or date.today()
-        current_item = FitnessScoreService.calculate_fitness_score(db, user, target_date=p_end)
+        user_tz = user.profile.timezone if (user and user.profile and user.profile.timezone) else "UTC"
+        p_end = target_date or get_user_today_date(user_tz)
+
+        # Snapshot on read
+        current_item = FitnessScoreService.calculate_and_save_fitness_score(db, user, target_date=p_end)
 
         history_records = (
             db.query(FitnessScore)

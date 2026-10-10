@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { getFitnessScoreApi, recalculateFitnessScoreApi } from '../../lib/api/fitnessScore';
+import { Chip } from '../ui/Chip';
+import { ProgressBar } from '../ui/ProgressBar';
+import { getFitnessScoreApi } from '../../lib/api/fitnessScore';
 import { getErrorMessage } from '../../utils/apiError';
 import type { FitnessScoreResponse } from '../../types/fitnessScore';
 
@@ -11,10 +12,9 @@ interface FitnessScoreCardProps {
   onNavigateProgress?: () => void;
 }
 
-export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = false }) => {
+export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = false, onNavigateProgress }) => {
   const [data, setData] = useState<FitnessScoreResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadScore = async () => {
@@ -34,24 +34,11 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
     loadScore();
   }, []);
 
-  const handleRecalculate = async () => {
-    try {
-      setIsRecalculating(true);
-      setError(null);
-      await recalculateFitnessScoreApi();
-      await loadScore();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setIsRecalculating(false);
-    }
-  };
-
   if (isLoading) {
     return (
-      <Card className="p-6 border border-borderLine bg-bone min-h-[160px] flex items-center justify-center">
-        <span className="font-mono text-xs text-olive uppercase tracking-widest animate-pulse font-bold">
-          Evaluating Fitness Performance Engine...
+      <Card className="p-6 min-h-[160px] flex items-center justify-center">
+        <span className="text-xs text-text-muted uppercase tracking-wider animate-pulse font-medium">
+          Evaluating Fitness Performance...
         </span>
       </Card>
     );
@@ -59,9 +46,9 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
 
   if (error || !data || !data.current_score) {
     return (
-      <Card className="p-6 border border-error bg-error/5 text-error flex flex-col gap-2">
-        <span className="font-mono text-xs font-bold uppercase">Fitness Score Engine Error</span>
-        <p className="text-xs font-sans">{error || 'Could not load fitness score.'}</p>
+      <Card className="p-6 border-danger/30 text-danger flex flex-col gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wider">Fitness Score Error</span>
+        <p className="text-xs text-text-secondary">{error || 'Could not load fitness score.'}</p>
         <Button variant="secondary" onClick={loadScore} className="self-start mt-2">
           Retry
         </Button>
@@ -71,226 +58,142 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
 
   const { current_score, score_label } = data;
 
-  const getBadgeVariant = () => {
-    if (score_label === 'Excellent') return 'olive';
-    if (score_label === 'Good') return 'olive';
-    if (score_label === 'Fair') return 'faded';
-    return 'faded';
+  const getChipVariant = (): 'accent' | 'warning' | 'neutral' => {
+    if (score_label === 'Excellent' || score_label === 'Good') return 'accent';
+    if (score_label === 'Fair') return 'warning';
+    return 'neutral';
   };
 
   if (compact) {
     return (
-      <Card className="p-6 flex flex-col justify-between border-solid">
+      <Card className="p-6 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-3">
-            <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-              <span>⚡</span> Weekly Fitness Score
+            <span className="text-xs font-semibold uppercase tracking-wider text-text-secondary flex items-center gap-2">
+              Weekly Fitness Score
             </span>
-            <Badge variant={getBadgeVariant()}>{score_label}</Badge>
+            <Chip variant={getChipVariant()}>{score_label}</Chip>
           </div>
-          <div className="flex items-baseline gap-3 my-2">
-            <h3 className="text-4xl font-bold font-mono text-graphite tracking-tighter">
+          <div className="flex items-baseline gap-2 my-2">
+            <h3 className="text-4xl font-bold text-text-primary tracking-tight font-variant-numeric:tabular-nums">
               {current_score.score}
             </h3>
-            <span className="font-mono text-xs text-faded uppercase">/ 100 PTS</span>
+            <span className="text-xs text-text-muted">/ 100</span>
           </div>
-          <p className="text-xs text-charcoal font-sans">
-            Adherence: Workouts {current_score.workout_adherence_pct}% • Nutrition {current_score.nutrition_score}% • Consistency {current_score.consistency_score}%
+          <p className="text-xs text-text-secondary mt-1">
+            Workouts {current_score.workout_adherence_pct ?? 0}% • Calories {current_score.nutrition_score ?? 0}% • Protein {current_score.protein_score ?? 0}% • Logging {current_score.consistency_score ?? 0}%
           </p>
         </div>
-        <div className="mt-6 pt-4 border-t border-borderLine flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <span className="font-mono text-[10px] text-faded uppercase">
-            Period: {current_score.period_start} to {current_score.period_end}
+        <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+          <span className="text-[11px] text-text-muted">
+            {current_score.period_start} to {current_score.period_end}
           </span>
-          <Button variant="secondary" onClick={handleRecalculate} isLoading={isRecalculating} className="self-start sm:self-auto">
-            Recalculate ↻
-          </Button>
+          {onNavigateProgress && (
+            <Button variant="ghost" size="sm" onClick={onNavigateProgress}>
+              View Details
+            </Button>
+          )}
         </div>
       </Card>
     );
   }
 
-  const goingWellItems: string[] = [];
-  const needsAttentionItems: string[] = [];
+  // Determine "What to improve" dynamically from lowest component
+  const components = [
+    { name: 'Workouts', score: current_score.workout_adherence_pct ?? 0, weight: 35, tip: 'Complete all planned workout sets for full session credits.' },
+    { name: 'Calories', score: current_score.nutrition_score ?? 0, weight: 25, tip: 'Stay close to your daily calorie target for maximum adherence.' },
+    { name: 'Protein', score: current_score.protein_score ?? 0, weight: 20, tip: 'Hit your daily protein intake goal consistently.' },
+    { name: 'Logging', score: current_score.consistency_score ?? 0, weight: 20, tip: 'Log your meals and workouts daily to build consistency.' },
+  ];
 
-  if ((current_score.workout_adherence_pct ?? 0) >= 80) {
-    goingWellItems.push(`Training — Excellent (${current_score.workout_adherence_pct}%)`);
-  } else {
-    needsAttentionItems.push(`Training — ${current_score.workout_adherence_pct ?? 0}%`);
-  }
-
-  if ((current_score.protein_score ?? 0) >= 80) {
-    goingWellItems.push(`Protein — Excellent (${current_score.protein_score}%)`);
-  } else {
-    needsAttentionItems.push(`Protein — ${current_score.protein_score ?? 0}%`);
-  }
-
-  if ((current_score.consistency_score ?? 0) >= 80) {
-    goingWellItems.push(`Logging — Excellent (${current_score.consistency_score}%)`);
-  } else {
-    needsAttentionItems.push(`Logging — ${current_score.consistency_score ?? 0}%`);
-  }
-
-  if ((current_score.nutrition_score ?? 0) >= 80) {
-    goingWellItems.push(`Calories — On Track (${current_score.nutrition_score}%)`);
-  } else {
-    needsAttentionItems.push(`Calories — ${current_score.nutrition_score ?? 0}%`);
-  }
-
-  if ((current_score.recovery_score ?? 0) >= 80) {
-    goingWellItems.push(`Recovery — Good (${current_score.recovery_score}%)`);
-  } else {
-    needsAttentionItems.push(`Recovery — ${current_score.recovery_score ?? 0}%`);
-  }
+  const sortedComponents = [...components].sort((a, b) => a.score - b.score);
+  const lowestComponent = sortedComponents[0];
 
   return (
     <Card className="p-6 md:p-8 flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
-          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
+          <span className="text-xs text-accent font-semibold uppercase tracking-wider block mb-1">
             Your Fitness Score
           </span>
-          <h2 className="font-mono text-2xl font-bold uppercase text-graphite">
+          <h2 className="text-2xl font-bold text-text-primary tracking-tight">
             Weekly Fitness Score
           </h2>
-          <span className="font-mono text-xs text-faded block mt-1">
-            Evaluation Period: {current_score.period_start} → {current_score.period_end}
+          <span className="text-xs text-text-muted block mt-1">
+            Period: {current_score.period_start} → {current_score.period_end}
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-3">
           <div className="text-left sm:text-right">
-            <span className="text-4xl font-bold font-mono text-graphite tracking-tighter block">
+            <span className="text-4xl font-bold text-text-primary tracking-tight tabular-nums block">
               {current_score.score}
-              <span className="text-sm font-normal text-faded">/100</span>
+              <span className="text-sm font-normal text-text-muted">/100</span>
             </span>
-            <Badge variant={getBadgeVariant()}>{score_label}</Badge>
+            <Chip variant={getChipVariant()}>{score_label}</Chip>
           </div>
-
-          <Button variant="secondary" onClick={handleRecalculate} isLoading={isRecalculating}>
-            Recalculate ↻
-          </Button>
         </div>
       </div>
 
-      {/* What's Going Well vs Needs Attention */}
+      {/* Dynamic What to Improve Banner */}
+      <div className="p-4 bg-surface-subtle border border-border rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-accent block">
+            What to improve
+          </span>
+          <p className="text-xs text-text-secondary mt-0.5">
+            Focus on <strong className="text-text-primary">{lowestComponent.name}</strong> ({lowestComponent.score}%). {lowestComponent.tip}
+          </p>
+        </div>
+      </div>
+
+      {/* 4-Bar Component Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* What's Going Well */}
-        <div className="p-4 bg-olive/10 border border-olive/20 flex flex-col gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-olive font-bold">
-            What's Going Well
-          </span>
-          <ul className="text-xs space-y-1.5 font-sans text-graphite">
-            {goingWellItems.map((item, idx) => (
-              <li key={idx} className="flex items-center gap-2">
-                <span className="text-olive font-bold">✓</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Needs Attention */}
-        <div className="p-4 bg-bone border border-borderLine flex flex-col gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-charcoal font-bold">
-            Needs Attention
-          </span>
-          {needsAttentionItems.length > 0 ? (
-            <ul className="text-xs space-y-1.5 font-sans text-graphite">
-              {needsAttentionItems.map((item, idx) => (
-                <li key={idx} className="flex items-center gap-2">
-                  <span className="text-charcoal font-bold">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-xs text-charcoal font-sans">
-              All categories are currently on track!
-            </p>
-          )}
-        </div>
+        {components.map((c) => {
+          const earnedPoints = ((c.score / 100) * c.weight).toFixed(1);
+          return (
+            <div key={c.name} className="p-4 bg-surface-subtle border border-border rounded-lg flex flex-col gap-2">
+              <div className="flex justify-between text-xs">
+                <span className="font-medium text-text-primary">
+                  {c.name} ({c.weight}%)
+                </span>
+                <span className="font-semibold text-text-primary tabular-nums">
+                  {earnedPoints} / {c.weight} pts ({c.score}%)
+                </span>
+              </div>
+              <ProgressBar value={c.score} max={100} />
+            </div>
+          );
+        })}
       </div>
 
-      {/* Expandable Category Weightings */}
-      <details open className="pt-2 border-t border-borderLine group">
-        <summary className="font-mono text-xs uppercase tracking-wider text-graphite font-bold cursor-pointer hover:text-olive transition-colors flex items-center justify-between">
-          <span>Score Breakdown & Weights</span>
-          <span className="text-faded group-open:rotate-180 transition-transform text-[10px]">▼</span>
+      {/* Expandable "How this is calculated" section */}
+      <details className="pt-2 border-t border-border group">
+        <summary className="text-xs font-semibold text-text-secondary cursor-pointer hover:text-text-primary transition-colors flex items-center justify-between">
+          <span>How this is calculated (Formula V2)</span>
+          <span className="text-text-muted group-open:rotate-180 transition-transform text-[10px]">▼</span>
         </summary>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          {/* Workout Adherence */}
-          <div className="p-4 bg-bone border border-borderLine flex flex-col gap-2">
-            <div className="flex justify-between font-mono text-xs">
-              <span className="font-bold text-graphite uppercase">Workout Adherence (30%)</span>
-              <span className="text-olive font-bold">{current_score.workout_adherence_pct}%</span>
-            </div>
-            <div className="w-full bg-bone border border-borderLine h-3">
-              <div
-                className="bg-olive h-full transition-all"
-                style={{ width: `${current_score.workout_adherence_pct || 0}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Nutrition Score */}
-          <div className="p-4 bg-bone border border-borderLine flex flex-col gap-2">
-            <div className="flex justify-between font-mono text-xs">
-              <span className="font-bold text-graphite uppercase">Calorie Target Adherence (25%)</span>
-              <span className="text-olive font-bold">{current_score.nutrition_score}%</span>
-            </div>
-            <div className="w-full bg-bone border border-borderLine h-3">
-              <div
-                className="bg-olive h-full transition-all"
-                style={{ width: `${current_score.nutrition_score || 0}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Protein Score */}
-          <div className="p-4 bg-bone border border-borderLine flex flex-col gap-2">
-            <div className="flex justify-between font-mono text-xs">
-              <span className="font-bold text-graphite uppercase">Protein Target Adherence (20%)</span>
-              <span className="text-olive font-bold">{current_score.protein_score}%</span>
-            </div>
-            <div className="w-full bg-bone border border-borderLine h-3">
-              <div
-                className="bg-olive h-full transition-all"
-                style={{ width: `${current_score.protein_score || 0}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Consistency Score */}
-          <div className="p-4 bg-bone border border-borderLine flex flex-col gap-2">
-            <div className="flex justify-between font-mono text-xs">
-              <span className="font-bold text-graphite uppercase">Logging Consistency (15%)</span>
-              <span className="text-olive font-bold">{current_score.consistency_score}%</span>
-            </div>
-            <div className="w-full bg-bone border border-borderLine h-3">
-              <div
-                className="bg-olive h-full transition-all"
-                style={{ width: `${current_score.consistency_score || 0}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Recovery Score */}
-          <div className="p-4 bg-bone border border-borderLine flex flex-col gap-2 md:col-span-2">
-            <div className="flex justify-between font-mono text-xs">
-              <span className="font-bold text-graphite uppercase">Recovery & Sleep Baseline (10%)</span>
-              <span className="text-olive font-bold">{current_score.recovery_score}%</span>
-            </div>
-            <div className="w-full bg-bone border border-borderLine h-3">
-              <div
-                className="bg-olive h-full transition-all"
-                style={{ width: `${current_score.recovery_score}%` }}
-              />
-            </div>
-            <span className="font-mono text-[10px] text-faded">
-              *Baseline score based on standard sleep and recovery recommendations.
-            </span>
-          </div>
+        <div className="text-xs text-text-secondary mt-3 space-y-2 leading-relaxed">
+          <p>
+            The Fitness Score (0–100) evaluates your rolling 7-day adherence across 4 data-backed categories:
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>
+              <strong>Workouts (35%):</strong> Evaluates actual work completed. Sessions with &lt;3 completed sets earn 0 credit. Sessions earn credit proportional to completed vs planned sets.
+            </li>
+            <li>
+              <strong>Calories (25%):</strong> Evaluates average daily calorie target adherence across logged days.
+            </li>
+            <li>
+              <strong>Protein (20%):</strong> Evaluates average daily protein intake relative to your daily target.
+            </li>
+            <li>
+              <strong>Logging Consistency (20%):</strong> Evaluates active days with logged meals, workouts, or weigh-ins.
+            </li>
+          </ul>
+          <p className="text-[11px] text-text-muted">
+            Zero invented data: All inputs derive strictly from your recorded workouts, nutrition logs, and body measurements.
+          </p>
         </div>
       </details>
     </Card>

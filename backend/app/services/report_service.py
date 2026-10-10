@@ -21,7 +21,10 @@ from app.schemas.report import (
 )
 from app.services.nutrition_service import NutritionService
 from app.services.fitness_score_service import FitnessScoreService
-from app.core.calculations import calculate_calorie_adherence
+from app.services.metrics_service import (
+    calculate_calorie_adherence,
+    calculate_protein_adherence,
+)
 from app.core.timezone_utils import (
     extract_date,
     get_timezone_aware_range,
@@ -217,7 +220,7 @@ class ReportService:
             cal_adherence = calculate_calorie_adherence(
                 avg_cals, target_calories, as_percentage=True
             )
-            prot_adherence = min(100.0, (avg_protein / max(1.0, target_protein)) * 100.0)
+            prot_adherence = calculate_protein_adherence(avg_protein, target_protein)
 
             nutrition_section = NutritionReportSection(
                 logged_days_count=logged_days_count,

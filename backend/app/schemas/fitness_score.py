@@ -11,9 +11,12 @@ class FitnessScoreItem(BaseModel):
     workout_adherence_pct: Optional[float] = None
     nutrition_score: Optional[float] = None
     protein_score: Optional[float] = None
-    sleep_score: float = 75.0
-    recovery_score: float = 75.0
+    sleep_score: Optional[float] = 75.0
+    recovery_score: Optional[float] = 75.0
     consistency_score: Optional[float] = None
+    formula_version: int = 2
+    sets_completed: Optional[int] = None
+    sets_planned: Optional[int] = None
     calculated_at: datetime
     period_start: date
     period_end: date

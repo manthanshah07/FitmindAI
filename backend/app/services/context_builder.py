@@ -31,6 +31,7 @@ from app.core.timezone_utils import (
     get_timezone_aware_range,
     get_user_today_date,
 )
+from app.core.weight import get_current_weight
 
 
 logger = logging.getLogger(__name__)
@@ -55,12 +56,13 @@ class ContextBuilder:
     ) -> FitnessContext:
         # 1. Profile Context (EXCLUDES medical_notes for privacy)
         profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+        current_weight = get_current_weight(db, user)
         profile_ctx: Optional[ProfileContext] = None
         if profile:
             profile_ctx = ProfileContext(
                 full_name=profile.full_name,
                 height_cm=float(profile.height_cm) if profile.height_cm is not None else None,
-                weight_kg=float(profile.weight_kg) if profile.weight_kg is not None else None,
+                weight_kg=current_weight,
                 activity_level=profile.activity_level,
                 diet_preference=profile.diet_preference,
                 equipment=profile.equipment,

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
@@ -8,6 +8,7 @@ import { ProgressOverviewPage } from '../pages/progress/ProgressOverviewPage';
 import { AppShell } from '../components/layout/AppShell';
 import * as scoreApi from '../lib/api/fitnessScore';
 import * as progressApi from '../lib/api/progress';
+import * as goalsApi from '../lib/api/goals';
 
 vi.mock('../lib/api/fitnessScore', () => ({
   getFitnessScoreApi: vi.fn(),
@@ -19,6 +20,11 @@ vi.mock('../lib/api/progress', () => ({
   getMeasurementsApi: vi.fn(),
   createMeasurementApi: vi.fn(),
   getMeasurementByIdApi: vi.fn(),
+}));
+
+vi.mock('../lib/api/goals', () => ({
+  getActiveGoalApi: vi.fn(),
+  createGoalApi: vi.fn(),
 }));
 
 const createTestQueryClient = () =>
@@ -42,9 +48,12 @@ const mockScoreItem = {
   workout_adherence_pct: 100.0,
   nutrition_score: 82.5,
   protein_score: 90.0,
-  sleep_score: 75.0,
-  recovery_score: 75.0,
+  sleep_score: null,
+  recovery_score: null,
   consistency_score: 85.7,
+  formula_version: 2,
+  sets_completed: 16,
+  sets_planned: 16,
   calculated_at: new Date().toISOString(),
   period_start: '2026-08-11',
   period_end: '2026-08-17',
@@ -56,7 +65,7 @@ const mockScoreResponse = {
   history: [mockScoreItem],
 };
 
-describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
+describe('Milestone M6 — Fitness Score Engine & Card Component', () => {
   beforeEach(() => {
     localStorage.clear();
     useAuthStore.setState({
@@ -75,9 +84,21 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
       error: null,
     });
     vi.clearAllMocks();
+    vi.mocked(goalsApi.getActiveGoalApi).mockResolvedValue({
+      id: 'g-1',
+      user_id: 'u-123',
+      goal_type: 'fat_loss',
+      target_weight_kg: 70.0,
+      target_date: null,
+      is_active: true,
+      has_goal_conflict: false,
+      conflict_reason: null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
   });
 
-  it('renders Fitness Score card with breakdown and label on Progress page', async () => {
+  it('renders Fitness Score card with 4-bar breakdown (Workouts 35%, Calories 25%, Protein 20%, Logging 20%)', async () => {
     vi.mocked(scoreApi.getFitnessScoreApi).mockResolvedValueOnce(mockScoreResponse);
     vi.mocked(progressApi.getProgressSummaryApi).mockResolvedValueOnce({
       latest_weight_kg: 75.0,
@@ -98,29 +119,23 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
 
     expect(await screen.findByText(/Weekly Fitness Score/i)).toBeInTheDocument();
     await waitFor(() => expect(container.textContent).toContain('84'));
-    expect(screen.getByText('Good')).toBeInTheDocument();
-    expect(screen.getByText(/Workout Adherence \(30%\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Protein Target Adherence \(20%\)/i)).toBeInTheDocument();
-  });
+    expect(screen.getAllByText('Good').length).toBeGreaterThan(0);
 
-  it('recalculate button triggers the recalculate API call', async () => {
-    vi.mocked(scoreApi.getFitnessScoreApi).mockResolvedValue(mockScoreResponse);
-    vi.mocked(scoreApi.recalculateFitnessScoreApi).mockResolvedValueOnce(mockScoreItem);
+    // 4-Bar Component Breakdown
+    expect(screen.getAllByText(/Workouts \(35%\)/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Calories \(25%\)/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Protein \(20%\)/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Logging \(20%\)/i).length).toBeGreaterThan(0);
 
-    renderWithQuery(
-      <MemoryRouter>
-        <FitnessScoreCard />
-      </MemoryRouter>,
-    );
+    // Verify recovery constant is REMOVED
+    expect(screen.queryByText(/Recovery & Sleep Baseline \(10%\)/i)).not.toBeInTheDocument();
 
-    expect(await screen.findByText('84')).toBeInTheDocument();
+    // Verify Recalculate button is REMOVED
+    expect(screen.queryByRole('button', { name: /Recalculate ↻/i })).not.toBeInTheDocument();
 
-    const btn = screen.getByRole('button', { name: /Recalculate ↻/i });
-    fireEvent.click(btn);
-
-    await waitFor(() => {
-      expect(scoreApi.recalculateFitnessScoreApi).toHaveBeenCalled();
-    });
+    // Verify What to improve and How this is calculated
+    expect(screen.getByText(/What to improve/i)).toBeInTheDocument();
+    expect(screen.getByText(/How this is calculated \(Formula V2\)/i)).toBeInTheDocument();
   });
 
   it('renders error state when score loading fails', async () => {
@@ -132,11 +147,11 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Fitness Score Engine Error/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Fitness Score Error/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Retry/i })).toBeInTheDocument();
   });
 
-  it('renders compact Fitness Score card', async () => {
+  it('renders compact Fitness Score card without recalculate button', async () => {
     vi.mocked(scoreApi.getFitnessScoreApi).mockResolvedValueOnce(mockScoreResponse);
 
     renderWithQuery(
@@ -148,5 +163,6 @@ describe('Phase 6 — Fitness Score Engine Frontend Module', () => {
     expect(await screen.findByText(/Weekly Fitness Score/i)).toBeInTheDocument();
     expect(screen.getByText('84')).toBeInTheDocument();
     expect(screen.getByText('Good')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Recalculate ↻/i })).not.toBeInTheDocument();
   });
 });

@@ -163,6 +163,14 @@ export function App() {
                 </AppShell>
               }
             />
+            <Route
+              path="/dev/progress"
+              element={
+                <AppShell>
+                  <ProgressOverviewPage />
+                </AppShell>
+              }
+            />
           </Routes>
         </Suspense>
       </div>

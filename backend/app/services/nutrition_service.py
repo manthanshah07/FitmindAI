@@ -21,6 +21,7 @@ from app.schemas.nutrition import (
 from app.services.food_service import FoodService
 from app.core.calculations import calculate_tdee, calculate_age_from_dob
 from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+from app.core.weight import get_current_weight
 
 
 class NutritionService:
@@ -29,7 +30,8 @@ class NutritionService:
         profile = db.query(Profile).filter(Profile.user_id == user.id).first()
         active_goal = db.query(Goal).filter(Goal.user_id == user.id, Goal.is_active == True).first()
 
-        weight_kg = float(profile.weight_kg) if profile and profile.weight_kg else 70.0
+        resolved_weight = get_current_weight(db, user)
+        weight_kg = resolved_weight if resolved_weight is not None else 70.0
         height_cm = float(profile.height_cm) if profile and profile.height_cm else 170.0
         gender = profile.gender if profile and profile.gender else "male"
         activity = profile.activity_level if profile and profile.activity_level else "moderate"

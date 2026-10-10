@@ -7,8 +7,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class GoalTypeEnum(str, Enum):
     WEIGHT_LOSS = "weight_loss"
+    FAT_LOSS = "fat_loss"
     MUSCLE_GAIN = "muscle_gain"
     MAINTAIN = "maintain"
+    MAINTENANCE = "maintenance"
     ENDURANCE = "endurance"
     GENERAL_FITNESS = "general_fitness"
 
@@ -26,6 +28,8 @@ class GoalResponse(BaseModel):
     target_weight_kg: Optional[float] = None
     target_date: Optional[date] = None
     is_active: bool
+    has_goal_conflict: bool = False
+    conflict_reason: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

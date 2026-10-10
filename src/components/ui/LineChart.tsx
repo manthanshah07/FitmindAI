@@ -23,6 +23,7 @@ export interface LineChartProps {
   height?: number;
   className?: string;
   yAxisUnit?: string;
+  yDomain?: [number | string, number | string];
   ariaLabel?: string;
 }
 
@@ -33,6 +34,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   height = 240,
   className = '',
   yAxisUnit = '',
+  yDomain,
   ariaLabel = 'Line chart',
 }) => {
   const defaultColors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4'];
@@ -60,6 +62,7 @@ export const LineChart: React.FC<LineChartProps> = ({
             tickLine={false}
             axisLine={{ stroke: 'var(--border-subtle, #27272a)' }}
             unit={yAxisUnit}
+            domain={yDomain}
           />
           <Tooltip
             contentStyle={{

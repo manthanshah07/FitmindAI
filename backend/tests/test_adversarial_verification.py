@@ -279,7 +279,10 @@ class TestAdversarialFitnessScoreFreshness:
             "/api/v1/workout/logs",
             json={
                 "started_at": now_iso,
-                "logged_exercises": [{"exercise_id": ex_id, "set_number": 1, "reps_completed": 10}],
+                "logged_exercises": [
+                    {"exercise_id": ex_id, "set_number": i, "reps_completed": 10}
+                    for i in range(1, 13)
+                ],
             },
             headers=headers,
         )

@@ -1,7 +1,9 @@
 export type GoalType =
   | 'weight_loss'
+  | 'fat_loss'
   | 'muscle_gain'
   | 'maintain'
+  | 'maintenance'
   | 'endurance'
   | 'general_fitness';
 
@@ -12,6 +14,8 @@ export interface Goal {
   target_weight_kg?: number | null;
   target_date?: string | null;
   is_active: boolean;
+  has_goal_conflict?: boolean;
+  conflict_reason?: string | null;
   created_at: string;
   updated_at: string;
 }

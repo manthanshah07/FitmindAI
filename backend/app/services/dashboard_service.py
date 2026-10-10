@@ -18,6 +18,7 @@ from app.core.calculations import calculate_tdee
 from app.services.nutrition_service import NutritionService
 from app.services.report_service import ReportService
 from app.core.timezone_utils import get_timezone_aware_range, get_user_today_date
+from app.core.weight import get_current_weight
 
 
 
@@ -37,8 +38,9 @@ class DashboardService:
 
 
         # 2. Nutrition Targets (Server-calculated TDEE, BMR, Target Cals & Protein)
+        current_weight = get_current_weight(db, user)
         tdee_info = calculate_tdee(
-            weight_kg=profile.weight_kg if profile else None,
+            weight_kg=current_weight,
             height_cm=profile.height_cm if profile else None,
             date_of_birth=profile.date_of_birth if profile else None,
             gender=profile.gender if profile else None,
