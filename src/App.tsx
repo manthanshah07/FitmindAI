@@ -83,9 +83,7 @@ export function App() {
               path="/workouts/session"
               element={
                 <ProtectedRoute>
-                  <div className="min-h-screen min-h-[100dvh] bg-[#0B1220] text-[#E2E8F0] p-4 md:p-8">
-                    <WorkoutSessionPage />
-                  </div>
+                  <WorkoutSessionPage />
                 </ProtectedRoute>
               }
             />
@@ -142,6 +140,18 @@ export function App() {
               element={
                 <AppShell>
                   <DashboardPage />
+                </AppShell>
+              }
+            />
+            <Route
+              path="/dev/workout-session"
+              element={<WorkoutSessionPage />}
+            />
+            <Route
+              path="/dev/workouts"
+              element={
+                <AppShell>
+                  <WorkoutOverviewPage />
                 </AppShell>
               }
             />

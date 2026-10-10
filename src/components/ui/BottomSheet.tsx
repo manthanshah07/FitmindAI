@@ -60,12 +60,25 @@ export const BottomSheetTitle = React.forwardRef<
 ));
 BottomSheetTitle.displayName = 'BottomSheetTitle';
 
+export const BottomSheetDescription = React.forwardRef<
+  React.ElementRef<typeof RadixDialog.Description>,
+  React.ComponentPropsWithoutRef<typeof RadixDialog.Description>
+>(({ className, ...props }, ref) => (
+  <RadixDialog.Description
+    ref={ref}
+    className={twMerge(clsx('text-xs text-text-3', className))}
+    {...props}
+  />
+));
+BottomSheetDescription.displayName = 'BottomSheetDescription';
+
 export interface BottomSheetProps {
   open?: boolean;
   isOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   onClose?: () => void;
   title?: string;
+  description?: string;
   children?: React.ReactNode;
 }
 
@@ -75,6 +88,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   onOpenChange,
   onClose,
   title,
+  description,
   children,
 }) => {
   const isControlledOpen = open !== undefined ? open : isOpen;
@@ -89,6 +103,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         <BottomSheetContent>
           <BottomSheetHeader>
             <BottomSheetTitle>{title}</BottomSheetTitle>
+            {description && <BottomSheetDescription>{description}</BottomSheetDescription>}
           </BottomSheetHeader>
           {children}
         </BottomSheetContent>

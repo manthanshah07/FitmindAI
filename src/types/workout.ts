@@ -80,3 +80,59 @@ export interface WorkoutLog {
   created_at: string;
   logged_exercises: WorkoutLogExercise[];
 }
+
+// ----------------------------------------------------
+// Milestone M3 / Appendix C — Live Workout Draft Types
+// ----------------------------------------------------
+
+export interface WorkoutSetDraft {
+  setNumber: number;
+  weightKg: string;
+  reps: number | string;
+  rpe?: number | null;
+  done: boolean;
+  completedAt?: string | null;
+  previousResult?: string | null;
+}
+
+export interface WorkoutExerciseDraft {
+  exerciseId: string;
+  name: string;
+  targetSets?: number;
+  targetReps?: string;
+  restSeconds?: number;
+  previousResult?: string | null;
+  sets: WorkoutSetDraft[];
+}
+
+export interface WorkoutDraft {
+  schemaVersion: 1;
+  userId: string;
+  sessionId: string;
+  idempotencyKey: string;
+  startedAt: string;
+  endedAt: string | null;
+  status: 'in_progress' | 'ready_to_submit' | 'conflict';
+  templateRef?: { planId?: string | number; dayIndex?: number } | null;
+  notes: string | null;
+  restEndsAt: number | null;
+  exercises: WorkoutExerciseDraft[];
+  updatedAt: string;
+}
+
+export interface SessionTemplateExercise {
+  exerciseId: string;
+  name: string;
+  targetSets: number;
+  targetReps: string;
+  restSeconds: number;
+  previousResult?: string | null;
+}
+
+export interface SessionTemplate {
+  planId?: string;
+  dayIndex?: number;
+  name?: string;
+  exercises: SessionTemplateExercise[];
+}
+

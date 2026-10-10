@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
 import { Input } from '../../components/ui/Input';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useWorkoutDraftStore } from '../../store/useWorkoutDraftStore';
+import { loadDraft } from '../../lib/workoutDraft';
 import {
   getActiveWorkoutPlanApi,
   generateWorkoutPlanApi,
@@ -49,6 +52,9 @@ const CATEGORY_OPTIONS = [
 
 export const WorkoutOverviewPage: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { initDraft } = useWorkoutDraftStore();
   const queryClient = useQueryClient();
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [selectedDays, setSelectedDays] = useState<string>('4');
@@ -56,6 +62,15 @@ export const WorkoutOverviewPage: React.FC = () => {
     (location.state as { message?: string })?.message || null,
   );
   const [error, setError] = useState<string | null>(null);
+
+  const hasDraft = Boolean(user?.id && loadDraft(user.id).draft);
+
+  const handleStartEmptyWorkout = () => {
+    if (user?.id) {
+      initDraft(user.id);
+      navigate('/workouts/session');
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedMuscle, setSelectedMuscle] = useState<string>('');
@@ -146,7 +161,15 @@ export const WorkoutOverviewPage: React.FC = () => {
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <NavLink to="/workouts/session">
+            <Button variant="primary">
+              {hasDraft ? 'Resume workout' : 'Start workout'}
+            </Button>
+          </NavLink>
+          <Button variant="secondary" onClick={handleStartEmptyWorkout}>
+            Start empty workout
+          </Button>
           <NavLink to="/workout/history">
             <Button variant="secondary">View Workout Logs 📋</Button>
           </NavLink>

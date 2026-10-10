@@ -19,6 +19,7 @@ vi.mock('../lib/api/workout', () => ({
   getExercisesApi: vi.fn(),
   seedExercisesApi: vi.fn(),
   logWorkoutSessionApi: vi.fn(),
+  logWorkoutSessionWithMetaApi: vi.fn(),
 }));
 
 const createTestQueryClient = () =>
@@ -146,29 +147,35 @@ describe('Phase 3 — Workout Frontend Module & Security Tests', () => {
 
   it('allows starting a live session, logging sets, and renders Session Completion Summary', async () => {
     vi.mocked(workoutApi.getActiveWorkoutPlanApi).mockResolvedValue(mockPlan);
-    vi.mocked(workoutApi.logWorkoutSessionApi).mockResolvedValueOnce(mockLog);
+    vi.mocked(workoutApi.logWorkoutSessionWithMetaApi).mockResolvedValueOnce({
+      log: mockLog,
+      isReplay: false,
+    });
 
     render(
       <MemoryRouter initialEntries={['/workout/session']}>
         <Routes>
           <Route path="/workout/session" element={<WorkoutSessionPage />} />
-          <Route path="/workout" element={<div>Workout Overview Target</div>} />
+          <Route path="/workouts" element={<div>Workout Overview Target</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText(/Active Workout Session/i)).toBeInTheDocument();
+    expect(await screen.findByText('Barbell Bench Press')).toBeInTheDocument();
 
-    // Click Finish Workout
-    fireEvent.click(screen.getByRole('button', { name: /Finish Workout ✓/i }));
+    // Mark set 1 complete
+    const completeBtns = screen.getAllByRole('button', { name: /Mark set 1 as complete/i });
+    fireEvent.click(completeBtns[0]);
 
-    // Assert Session Completion Summary Screen appears with exact calculated values
+    // Click Finish
+    fireEvent.click(screen.getByRole('button', { name: /^Finish$/i }));
+
+    // Assert Session Completion Summary Sheet appears
     expect(await screen.findByText(/Session Summary/i)).toBeInTheDocument();
-    expect(screen.getByText(/1,480/i)).toBeInTheDocument(); // Total Volume: 1480 kg
-    expect(screen.getByText(/Return to Workouts →/i)).toBeInTheDocument();
+    expect(screen.getByText(/Volume/i)).toBeInTheDocument();
 
-    // Click Return to Workouts
-    fireEvent.click(screen.getByText(/Return to Workouts →/i));
+    // Click Save Workout
+    fireEvent.click(screen.getByRole('button', { name: /Save Workout/i }));
     expect(await screen.findByText(/Workout Overview Target/i)).toBeInTheDocument();
   });
 

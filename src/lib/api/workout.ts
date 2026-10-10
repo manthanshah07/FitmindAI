@@ -54,9 +54,28 @@ export async function getWorkoutLogByIdApi(id: string): Promise<WorkoutLog> {
   return response.data;
 }
 
+export interface LogWorkoutSessionOptions {
+  idempotencyKey?: string;
+}
+
+export async function logWorkoutSessionWithMetaApi(
+  payload: WorkoutLogCreate,
+  options?: LogWorkoutSessionOptions,
+): Promise<{ log: WorkoutLog; isReplay: boolean }> {
+  const headers: Record<string, string> = {};
+  if (options?.idempotencyKey) {
+    headers['Idempotency-Key'] = options.idempotencyKey;
+  }
+  const response = await api.post<WorkoutLog>('/workout/logs', payload, { headers });
+  const isReplay = response.headers?.['x-idempotency-replay'] === 'true';
+  return { log: response.data, isReplay };
+}
+
 export async function logWorkoutSessionApi(
   payload: WorkoutLogCreate,
+  options?: LogWorkoutSessionOptions,
 ): Promise<WorkoutLog> {
-  const response = await api.post<WorkoutLog>('/workout/logs', payload);
-  return response.data;
+  const { log } = await logWorkoutSessionWithMetaApi(payload, options);
+  return log;
 }
+

@@ -159,8 +159,8 @@ All facts below were verified through code inspection, test runs, and CLI diagno
 | **Phase 8** | Automated Reports Module | COMPLETE |
 | **Milestone M0** | Baseline Audit, Hygiene & Database Guard | **COMPLETE** |
 | **Milestone M1** | Design System & App Shell Rebuild | **COMPLETE** |
-| **Milestone M2** | Idempotent Workout API (Phase 3C-A) | **COMPLETE** |
-| **Milestone M3** | Exercise Library & Seed Data | NEXT |
+| **Milestone M3** | Workout Mode & Draft Recovery (Phase 3C-B & 3C-C) | **COMPLETE** |
+| **Milestone M4** | Workouts Sub-App Rebuild | NEXT |
 
 ---
 
@@ -235,5 +235,49 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - Backend: **349 passed** (0 failures, 0 skipped, 15 new tests in M2).
   - Frontend: **106 passed** (16 test files, 0 failures).
   - Active Alembic Head: `2026_10_10_0013 (head)`.
+
+---
+
+## 7. Milestone M3 Verified Implementation
+
+- **Branch:** `m3-workout-mode`
+- **Specification:** Strictly adhered to Section 6 (Milestone M3), Appendix B (API contract & Idempotency-Key headers), Appendix C (Draft Recovery Engine), and Appendix E (Workout Mode Wireframe).
+- **Draft Recovery Engine (`src/lib/workoutDraft.ts`):**
+  - `fitmind:workout-draft:<userId>` key with debounced 300ms persistence.
+  - **User Isolation:** Drafts strictly scoped by user ID; User A cannot see User B's draft; drafts are preserved across logout so subsequent login on the same device restores progress.
+  - **Corrupt JSON Quarantine:** Verified copy written to `fitmind:workout-draft-quarantine:<userId>:<timestamp>` before removing corrupt draft; verifies quarantine exists before offering discard/download.
+  - **QuotaExceededError Handling:** Non-blocking warning banner with "Copy Draft" and "Download JSON" buttons; continues in-memory session.
+  - **Stale Draft (>24h) Detection:** Prompts user with "Save as Completed" or "Discard" modal.
+  - **Verbatim Notes Preservation:** Notes preserved verbatim (`null`, `""`, `"   "`, text distinct).
+- **Zustand Store (`src/store/useWorkoutDraftStore.ts`):**
+  - Manages full draft lifecycle: init from `SessionTemplate` or empty workout, resume active draft, set editing with string weight representation (`weightKg: string`), set completion with ISO timestamp.
+  - Dropping uncompleted sets upon submission freeze per Appendix C.
+  - Rest timer timestamp management (`restEndsAt`), -15s / +15s / Skip adjustments.
+  - Immediate persistence flush on freeze and set completion.
+- **Full-Screen Workout Mode UI (`src/pages/workout/WorkoutSessionPage.tsx`):**
+  - Full-screen layout isolated from tab bar with `data-theme="dark"` tokens.
+  - Live elapsed timer computed continuously from `startedAt` (survives tab closure and reload).
+  - Single exercise focus view with Previous / Next pagination and quick-jump bottom sheet.
+  - Touch targets >= 48px on set completion checkmark buttons.
+  - Timestamp-based rest timer bar: progress ring, elapsed countdown, -15s / +15s / Skip buttons.
+  - Zero-transition feedback: Web Audio synthesizer chime, `navigator.vibrate`, polite `aria-live` announcement.
+  - Screen Wake Lock API integration: requests on mount, re-acquires on `visibilitychange`, releases on unmount/finish.
+  - Accidental exit confirmation dialog and `beforeunload` browser guard.
+  - Submission flow: drops uncompleted sets, freezes `endedAt`, submits with `Idempotency-Key` header, clears draft on 201/200, handles 409 conflict, retains draft on network failure with exponential backoff retries and `online` event listener.
+  - Shortcut: "Open Music App" linking to native audio scheme with web player fallback.
+- **Entry Points:**
+  - Updated Today / Dashboard (`src/pages/dashboard/DashboardPage.tsx`) and Workouts Overview (`src/pages/workout/WorkoutOverviewPage.tsx`) with dynamic "Resume workout" / "Start workout" and "Start empty workout".
+- **Verification & Test Results:**
+  - Frontend Test Suite: **124 passed** across 18 test files (10/10 in `workoutDraft.test.ts`, 8/8 in `workoutMode.test.tsx`, 7/7 in `workout.test.tsx`, 0 failures).
+  - Backend Test Suite: **349 passed** in 80.93s (100% parity with M2 baseline, 0 failures, 0 regressions).
+  - TypeScript: `npx tsc -b --noEmit` passed (0 errors).
+  - Production Build: `npm run build` succeeded (0 errors).
+  - Linter: `npm run lint` passed (0 errors).
+  - Database Migration: No schema changes in M3 (alembic head remains `2026_10_10_0013`).
+- **Screenshots:** Mobile screenshots captured at 390x844 and saved in `docs/screens/m3/`:
+  - `workout_mode_session.png` (Live workout mode active session)
+  - `workout_overview_mobile.png` (Workouts overview with entry points)
+  - `today_resume_mobile.png` (Today dashboard with dynamic resume entry point)
+  - `workout_mode_dev_ui.png` (Design system UI showcase)
 
 

@@ -4,9 +4,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { FitnessScoreCard } from '../../components/progress/FitnessScoreCard';
 import { getDashboardSummaryApi } from '../../lib/api/dashboard';
 import { getErrorMessage } from '../../utils/apiError';
+import { loadDraft } from '../../lib/workoutDraft';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -179,31 +181,47 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Your workout */}
           <Card className="p-6 flex flex-col justify-between border-solid">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
-                  <span>🏋️</span> Your workout
-                </span>
-                <Badge variant="olive">Active</Badge>
-              </div>
-              <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
-                {summary?.workout_plan ? summary.workout_plan.name : 'Routine Ready'}
-              </h3>
-              <p className="text-xs text-charcoal font-sans">
-                {summary?.workout_plan
-                  ? `${summary.workout_plan.exercise_count} exercises scheduled • ${summary.workout_plan.days_per_week} days/week`
-                  : 'View your scheduled exercises, log completed sets, or start today’s session.'}
-              </p>
-            </div>
-            <div className="mt-6 pt-4 border-t border-borderLine flex items-center justify-between">
-              <span className="font-mono text-[10px] text-faded uppercase">Training Plan</span>
-              <NavLink
-                to="/workout"
-                className="font-mono text-xs uppercase font-bold text-olive hover:underline"
-              >
-                View workout plan →
-              </NavLink>
-            </div>
+            {(() => {
+              const hasDraft = Boolean(user?.id && loadDraft(user.id).draft);
+              return (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-mono text-xs font-bold uppercase tracking-wider text-graphite flex items-center gap-2">
+                        <span>🏋️</span> Your workout
+                      </span>
+                      <Badge variant={hasDraft ? 'olive' : 'faded'}>
+                        {hasDraft ? 'In Progress' : 'Routine Ready'}
+                      </Badge>
+                    </div>
+                    <h3 className="font-mono text-sm font-bold uppercase text-graphite mb-1">
+                      {summary?.workout_plan ? summary.workout_plan.name : 'Routine Ready'}
+                    </h3>
+                    <p className="text-xs text-charcoal font-sans mb-4">
+                      {hasDraft
+                        ? 'A live workout session is currently active on this device.'
+                        : summary?.workout_plan
+                        ? `${summary.workout_plan.exercise_count} exercises scheduled • ${summary.workout_plan.days_per_week} days/week`
+                        : 'View your scheduled exercises, log completed sets, or start today’s session.'}
+                    </p>
+                    <NavLink to="/workouts/session" className="block">
+                      <Button className="w-full">
+                        {hasDraft ? 'Resume workout' : 'Start workout'}
+                      </Button>
+                    </NavLink>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-borderLine flex items-center justify-between">
+                    <span className="font-mono text-[10px] text-faded uppercase">Training Plan</span>
+                    <NavLink
+                      to="/workouts"
+                      className="font-mono text-xs uppercase font-bold text-olive hover:underline"
+                    >
+                      View workout plan →
+                    </NavLink>
+                  </div>
+                </>
+              );
+            })()}
           </Card>
 
           {/* Card 2: Your nutrition */}
