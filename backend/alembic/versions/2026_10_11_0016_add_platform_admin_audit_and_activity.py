@@ -24,7 +24,7 @@ def upgrade() -> None:
     with op.batch_alter_table('users', schema=None) as batch_op:
         if 'is_active' not in user_cols:
             batch_op.add_column(
-                sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1'))
+                sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true'))
             )
         if 'last_active_at' not in user_cols:
             batch_op.add_column(
@@ -34,7 +34,7 @@ def upgrade() -> None:
     with op.batch_alter_table('exercises', schema=None) as batch_op:
         if 'is_verified' not in exercise_cols:
             batch_op.add_column(
-                sa.Column('is_verified', sa.Boolean(), nullable=False, server_default=sa.text('1'))
+                sa.Column('is_verified', sa.Boolean(), nullable=False, server_default=sa.text('true'))
             )
 
     existing_tables = set(inspector.get_table_names())
