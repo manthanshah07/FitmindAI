@@ -96,6 +96,9 @@ class AuthService:
                 detail="Account is inactive",
             )
 
+        user.last_active_at = utc_now()
+        db.add(user)
+
         # Issue Tokens
         token_data = {"sub": str(user.id)}
         access_token = create_access_token(token_data)
@@ -150,6 +153,15 @@ class AuthService:
         except Exception:
             raise invalid_token_exception
 
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise invalid_token_exception
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account is inactive",
+            )
+
         token_hash_val = hash_token(raw_refresh_token)
         refresh_record = db.query(RefreshToken).filter(RefreshToken.token_hash == token_hash_val).first()
 
@@ -160,9 +172,9 @@ class AuthService:
         if refresh_record.is_revoked:
             revoked_at_utc = ensure_utc(refresh_record.revoked_at) if refresh_record.revoked_at else None
             if revoked_at_utc and (utc_now() - revoked_at_utc).total_seconds() <= ROTATION_GRACE_PERIOD_SECONDS:
-                user = db.query(User).filter(User.id == refresh_record.user_id).first()
-                if not user or not user.is_active:
-                    raise invalid_token_exception
+                user.last_active_at = utc_now()
+                db.add(user)
+                db.commit()
 
                 token_data = {"sub": str(user.id)}
                 new_access_token = create_access_token(token_data)
@@ -184,14 +196,13 @@ class AuthService:
             else:
                 raise invalid_token_exception
 
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user or not user.is_active:
-            raise invalid_token_exception
-
         # Revoke old refresh token (Token Rotation)
         refresh_record.is_revoked = True
         refresh_record.revoked_at = utc_now()
         db.add(refresh_record)
+
+        user.last_active_at = utc_now()
+        db.add(user)
 
         # Issue new token pair
         token_data = {"sub": str(user.id)}

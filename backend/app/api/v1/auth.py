@@ -154,6 +154,20 @@ def logout(
     return MessageResponse(message="Successfully logged out")
 
 
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    """Return the currently authenticated user's identity and admin status."""
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        full_name=current_user.profile.full_name if current_user.profile else None,
+        is_active=current_user.is_active,
+        is_verified=current_user.is_verified,
+        is_admin=current_user.is_admin,
+        created_at=current_user.created_at,
+    )
+
+
 @router.post("/change-password", response_model=MessageResponse, status_code=status.HTTP_200_OK)
 def change_password(
     req: ChangePasswordRequest,
@@ -166,4 +180,5 @@ def change_password(
     """
     AuthService.change_password(db, current_user, req)
     return MessageResponse(message="Password changed successfully. Please log in with your new password.")
+
 

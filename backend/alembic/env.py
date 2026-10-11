@@ -21,11 +21,12 @@ config = context.config
 if config.config_file_name:
     fileConfig(config.config_file_name)
 
-# Set database URL from settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Set database URL from environment override or settings
+effective_db_url = os.environ.get("DATABASE_URL") or settings.DATABASE_URL
+config.set_main_option("sqlalchemy.url", effective_db_url)
 
 # Safety guard: refuse execution if target database is remote without ALLOW_REMOTE_DB=1
-enforce_database_safety(settings.DATABASE_URL)
+enforce_database_safety(effective_db_url)
 
 target_metadata = Base.metadata
 

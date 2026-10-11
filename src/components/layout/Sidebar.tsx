@@ -8,6 +8,7 @@ import {
   Bot,
   Settings,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -78,6 +79,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '', onItemClick })
               </NavLink>
             );
           })}
+
+          {user?.is_admin && (
+            <NavLink
+              to="/admin"
+              onClick={onItemClick}
+              className={({ isActive }) =>
+                `mt-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium border border-accent/30 transition-colors ${
+                  isActive
+                    ? 'bg-accent text-accent-contrast font-semibold shadow-sm'
+                    : 'bg-accent-soft/40 text-accent hover:bg-accent-soft'
+                }`
+              }
+            >
+              <ShieldCheck className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <span>Platform Admin</span>
+            </NavLink>
+          )}
         </nav>
       </div>
 

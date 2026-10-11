@@ -20,6 +20,7 @@ from app.models.progress import Measurement
 from app.models.fitness_score import FitnessScore
 from app.models.ai_memory import AIMemory
 from app.models.chat_message import ChatMessage
+from app.models.admin_audit_log import AdminAuditLog
 
 __all__ = [
     "Base",
@@ -39,5 +40,6 @@ __all__ = [
     "FitnessScore",
     "AIMemory",
     "ChatMessage",
+    "AdminAuditLog",
 ]
 

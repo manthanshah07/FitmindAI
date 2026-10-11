@@ -1,13 +1,152 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_admin_user
+from app.api.deps import get_current_admin_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
+from app.schemas.admin import (
+    AdminAuditLogListResponse,
+    AdminExerciseItem,
+    AdminExerciseListResponse,
+    AdminExerciseUpdateRequest,
+    AdminFoodItem,
+    AdminFoodListResponse,
+    AdminFoodUpdateRequest,
+    AdminStatsResponse,
+    AdminUserItem,
+    AdminUserListResponse,
+    UserRoleUpdateRequest,
+    UserStatusUpdateRequest,
+)
 from app.seed_demo_data import seed_test_subjects, seed_demo_data
+from app.services.admin_service import AdminService
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+@router.get("/stats", response_model=AdminStatsResponse)
+def get_admin_stats(
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.get_platform_stats(db)
+
+
+@router.get("/users", response_model=AdminUserListResponse)
+def list_admin_users(
+    q: Optional[str] = Query(None, description="Search by email or name"),
+    status: Optional[str] = Query(None, description="Filter by active | inactive"),
+    role: Optional[str] = Query(None, description="Filter by admin | member"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.list_users(
+        db=db,
+        q=q,
+        status_filter=status,
+        role_filter=role,
+        page=page,
+        limit=limit,
+    )
+
+
+@router.post("/users/{user_id}/status", response_model=AdminUserItem)
+@router.patch("/users/{user_id}/status", response_model=AdminUserItem)
+def update_admin_user_status(
+    user_id: UUID,
+    req: UserStatusUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.update_user_status(
+        db=db,
+        admin_user=admin_user,
+        target_user_id=user_id,
+        req=req,
+    )
+
+
+@router.post("/users/{user_id}/role", response_model=AdminUserItem)
+@router.patch("/users/{user_id}/role", response_model=AdminUserItem)
+def update_admin_user_role(
+    user_id: UUID,
+    req: UserRoleUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.update_user_role(
+        db=db,
+        admin_user=admin_user,
+        target_user_id=user_id,
+        req=req,
+    )
+
+
+@router.get("/content/exercises", response_model=AdminExerciseListResponse)
+def list_admin_exercises(
+    q: Optional[str] = Query(None, description="Search exercise name or muscle"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.list_exercises(db=db, q=q, page=page, limit=limit)
+
+
+@router.patch("/content/exercises/{exercise_id}", response_model=AdminExerciseItem)
+def update_admin_exercise(
+    exercise_id: UUID,
+    req: AdminExerciseUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.update_exercise(
+        db=db,
+        admin_user=admin_user,
+        exercise_id=exercise_id,
+        req=req,
+    )
+
+
+@router.get("/content/foods", response_model=AdminFoodListResponse)
+def list_admin_foods(
+    q: Optional[str] = Query(None, description="Search food name or brand"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.list_foods(db=db, q=q, page=page, limit=limit)
+
+
+@router.patch("/content/foods/{food_id}", response_model=AdminFoodItem)
+def update_admin_food(
+    food_id: UUID,
+    req: AdminFoodUpdateRequest,
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.update_food(
+        db=db,
+        admin_user=admin_user,
+        food_id=food_id,
+        req=req,
+    )
+
+
+@router.get("/audit-log", response_model=AdminAuditLogListResponse)
+def list_admin_audit_logs(
+    page: int = Query(1, ge=1),
+    limit: int = Query(30, ge=1, le=100),
+    admin_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return AdminService.list_audit_logs(db=db, page=page, limit=limit)
 
 
 @router.post("/seed-demo", status_code=status.HTTP_200_OK)
@@ -109,8 +248,3 @@ def get_db_diagnostic_info(
         "total_users_count": total_users,
         "demo_full_exists": demo_full_exists,
     }
-
-
-
-
-

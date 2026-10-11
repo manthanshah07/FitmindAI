@@ -31,6 +31,7 @@ class Exercise(Base):
     category: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     instructions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     plan_exercises: Mapped[List["WorkoutPlanExercise"]] = relationship("WorkoutPlanExercise", back_populates="exercise")

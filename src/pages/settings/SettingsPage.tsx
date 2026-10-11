@@ -527,6 +527,27 @@ export const SettingsPage: React.FC = () => {
                 </button>
               );
             })}
+
+            {user?.is_admin && (
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="w-full flex items-center justify-between p-3.5 rounded-xl border border-accent/30 bg-accent-soft/30 text-left text-accent hover:bg-accent-soft transition-all mt-2"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-accent text-accent-contrast">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">Platform Admin</div>
+                    <div className="text-xs text-text-2 truncate">
+                      Users, catalog & audit logs
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-accent shrink-0 ml-2" />
+              </button>
+            )}
           </div>
         </aside>
 

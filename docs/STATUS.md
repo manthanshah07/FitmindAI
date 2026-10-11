@@ -661,3 +661,45 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `onboarding_mobile.png` (390x844)
   - `onboarding_desktop.png` (1280x800)
 
+---
+
+## 15. Milestone M11 Verified Implementation
+
+- **Branch:** `m11-platform-admin`
+- **Status:** **COMPLETE**
+- **Specification:** Strictly adhered to Section 6 (Milestone M11), Decision 1, and V5 of `docs/FINAL_PLAN.md` and `docs/STATUS.md`.
+- **Database Migration (`2026_10_11_0016_add_platform_admin_audit_and_activity.py`):**
+  - Revises `2026_10_10_0015`.
+  - Uses `op.batch_alter_table('users')` to add `last_active_at` (`TIMESTAMP WITH TIME ZONE`, `nullable=True`) and defensively ensure `is_active` exists.
+  - Uses `op.batch_alter_table('exercises')` to add `is_verified` (`BOOLEAN`, `server_default='1'`, `nullable=False`).
+  - Creates `admin_audit_log` table (`id` UUID PK, `admin_id` UUID FK -> `users.id` indexed, `action` VARCHAR(100), `target_user_id` UUID FK -> `users.id` nullable, `details` JSON nullable, `created_at` TIMESTAMP WITH TIME ZONE indexed).
+  - Verified full reversibility (`upgrade head` -> `downgrade 2026_10_10_0015` -> `upgrade head`) on local SQLite.
+- **Backend Auth Enforcement, Session Invalidation & Admin Service:**
+  - Exported `require_admin = get_current_admin_user` in `backend/app/api/deps.py` verifying `user.is_admin == True` and `user.is_active == True` directly in the database on every request.
+  - Updated `AuthService.authenticate_user` and `AuthService.refresh_access_token` in `backend/app/services/auth_service.py` to update `user.last_active_at` and enforce `403 Forbidden ("Account is inactive")` when `not user.is_active`.
+  - Created `backend/app/schemas/admin.py` and `backend/app/services/admin_service.py` implementing:
+    - `GET /api/v1/admin/stats`: Aggregate platform overview metrics (`total_users`, `active_users_7d`, `active_users_30d`, `new_signups_7d`, `total_workouts_logged`, `total_meals_logged`, `total_ai_messages`, `system_health`).
+    - `GET /api/v1/admin/users`: Paginated user directory with search (`q`), status filter (`active`/`inactive`), and role filter (`admin`/`member`). Strictly enforces the privacy boundary (exposes only identity metadata and aggregate `workouts_count` / `meals_count` — never private meal items, workout logs, body measurements, or chat transcripts).
+    - `POST` & `PATCH /api/v1/admin/users/{user_id}/status`: Toggles `is_active`, blocks self-deactivation (`400`) and last-admin deactivation (`400`), immediately revokes all active `RefreshToken` rows on deactivation, and writes an immutable `AdminAuditLog` entry (`user.activate` / `user.deactivate`).
+    - `POST` & `PATCH /api/v1/admin/users/{user_id}/role`: Toggles `is_admin`, blocks self-demotion (`400`) and last-active-admin demotion (`400`), and writes an immutable `AdminAuditLog` entry (`user.promote_admin` / `user.demote_admin`).
+    - `GET` & `PATCH /api/v1/admin/content/exercises` and `GET` & `PATCH /api/v1/admin/content/foods`: Paginated catalog moderation and editing with `content.update` audit logging.
+    - `GET /api/v1/admin/audit-log`: Paginated chronological audit log.
+- **Frontend Platform Admin Console (`/admin` & `/admin/*`):**
+  - Created `src/components/layout/AdminRoute.tsx` redirecting unauthenticated users to `/login` and non-admin users (`!user?.is_admin`) to `/today`.
+  - Created `src/types/admin.ts`, `src/lib/api/admin.ts`, and `src/pages/admin/AdminDashboardPage.tsx` featuring a dedicated Admin Console layout with the `PLATFORM ADMIN` badge and 4 tabs (**Overview**, **Users**, **Content**, **Audit Log**), responsive desktop table / mobile stacked cards, and confirmation dialogs before status or role changes.
+  - Added conditional **"Platform Admin"** navigation link in `src/components/layout/Sidebar.tsx` and `src/pages/settings/SettingsPage.tsx` visible strictly when `user?.is_admin === true`.
+- **Verification & Test Results:**
+  - **Backend Pytest Suite:** **392 passed** (0 failures) in 98.05s (`backend/tests/test_admin_m11.py` 7/7 passed).
+  - **Frontend Vitest Suite:** **171 passed** (0 failures) across 25 test files in 4.20s (`src/tests/admin.test.tsx` 3/3 passed).
+  - **TypeScript Static Verification:** `npx tsc -b --noEmit` passed with 0 errors.
+  - **Static Analysis:** `npm run lint` reported 0 errors across 162 files.
+  - **Production Build:** `npm run build` completed successfully in 546ms.
+- **Screenshots:** Saved in `docs/screens/m11/`:
+  - `admin_overview_mobile.png` (390x844)
+  - `admin_overview_desktop.png` (1280x800)
+  - `admin_users_mobile.png` (390x844)
+  - `admin_users_desktop.png` (1280x800)
+  - `admin_content_desktop.png` (1280x800)
+  - `admin_audit_log_desktop.png` (1280x800)
+
+

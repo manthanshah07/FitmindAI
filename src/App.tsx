@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './sections/Footer';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { AdminRoute } from './components/layout/AdminRoute';
 import { AppShell } from './components/layout/AppShell';
 import { ThemeProvider } from './lib/theme';
 
@@ -27,6 +28,7 @@ const FoodLoggerPage = lazy(() => import('./pages/nutrition/FoodLoggerPage').the
 const NutritionHistoryPage = lazy(() => import('./pages/nutrition/NutritionHistoryPage').then((m) => ({ default: m.NutritionHistoryPage })));
 const ProgressOverviewPage = lazy(() => import('./pages/progress/ProgressOverviewPage').then((m) => ({ default: m.ProgressOverviewPage })));
 const CoachPage = lazy(() => import('./pages/coach/CoachPage').then((m) => ({ default: m.CoachPage })));
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
 const DevUiPage = lazy(() => import('./pages/dev/DevUiPage').then((m) => ({ default: m.DevUiPage })));
 
 
@@ -191,6 +193,28 @@ export function App() {
             <Route
               path="/dev/onboarding"
               element={<OnboardingPage />}
+            />
+            <Route
+              path="/dev/admin"
+              element={<AdminDashboardPage />}
+            />
+
+            {/* Platform Admin Console Routes (Separate Layout Protected by AdminRoute) */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboardPage />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/*"
+              element={
+                <AdminRoute>
+                  <AdminDashboardPage />
+                </AdminRoute>
+              }
             />
           </Routes>
         </Suspense>
