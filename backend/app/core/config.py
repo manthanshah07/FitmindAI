@@ -1,4 +1,3 @@
-import json
 from typing import List, Union
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -8,7 +7,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     
     # Security & Auth
-    JWT_SECRET: str = "default_dev_secret_change_me_in_production_32_bytes"
+    JWT_SECRET: str = "d1acef54f21273460f7915ac10aa8cc472fee1e333abf8b2b9a9d287bfde22023"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60
     
@@ -84,33 +83,13 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str):
-            raw = v.strip()
-            if not raw:
-                return []
-            if raw.startswith("["):
-                try:
-                    parsed = json.loads(raw)
-                    if isinstance(parsed, list):
-                        return [
-                            str(item).strip().strip("'\"").rstrip("/")
-                            for item in parsed
-                            if str(item).strip().strip("'\"").rstrip("/")
-                        ]
-                except json.JSONDecodeError:
-                    raw = raw.strip("[]")
-            return [
-                item.strip().strip("'\"").rstrip("/")
-                for item in raw.split(",")
-                if item.strip().strip("'\"").rstrip("/")
-            ]
-        elif isinstance(v, (list, tuple, set)):
-            return [
-                str(item).strip().strip("'\"").rstrip("/")
-                for item in v
-                if str(item).strip().strip("'\"").rstrip("/")
-            ]
-        raise ValueError(f"Invalid CORS_ORIGINS format: {v}")
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip().rstrip("/") for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
+            return [i.strip().rstrip("/") if isinstance(i, str) else i for i in v]
+        elif isinstance(v, str):
+            return [v.strip().rstrip("/")]
+        raise ValueError(v)
 
     model_config = SettingsConfigDict(
         env_file=".env",
