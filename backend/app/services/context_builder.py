@@ -180,7 +180,7 @@ class ContextBuilder:
             nutrition_contexts.append(
                 DailyNutritionContext(
                     date=d.isoformat(),
-                    calories_kcal=round(totals["calories"], 1),
+                    calories_kcal=int(round(totals["calories"])),
                     protein_g=round(totals["protein"], 1),
                     carbs_g=round(totals["carbs"], 1),
                     fat_g=round(totals["fat"], 1),
@@ -321,7 +321,7 @@ class ContextBuilder:
         logged_days_28d = len(daily_cals_28d)
 
         avg_cals_7d = (
-            round(sum(daily_totals[d]["calories"] for d in daily_totals) / float(logged_days_7d), 1)
+            int(round(sum(daily_totals[d]["calories"] for d in daily_totals) / float(logged_days_7d)))
             if logged_days_7d > 0
             else None
         )
@@ -332,7 +332,7 @@ class ContextBuilder:
         )
 
         avg_cals_28d = (
-            round(sum(daily_cals_28d.values()) / float(logged_days_28d), 1)
+            int(round(sum(daily_cals_28d.values()) / float(logged_days_28d)))
             if logged_days_28d > 0
             else None
         )
@@ -342,16 +342,57 @@ class ContextBuilder:
             else None
         )
 
+        # Resolve target calories & target protein consistently with Profile and Forecast active plan
         user_targets = NutritionService.calculate_user_targets(db, user)
-        target_calories_val = float(user_targets.calories)
-        target_protein_val = float(user_targets.protein_g)
+        resolved_cals: float = float(user_targets.calories)
+        resolved_prot: float = float(user_targets.protein_g)
+
+        profile_target_cals = getattr(profile, "target_calories", None) if profile else None
+        profile_target_prot = getattr(profile, "target_protein_g", None) if profile else None
+
+        if profile_target_cals is not None or profile_target_prot is not None:
+            if profile_target_cals is not None:
+                resolved_cals = float(profile_target_cals)
+            if profile_target_prot is not None:
+                resolved_prot = float(profile_target_prot)
+        elif active_goal and has_measurements:
+            try:
+                from app.schemas.intelligence import PlanOptimizationRequest
+                from app.services.intelligence.optimizer_service import PlanOptimizerService
+
+                opt_res = PlanOptimizerService.optimize_plan(
+                    db=db,
+                    user=user,
+                    request=PlanOptimizationRequest(
+                        max_calorie_adjustment=400.0,
+                        prefer_higher_protein=True,
+                    ),
+                )
+                if opt_res and opt_res.best_candidate:
+                    resolved_cals = float(opt_res.best_candidate.daily_calories)
+                    resolved_prot = float(opt_res.best_candidate.daily_protein_g)
+            except Exception as opt_err:
+                logger.debug("Using fallback nutrition targets in ContextBuilder: %s", opt_err)
+
+        target_calories_val = int(round(resolved_cals))
+        target_protein_val = int(round(resolved_prot))
+
+        # Keep analytics.nutrition_trends aligned and cleanly rounded
+        if analytics_ctx and analytics_ctx.nutrition_trends:
+            nt = analytics_ctx.nutrition_trends
+            nt.target_calories = float(target_calories_val)
+            nt.target_protein_g = float(target_protein_val)
+            if nt.avg_daily_calories_on_logged_days is not None:
+                nt.avg_daily_calories_on_logged_days = float(int(round(nt.avg_daily_calories_on_logged_days)))
+            if nt.avg_daily_protein_g_on_logged_days is not None:
+                nt.avg_daily_protein_g_on_logged_days = round(nt.avg_daily_protein_g_on_logged_days, 1)
 
         # Precompute protein range: 1.6 to 2.2 g/kg multiplied by current weight
         if current_weight and current_weight > 0:
             p_min = round(1.6 * current_weight, 1)
             p_max = round(2.2 * current_weight, 1)
             rec_protein_str = (
-                f"{int(round(p_min))}g - {int(round(p_max))}g for your current {current_weight} kg "
+                f"{int(round(p_min))}g - {int(round(p_max))}g for your current {round(current_weight, 1)} kg "
                 f"(1.6 to 2.2 g/kg)"
             )
         else:
@@ -374,9 +415,9 @@ class ContextBuilder:
             missing_data_flags.append("insufficient logging data: no resistance workouts logged")
 
         grounded_facts = GroundedFactsContext(
-            current_weight_kg=current_weight,
+            current_weight_kg=round(current_weight, 1) if current_weight is not None else None,
             active_goal_type=active_goal.goal_type if active_goal else None,
-            target_weight_kg=float(active_goal.target_weight_kg) if (active_goal and active_goal.target_weight_kg) else None,
+            target_weight_kg=round(float(active_goal.target_weight_kg), 1) if (active_goal and active_goal.target_weight_kg) else None,
             target_date=active_goal.target_date.isoformat() if (active_goal and active_goal.target_date) else None,
             target_calories=target_calories_val,
             target_protein_g=target_protein_val,

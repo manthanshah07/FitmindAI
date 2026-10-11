@@ -42,8 +42,8 @@ TEST_SUBJECTS_CONFIG = [
         "full_name": "Marcus Vance",
         "gender": "male",
         "height_cm": 178.0,
-        "weight_kg": 81.0,
-        "start_weight_kg": 82.6,
+        "weight_kg": 80.8,
+        "start_weight_kg": 79.5,
         "activity_level": "moderate",
         "diet_preference": "omnivore",
         "equipment": ["dumbbells", "barbell", "cables"],
@@ -54,15 +54,11 @@ TEST_SUBJECTS_CONFIG = [
         "history_days": 30,
         "tdee": 2720,
         "target_cals": 3020,
-        "target_protein": 162,
+        "target_protein": 195,
         "logging_adherence": 0.77,
         "workout_adherence": 0.75,
         "recent_workout_days": [0, 2, 4, 6],
-
-
         "recent_nutrition_days": [1, 2, 3, 4, 5],
-
-
         "scenario": "Fully populated realistic user with high overall adherence",
     },
     {
@@ -71,7 +67,7 @@ TEST_SUBJECTS_CONFIG = [
         "gender": "female",
         "height_cm": 168.0,
         "weight_kg": 61.5,
-        "start_weight_kg": 61.4,
+        "start_weight_kg": 62.6,
         "activity_level": "very_active",
         "diet_preference": "omnivore",
         "equipment": ["full_gym"],
@@ -183,7 +179,6 @@ TEST_SUBJECTS_CONFIG = [
         "workout_adherence": 0.30,
         "recent_workout_days": [2],
         "recent_nutrition_days": [1],
-
         "scenario": "Irregular real-world user with partial adherence",
     },
     {
@@ -216,7 +211,7 @@ TEST_SUBJECTS_CONFIG = [
         "gender": "other",
         "height_cm": 163.0,
         "weight_kg": 63.1,
-        "start_weight_kg": 63.4,
+        "start_weight_kg": 62.4,
         "activity_level": "moderate",
         "diet_preference": "omnivore",
         "equipment": ["bodyweight", "dumbbells"],
@@ -240,7 +235,7 @@ TEST_SUBJECTS_CONFIG = [
         "gender": "male",
         "height_cm": 172.0,
         "weight_kg": 74.8,
-        "start_weight_kg": 75.8,
+        "start_weight_kg": 73.6,
         "activity_level": "moderate",
         "diet_preference": "vegetarian",
         "equipment": ["dumbbells"],
@@ -250,7 +245,7 @@ TEST_SUBJECTS_CONFIG = [
         "target_days": 4,
         "history_days": 30,
         "tdee": 2460,
-        "target_cals": 2320,
+        "target_cals": 2720,
         "target_protein": 128,
         "logging_adherence": 0.87,
         "workout_adherence": 0.67,
@@ -264,17 +259,17 @@ TEST_SUBJECTS_CONFIG = [
         "gender": "female",
         "height_cm": 160.0,
         "weight_kg": 65.0,
-        "start_weight_kg": 66.2,
+        "start_weight_kg": 63.8,
         "activity_level": "moderate",
         "diet_preference": "vegetarian",
         "equipment": ["dumbbells", "bodyweight"],
         "timezone": "America/New_York",
         "goal_type": "muscle_gain",
-        "target_weight_kg": 61.0,
+        "target_weight_kg": 68.0,
         "target_days": 4,
         "history_days": 30,
         "tdee": 1980,
-        "target_cals": 1870,
+        "target_cals": 2180,
         "target_protein": 95,
         "logging_adherence": 0.83,
         "workout_adherence": 0.57,
@@ -644,20 +639,28 @@ def seed_test_subjects(db: Session) -> List[str]:
             progress_ratio = d / float(history_days) if history_days > 0 else 1.0
 
             # 1. Weight progression & measurements (Every 5-7 days)
-            curr_weight = start_weight + (end_weight - start_weight) * progress_ratio
-            curr_weight += rng.uniform(-0.25, 0.25)
+            if d == 0:
+                curr_weight = start_weight
+            elif d == history_days:
+                curr_weight = end_weight
+            else:
+                curr_weight = start_weight + (end_weight - start_weight) * progress_ratio
+                curr_weight += rng.uniform(-0.08, 0.08)
 
             # Plateau block for demo.progress
             if email == "demo.progress@fitmind.ai" and 20 <= d <= 38:
-                curr_weight = 72.8 + rng.uniform(-0.3, 0.3)
+                curr_weight = 72.8 + rng.uniform(-0.2, 0.2)
 
             if d % 6 == 0 or d == history_days:
+                is_gain = cfg["goal_type"] == "muscle_gain"
+                waist_delta = (progress_ratio * 0.4) if is_gain else -(progress_ratio * 2.0)
+                bf_delta = -(progress_ratio * 0.3) if is_gain else -(progress_ratio * 1.5)
                 db.add(Measurement(
                     user_id=user.id,
                     measured_at=curr_date,
                     weight_kg=round(curr_weight, 1),
-                    waist_cm=round(84.0 - (progress_ratio * 2.0), 1) if cfg["gender"] == "male" else round(74.0 - (progress_ratio * 1.5), 1),
-                    body_fat_pct=round(21.0 - (progress_ratio * 1.5), 1) if cfg["gender"] == "male" else round(25.0 - (progress_ratio * 1.8), 1),
+                    waist_cm=round((82.0 if cfg["gender"] == "male" else 74.0) + waist_delta, 1),
+                    body_fat_pct=round((17.5 if cfg["gender"] == "male" else 24.0) + bf_delta, 1),
                 ))
 
             # 2. Nutrition Logging
@@ -758,7 +761,7 @@ def seed_test_subjects(db: Session) -> List[str]:
             ]
             db.add_all(memories)
             db.add(ChatMessage(user_id=user.id, role="user", content="How should I adjust my protein intake for my muscle gain goal?"))
-            db.add(ChatMessage(user_id=user.id, role="assistant", content="Based on your profile (81.0 kg, muscle gain goal), aim for approximately 1.6-2.2g of protein per kg of body weight (around 135-170g daily)."))
+            db.add(ChatMessage(user_id=user.id, role="assistant", content="Based on your profile (80.8 kg, muscle gain goal), aim for approximately 1.6-2.2g of protein per kg of body weight (around 129-178g daily), or follow your active recommended daily target of 225g."))
 
         # Historical Fitness Scores
         base_score = 65 if email != "demo.athlete@fitmind.ai" else 88

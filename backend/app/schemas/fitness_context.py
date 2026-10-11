@@ -42,7 +42,7 @@ class WorkoutLogContext(BaseModel):
 
 class DailyNutritionContext(BaseModel):
     date: str  # ISO date string YYYY-MM-DD
-    calories_kcal: float
+    calories_kcal: int
     protein_g: float
     carbs_g: float
     fat_g: float
@@ -84,12 +84,12 @@ class GroundedFactsContext(BaseModel):
     active_goal_type: Optional[str] = None
     target_weight_kg: Optional[float] = None
     target_date: Optional[str] = None
-    target_calories: Optional[float] = None
-    target_protein_g: Optional[float] = None
-    avg_calories_7d: Optional[float] = None
+    target_calories: Optional[int] = None
+    target_protein_g: Optional[int] = None
+    avg_calories_7d: Optional[int] = None
     avg_protein_7d: Optional[float] = None
     logged_days_7d: int = 0
-    avg_calories_28d: Optional[float] = None
+    avg_calories_28d: Optional[int] = None
     avg_protein_28d: Optional[float] = None
     logged_days_28d: int = 0
     recommended_protein_range_str: str = ""
