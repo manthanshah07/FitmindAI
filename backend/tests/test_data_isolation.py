@@ -303,3 +303,20 @@ def test_seed_primary_demo_account_creates_populated_demo_user():
         assert 0 <= latest_score.score <= 100
     finally:
         db.close()
+
+
+def test_cors_origins_parsing_resilience():
+    from app.core.config import Settings
+
+    s_plain = Settings(CORS_ORIGINS="https://fitmind-ai-omega.vercel.app")
+    assert s_plain.CORS_ORIGINS == ["https://fitmind-ai-omega.vercel.app"]
+
+    s_csv = Settings(CORS_ORIGINS="https://fitmind-ai-omega.vercel.app/ , http://localhost:5173/ , ")
+    assert s_csv.CORS_ORIGINS == ["https://fitmind-ai-omega.vercel.app", "http://localhost:5173"]
+
+    s_json = Settings(CORS_ORIGINS='["https://fitmind-ai-omega.vercel.app/"]')
+    assert s_json.CORS_ORIGINS == ["https://fitmind-ai-omega.vercel.app"]
+
+    s_list = Settings(CORS_ORIGINS=["https://fitmind-ai-omega.vercel.app/"])
+    assert s_list.CORS_ORIGINS == ["https://fitmind-ai-omega.vercel.app"]
+
