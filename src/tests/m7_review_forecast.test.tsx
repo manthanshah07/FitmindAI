@@ -216,7 +216,7 @@ describe('Milestone M7 — Weekly Review & Forecast Tabs', () => {
     });
   });
 
-  it('renders ForecastTab with pace headline, confidence note, and recommended plan', async () => {
+  it('renders ForecastTab with hero ETA card, 30-Day Outlook, and interactive Daily Target pace chips', async () => {
     vi.mocked(intelligenceApi.getTrajectoryApi).mockResolvedValue(mockTrajectoryData);
     vi.mocked(intelligenceApi.getGoalFeasibilityApi).mockResolvedValue(mockFeasibilityData);
     vi.mocked(intelligenceApi.optimizePlanApi).mockResolvedValue(mockOptimizerData);
@@ -224,15 +224,31 @@ describe('Milestone M7 — Weekly Review & Forecast Tabs', () => {
     renderWithClient(<ForecastTab />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Based on 4 recent weigh-ins/i)).toBeInTheDocument();
-      expect(screen.getByText(/At your current pace/i)).toBeInTheDocument();
-      expect(screen.getByText('Moderate Deficit (-300 kcal)')).toBeInTheDocument();
-      expect(screen.getByText('1900 kcal')).toBeInTheDocument();
+      expect(screen.getByText(/On track to reach your goal of 75\.0 kg/i)).toBeInTheDocument();
+      expect(screen.getByText(/Based on your recent weigh-ins and logging consistency\./i)).toBeInTheDocument();
+      expect(screen.getByText('30-Day Outlook')).toBeInTheDocument();
+      expect(screen.getByText('Daily Target')).toBeInTheDocument();
+      expect(screen.getByText('1,900 kcal')).toBeInTheDocument();
+      expect(screen.getByText('155 g')).toBeInTheDocument();
     });
 
-    // Check simulation interactive presets
-    expect(screen.getByText('Deficit (-300 kcal)')).toBeInTheDocument();
-    expect(screen.getByText('Lean Surplus (+200 kcal)')).toBeInTheDocument();
-    expect(screen.getByText('Maintenance Plan')).toBeInTheDocument();
+    // Check pace adjustment chips and dynamic target updates
+    const conservativeChip = screen.getByRole('radio', { name: /Conservative/i });
+    const optimalChip = screen.getByRole('radio', { name: /Optimal/i });
+    const aggressiveChip = screen.getByRole('radio', { name: /Aggressive/i });
+
+    expect(optimalChip).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(aggressiveChip);
+    expect(aggressiveChip).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('1,700 kcal')).toBeInTheDocument();
+    expect(screen.getByText('165 g')).toBeInTheDocument();
+
+    fireEvent.click(conservativeChip);
+    expect(conservativeChip).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('2,050 kcal')).toBeInTheDocument();
+    expect(screen.getByText('150 g')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: /Apply to Daily Targets/i })).toBeInTheDocument();
   });
 });

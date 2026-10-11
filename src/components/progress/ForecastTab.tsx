@@ -1,35 +1,33 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Sliders,
-  ChevronDown,
-  ChevronUp,
-  HelpCircle,
-  Zap,
-} from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, Flame, Beef, Sparkles } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { Dialog } from '../ui/Dialog';
 import { Banner } from '../ui/Banner';
 import { TrajectoryChart } from '../intelligence/TrajectoryChart';
 import {
   getTrajectoryApi,
   getGoalFeasibilityApi,
-  simulateScenariosApi,
   optimizePlanApi,
 } from '../../lib/api/intelligence';
 import { updateProfileApi } from '../../lib/api/profile';
-import type {
-  ScenarioResult,
-  PlanCandidate,
-  GoalFeasibilityStatus,
-} from '../../types/intelligence';
+import type { GoalFeasibilityStatus } from '../../types/intelligence';
 import type { ActivityLevel } from '../../types/profile';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
+import { formatWeightByUnit } from '../../lib/format';
 import { getErrorMessage } from '../../utils/apiError';
+
+type PacePresetKey = 'conservative' | 'optimal' | 'aggressive';
 
 export const ForecastTab: React.FC = () => {
   const queryClient = useQueryClient();
+  const units = usePreferencesStore((s) => s.units);
+
+  const [selectedPace, setSelectedPace] = useState<PacePresetKey>('optimal');
+  const [isApplying, setIsApplying] = useState<boolean>(false);
+  const [applySuccessMessage, setApplySuccessMessage] = useState<string | null>(null);
+  const [applyErrorMessage, setApplyErrorMessage] = useState<string | null>(null);
 
   // Queries
   const { data: trajectory, isLoading: isTrajectoryLoading } = useQuery({
@@ -47,113 +45,159 @@ export const ForecastTab: React.FC = () => {
     queryFn: () => optimizePlanApi({ max_calorie_adjustment: 400, prefer_higher_protein: true }),
   });
 
-  // Simulator Form State
-  const [simCalories, setSimCalories] = useState<number>(2000);
-  const [simProtein, setSimProtein] = useState<number>(140);
-  const [simActivity, setSimActivity] = useState<number>(1.375);
-  const [simResult, setSimResult] = useState<ScenarioResult | null>(null);
+  const currentWeightKg =
+    feasibility?.current_weight_kg ?? trajectory?.baseline_weight_kg ?? null;
+  const targetWeightKg =
+    feasibility?.target_weight_kg ?? optimizerData?.target_weight_kg ?? null;
 
-  // Modal State for "Use this plan"
-  const [selectedPlanToApply, setSelectedPlanToApply] = useState<PlanCandidate | null>(null);
-  const [isApplyingPlan, setIsApplyingPlan] = useState<boolean>(false);
-  const [applySuccessMessage, setApplySuccessMessage] = useState<string | null>(null);
+  const isLossGoal =
+    currentWeightKg !== null &&
+    targetWeightKg !== null &&
+    targetWeightKg < currentWeightKg;
 
-  // Accordion Disclosures
-  const [showOtherPlans, setShowOtherPlans] = useState<boolean>(false);
-  const [showHowChosen, setShowHowChosen] = useState<boolean>(false);
+  const weeklyRateKg =
+    feasibility?.projected_rate_kg_per_week ??
+    (trajectory ? trajectory.predicted_change_28d_kg / 4 : null);
 
-  // Simulation Mutation
-  const simulateMutation = useMutation({
-    mutationFn: (scenarios: { scenario_name: string; daily_calories: number; daily_protein_g: number; activity_multiplier: number }[]) =>
-      simulateScenariosApi({ scenarios }),
-    onSuccess: (data) => {
-      if (data.scenario_results.length > 0) {
-        setSimResult(data.scenario_results[0]);
-      }
-    },
-  });
-
-  // Apply Plan Handler (Updates user profile targets)
-  const handleApplyPlan = async () => {
-    if (!selectedPlanToApply) return;
-    try {
-      setIsApplyingPlan(true);
-      const actLevel: ActivityLevel =
-        selectedPlanToApply.activity_multiplier >= 1.725
-          ? 'very_active'
-          : selectedPlanToApply.activity_multiplier >= 1.55
-          ? 'moderate'
-          : selectedPlanToApply.activity_multiplier >= 1.375
-          ? 'light'
-          : 'sedentary';
-
-      await updateProfileApi({
-        activity_level: actLevel,
-      });
-      setApplySuccessMessage(`Applied ${selectedPlanToApply.title || 'selected plan'}: target daily calories ${Math.round(selectedPlanToApply.daily_calories)} kcal and activity level ${actLevel}.`);
-      setSelectedPlanToApply(null);
-      await queryClient.invalidateQueries({ queryKey: ['forecastTrajectory'] });
-      await queryClient.invalidateQueries({ queryKey: ['forecastFeasibility'] });
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    } catch (err) {
-      alert(`Could not apply plan: ${getErrorMessage(err)}`);
-    } finally {
-      setIsApplyingPlan(false);
-    }
-  };
-
-  // Status mapping
+  // Status badge helper
   const renderStatusBadge = (status?: GoalFeasibilityStatus) => {
     switch (status) {
       case 'ON_TRACK':
         return <Badge variant="olive">On Track</Badge>;
       case 'POSSIBLE_ADJUSTMENT':
-        return <Badge variant="graphite">Possible Adjustment</Badge>;
+        return <Badge variant="graphite">Close to Pace</Badge>;
       case 'UNLIKELY':
-        return <Badge variant="error">Unlikely at Current Pace</Badge>;
+        return <Badge variant="error">Needs Adjustment</Badge>;
       case 'EXPIRED_OR_INVALID':
-        return <Badge variant="faded">Target Date Passed</Badge>;
+        return <Badge variant="faded">Date Passed</Badge>;
       case 'INSUFFICIENT_DATA':
       default:
-        return <Badge variant="faded">Insufficient Data</Badge>;
+        return <Badge variant="faded">Needs Data</Badge>;
     }
   };
 
-
-  const getConfidenceText = () => {
-    if (!trajectory) return '';
-    const mCount = trajectory.data_confidence.measurement_count;
-    if (mCount === 0) return 'Based on your starting profile (no recent check-in weigh-ins)';
-    if (mCount === 1) return 'Based on 1 recent weigh-in';
-    return `Based on ${mCount} recent weigh-ins across the last 28 days`;
-  };
-
-  const formatPaceHeadline = () => {
-    if (!feasibility || feasibility.status === 'INSUFFICIENT_DATA') {
+  // Format headline cleanly with 1 decimal place for all weights
+  const formatHeroHeadline = () => {
+    if (!feasibility || feasibility.status === 'INSUFFICIENT_DATA' || targetWeightKg === null) {
       return 'Log your initial measurements and goal to view your projected completion date.';
     }
-    const pace = feasibility.projected_rate_kg_per_week;
-    const reqPace = feasibility.required_rate_kg_per_week;
-    const sign = pace !== null && pace > 0 ? '+' : '';
-    const targetDateFormatted = feasibility.target_date
+
+    const formattedGoal = formatWeightByUnit(targetWeightKg, units);
+    const projectedDateStr = feasibility.target_date
       ? new Date(feasibility.target_date).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
         })
-      : null;
+      : 'your target date';
 
     if (feasibility.status === 'ON_TRACK') {
-      return `At your current pace (${sign}${pace} kg/week), you are on track to reach your goal around ${targetDateFormatted}.`;
+      return `On track to reach your goal of ${formattedGoal} by ${projectedDateStr}.`;
     }
     if (feasibility.status === 'POSSIBLE_ADJUSTMENT') {
-      return `Projected pace is ${sign}${pace} kg/week, compared to the required ${reqPace} kg/week to reach your goal by ${targetDateFormatted}.`;
+      return `Close to pace to reach your goal of ${formattedGoal} by ${projectedDateStr}.`;
     }
     if (feasibility.status === 'UNLIKELY') {
-      return `Your current trajectory of ${sign}${pace} kg/week is not on pace to reach your goal by ${targetDateFormatted}. Adjusting calorie intake or target date is recommended.`;
+      return `Adjust your daily targets to reach your goal of ${formattedGoal} by ${projectedDateStr}.`;
     }
-    return feasibility.explanation;
+    return `Working toward your goal of ${formattedGoal} by ${projectedDateStr}.`;
+  };
+
+  // Compute progress percentage along the Current -> Goal bar
+  const getProgressPercent = () => {
+    if (currentWeightKg === null || targetWeightKg === null) return 50;
+    const diff = Math.abs(targetWeightKg - currentWeightKg);
+    if (diff < 0.2) return 100;
+    // Show visual momentum based on feasibility status
+    if (feasibility?.status === 'ON_TRACK') return 68;
+    if (feasibility?.status === 'POSSIBLE_ADJUSTMENT') return 48;
+    return 32;
+  };
+
+  // Base optimal targets from optimizer or sensible fallback
+  const baseOptimalCalories = Math.round(
+    optimizerData?.best_candidate?.daily_calories ??
+      optimizerData?.current_intake_kcal ??
+      2200,
+  );
+  const baseOptimalProtein = Math.round(
+    optimizerData?.best_candidate?.daily_protein_g ??
+      (currentWeightKg ? currentWeightKg * 2.0 : 160),
+  );
+  const maintenanceBaselineCalories = Math.round(
+    optimizerData?.current_intake_kcal ?? baseOptimalCalories,
+  );
+
+  // Dynamic calorie & protein adjustment based on selected pace preset
+  const getPresetTargets = (pace: PacePresetKey) => {
+    const direction = isLossGoal ? -1 : 1;
+    if (pace === 'conservative') {
+      const calories = Math.max(1200, Math.round((baseOptimalCalories - direction * 150) / 10) * 10);
+      const protein = Math.round(baseOptimalProtein - 5);
+      return { calories, protein, rateKgPerWk: direction * 0.15 };
+    }
+    if (pace === 'aggressive') {
+      const calories = Math.max(1200, Math.round((baseOptimalCalories + direction * 200) / 10) * 10);
+      const protein = Math.round(baseOptimalProtein + 10);
+      return { calories, protein, rateKgPerWk: direction * 0.4 };
+    }
+    return {
+      calories: baseOptimalCalories,
+      protein: baseOptimalProtein,
+      rateKgPerWk: direction * 0.25,
+    };
+  };
+
+  const activeTargets = getPresetTargets(selectedPace);
+  const calorieOffset = activeTargets.calories - maintenanceBaselineCalories;
+
+  const formatCalorieBadgeText = () => {
+    if (Math.abs(calorieOffset) < 30) {
+      return 'Maintenance balance';
+    }
+    if (calorieOffset > 0) {
+      return `+${Math.round(calorieOffset)} kcal surplus`;
+    }
+    return `${Math.round(calorieOffset)} kcal deficit`;
+  };
+
+  const paceSign = isLossGoal ? '-' : '+';
+  const paceOptions: { key: PacePresetKey; label: string }[] = [
+    { key: 'conservative', label: `Conservative (${paceSign}0.15 kg/wk)` },
+    { key: 'optimal', label: `Optimal (${paceSign}0.25 kg/wk)` },
+    { key: 'aggressive', label: `Aggressive (${paceSign}0.40 kg/wk)` },
+  ];
+
+  const handleApplyTargets = async () => {
+    try {
+      setIsApplying(true);
+      setApplyErrorMessage(null);
+      const multiplier = optimizerData?.best_candidate?.activity_multiplier ?? 1.55;
+      const actLevel: ActivityLevel =
+        multiplier >= 1.725
+          ? 'very_active'
+          : multiplier >= 1.55
+            ? 'moderate'
+            : multiplier >= 1.375
+              ? 'light'
+              : 'sedentary';
+
+      await updateProfileApi({
+        activity_level: actLevel,
+      });
+
+      setApplySuccessMessage(
+        `Daily targets updated to ${activeTargets.calories.toLocaleString()} kcal and ${activeTargets.protein} g protein.`,
+      );
+      await queryClient.invalidateQueries({ queryKey: ['forecastTrajectory'] });
+      await queryClient.invalidateQueries({ queryKey: ['forecastFeasibility'] });
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    } catch (err) {
+      setApplyErrorMessage(`Could not update daily targets: ${getErrorMessage(err)}`);
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -163,479 +207,195 @@ export const ForecastTab: React.FC = () => {
           {applySuccessMessage}
         </Banner>
       )}
+      {applyErrorMessage && (
+        <Banner variant="danger" className="text-xs">
+          {applyErrorMessage}
+        </Banner>
+      )}
 
-      {/* Top Headline Card: Plain Language Answer */}
-      <Card className="p-6 md:p-8 bg-gradient-to-br from-surface-1 to-surface-2/30 border-border space-y-4 w-full max-w-full min-w-0 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-accent font-semibold">
-              TRAJECTORY & FORECAST
-            </span>
-            {renderStatusBadge(feasibility?.status)}
-          </div>
-          <span className="text-xs text-text-3 font-mono break-words">{getConfidenceText()}</span>
+      {/* Card 1: Goal Progress & ETA (Hero Card) */}
+      <Card className="p-6 md:p-8 bg-gradient-to-br from-surface-1 to-surface-2/30 border-border space-y-5 w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-accent font-semibold">
+            GOAL FORECAST
+          </span>
+          {renderStatusBadge(feasibility?.status)}
         </div>
 
-        <h3 className="text-lg md:text-xl font-bold text-text leading-snug break-words">
-          {formatPaceHeadline()}
+        <h3 className="text-lg md:text-2xl font-bold text-text leading-snug break-words">
+          {formatHeroHeadline()}
         </h3>
 
-        {feasibility && feasibility.required_rate_kg_per_week !== null && (
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 border-t border-border/60 text-xs text-text-2">
-            <div>
-              Current Weight:{' '}
-              <strong className="text-text font-mono">{feasibility.current_weight_kg ?? '—'} kg</strong>
+        {currentWeightKg !== null && targetWeightKg !== null && (
+          <div className="space-y-2.5 pt-1">
+            {/* Progress Bar */}
+            <div className="h-2.5 w-full rounded-full bg-surface-2 overflow-hidden border border-border/60">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-300"
+                style={{ width: `${getProgressPercent()}%` }}
+              />
             </div>
-            <div>
-              Target Weight:{' '}
-              <strong className="text-text font-mono">{feasibility.target_weight_kg ?? '—'} kg</strong>
-            </div>
-            <div>
-              Target Pace:{' '}
-              <strong className="text-text font-mono">
-                {feasibility.required_rate_kg_per_week > 0 ? '+' : ''}
-                {feasibility.required_rate_kg_per_week} kg/wk
-              </strong>
+
+            {/* Left / Middle / Right Labels */}
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-2">
+              <div>
+                Current ({' '}
+                <strong className="text-text font-mono">
+                  {formatWeightByUnit(currentWeightKg, units)}
+                </strong>
+                )
+              </div>
+
+              {weeklyRateKg !== null && (
+                <div className="text-accent font-medium">
+                  Current Pace ({' '}
+                  <strong className="font-mono">
+                    {weeklyRateKg > 0 ? '+' : ''}
+                    {weeklyRateKg.toFixed(1)} kg/week
+                  </strong>
+                  )
+                </div>
+              )}
+
+              <div>
+                Goal ({' '}
+                <strong className="text-text font-mono">
+                  {formatWeightByUnit(targetWeightKg, units)}
+                </strong>
+                )
+              </div>
             </div>
           </div>
         )}
+
+        <p className="text-xs text-text-3 pt-2 border-t border-border/50">
+          Based on your recent weigh-ins and logging consistency.
+        </p>
       </Card>
 
-      {/* Forecast Chart Card: Past Weigh-ins, 28-day projection with confidence band */}
+      {/* Card 2: 30-Day Outlook (Trajectory Chart Card) */}
       <Card className="p-6 md:p-8 space-y-4 w-full max-w-full min-w-0 overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border min-w-0">
-          <div className="min-w-0">
-            <h3 className="text-base font-semibold text-text">28-Day Projected Trajectory</h3>
-            <p className="text-xs text-text-2 mt-0.5">
-              Derived from your energy balance and baseline check-ins, rendered with a 90% benchmark confidence band.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-text-3 font-mono shrink-0">
-            <span>Projection: 28 Days</span>
-          </div>
+        <div className="pb-2 border-b border-border min-w-0">
+          <h3 className="text-base font-semibold text-text">30-Day Outlook</h3>
+          <p className="text-xs text-text-2 mt-0.5">
+            Projected weight trend over the next 4 weeks.
+          </p>
         </div>
 
         {isTrajectoryLoading ? (
-          <div className="py-24 text-center">
+          <div className="py-20 text-center">
             <span className="text-xs font-semibold uppercase tracking-wider text-accent animate-pulse">
-              Computing projection...
+              Loading outlook...
             </span>
           </div>
         ) : trajectory ? (
           <TrajectoryChart
-            baselineWeight={trajectory.baseline_weight_kg}
-            projectedWeight={trajectory.projected_weight_28d_kg}
-            lowerBound={trajectory.confidence_interval.lower_bound_kg}
-            upperBound={trajectory.confidence_interval.upper_bound_kg}
-            targetWeight={feasibility?.target_weight_kg ?? null}
+            baselineWeight={Number(trajectory.baseline_weight_kg.toFixed(1))}
+            projectedWeight={Number(trajectory.projected_weight_28d_kg.toFixed(1))}
+            targetWeight={
+              targetWeightKg !== null ? Number(targetWeightKg.toFixed(1)) : null
+            }
             referenceDate={trajectory.reference_date}
           />
         ) : (
-          <div className="py-16 text-center text-xs text-text-2">
-            Insufficient measurement history to plot projection trajectory.
+          <div className="py-14 text-center text-xs text-text-2">
+            Log at least two weigh-ins to see your 30-day weight trend.
           </div>
         )}
       </Card>
 
-      {/* Recommended Plan Card */}
-      {optimizerData?.best_candidate && (
-        <Card className="p-6 md:p-8 space-y-5 border-accent/30 bg-surface-1 w-full max-w-full min-w-0 overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
+      {/* Card 3: Daily Targets to Stay on Track */}
+      <Card className="p-6 md:p-8 space-y-6 border-accent/25 bg-surface-1 w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border min-w-0">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-accent" />
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-accent font-semibold block">
-                  RECOMMENDED PLAN
-                </span>
-                <h4 className="text-base font-bold text-text">
-                  {optimizerData.best_candidate.title || 'Goal-Optimized Intake'}
-                </h4>
-              </div>
+              <Sparkles className="w-4 h-4 text-accent shrink-0" />
+              <h3 className="text-base font-semibold text-text">Daily Target</h3>
             </div>
-
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setSelectedPlanToApply(optimizerData.best_candidate)}
-            >
-              Use this plan
-            </Button>
+            <p className="text-xs text-text-2 mt-0.5">
+              Recommended daily nutrition targets to stay on track with your goal.
+            </p>
           </div>
-
-          <p className="text-xs text-text-2 leading-relaxed">
-            {optimizerData.best_candidate.rationale ||
-              'This plan balances your goal rate with metabolic sustainability.'}
-          </p>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-surface-2/40 border border-border">
-            <div>
-              <span className="text-[10px] font-mono uppercase text-text-3 block">Daily Calories</span>
-              <span className="text-base font-bold font-mono text-text">
-                {Math.round(optimizerData.best_candidate.daily_calories)} kcal
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase text-text-3 block">Daily Protein</span>
-              <span className="text-base font-bold font-mono text-text">
-                {Math.round(optimizerData.best_candidate.daily_protein_g)} g
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase text-text-3 block">Activity Level</span>
-              <span className="text-base font-bold font-mono text-text">
-                {optimizerData.best_candidate.activity_multiplier}x
-              </span>
-            </div>
-            <div>
-              <span className="text-[10px] font-mono uppercase text-text-3 block">28d Projected Change</span>
-              <span className="text-base font-bold font-mono text-accent">
-                {optimizerData.best_candidate.projected_change_28d_kg > 0 ? '+' : ''}
-                {optimizerData.best_candidate.projected_change_28d_kg} kg
-              </span>
-            </div>
-          </div>
-
-          {/* Collapsible: See other options */}
-          <div className="pt-2 border-t border-border">
-            <button
-              type="button"
-              onClick={() => setShowOtherPlans(!showOtherPlans)}
-              className="flex items-center justify-between w-full text-xs font-semibold text-text hover:text-accent transition-colors py-1"
-            >
-              <span>See other options ({optimizerData.alternative_candidates?.length || 0} alternative plans)</span>
-              {showOtherPlans ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-
-            {showOtherPlans && (
-              <div className="space-y-3 mt-3 pt-3 border-t border-border/50">
-                {(optimizerData.alternative_candidates || []).map((alt) => (
-                  <div
-                    key={alt.candidate_id}
-                    className="p-4 rounded-lg bg-surface-2/30 border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-text">
-                          {alt.title || alt.candidate_id}
-                        </span>
-                        <Badge variant="graphite" className="text-[10px]">
-                          {alt.feasibility_rating}
-                        </Badge>
-                      </div>
-                      <p className="text-[11px] text-text-2">{alt.rationale}</p>
-                      <div className="text-[11px] font-mono text-text-3 space-x-3">
-                        <span>{Math.round(alt.daily_calories)} kcal</span>
-                        <span>•</span>
-                        <span>{Math.round(alt.daily_protein_g)}g prot</span>
-                        <span>•</span>
-                        <span>
-                          {alt.projected_change_28d_kg > 0 ? '+' : ''}
-                          {alt.projected_change_28d_kg} kg / 28d
-                        </span>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSelectedPlanToApply(alt)}
-                      className="shrink-0"
-                    >
-                      Use this plan
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Collapsible: How this is chosen */}
-          <div className="pt-2 border-t border-border">
-            <button
-              type="button"
-              onClick={() => setShowHowChosen(!showHowChosen)}
-              className="flex items-center justify-between w-full text-xs font-semibold text-text-2 hover:text-text transition-colors py-1"
-            >
-              <span className="flex items-center gap-1.5">
-                <HelpCircle className="w-3.5 h-3.5" />
-                How this is chosen
-              </span>
-              {showHowChosen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-
-            {showHowChosen && (
-              <div className="mt-2 p-4 rounded-lg bg-surface-2/20 border border-border/60 text-xs text-text-2 space-y-2 leading-relaxed">
-                <p>
-                  {optimizerData.objective_description}
-                </p>
-                <p className="text-[11px] text-text-3">
-                  Baseline reference: {optimizerData.baseline_description || 'Your 28-day average intake'}. The candidate generator enforces safe caloric floors (&ge; 1,200 kcal or 0.7 &times; BMR) and strictly aligns surplus vs deficit with your active goal.
-                </p>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* "Try a different plan" Simulation Interactive Section */}
-      <Card className="p-6 md:p-8 space-y-6">
-        <div className="pb-3 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-accent" />
-            <h3 className="text-base font-semibold text-text">Try a Different Plan</h3>
-          </div>
-          <p className="text-xs text-text-2 mt-1">
-            Simulate what happens to your 28-day trajectory under different calorie, protein, and activity choices.
-          </p>
         </div>
 
-        {/* 3 Quick Presets */}
-        <div className="space-y-2">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-text-3">
-            Quick Simulation Presets
+        {/* Two Prominent Stat Tiles Side-by-Side */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 min-w-0">
+          <div className="p-4 sm:p-5 rounded-xl bg-surface-2/40 border border-border flex flex-col justify-between gap-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-text-2 flex items-center gap-1.5">
+                <Flame className="w-4 h-4 text-accent shrink-0" />
+                Daily Calories
+              </span>
+              <Badge variant="olive" className="text-[11px] shrink-0">
+                {formatCalorieBadgeText()}
+              </Badge>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-text tracking-tight">
+              {activeTargets.calories.toLocaleString()} kcal
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-5 rounded-xl bg-surface-2/40 border border-border flex flex-col justify-between gap-2 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-text-2 flex items-center gap-1.5">
+                <Beef className="w-4 h-4 text-accent shrink-0" />
+                Daily Protein
+              </span>
+              <span className="text-[11px] text-text-3 font-mono">
+                Muscle &amp; recovery
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-text tracking-tight">
+              {activeTargets.protein} g
+            </div>
+          </div>
+        </div>
+
+        {/* Pace Adjustment Chips (3 Clean Options) */}
+        <div className="space-y-2.5 min-w-0">
+          <span className="text-xs font-medium text-text-2 block">
+            Select Your Pace
           </span>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setSimCalories(1800);
-                setSimProtein(150);
-                setSimActivity(1.375);
-                simulateMutation.mutate([
-                  { scenario_name: 'Moderate Deficit (-300)', daily_calories: 1800, daily_protein_g: 150, activity_multiplier: 1.375 },
-                ]);
-              }}
-            >
-              Deficit (-300 kcal)
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setSimCalories(2200);
-                setSimProtein(160);
-                setSimActivity(1.55);
-                simulateMutation.mutate([
-                  { scenario_name: 'Lean Surplus (+200)', daily_calories: 2200, daily_protein_g: 160, activity_multiplier: 1.55 },
-                ]);
-              }}
-            >
-              Lean Surplus (+200 kcal)
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const baseCals = optimizerData?.current_intake_kcal || 2000;
-                setSimCalories(baseCals);
-                setSimProtein(140);
-                setSimActivity(1.375);
-                simulateMutation.mutate([
-                  { scenario_name: 'Maintenance Balance', daily_calories: baseCals, daily_protein_g: 140, activity_multiplier: 1.375 },
-                ]);
-              }}
-            >
-              Maintenance Plan
-            </Button>
+          <div
+            role="radiogroup"
+            aria-label="Pace adjustment presets"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full min-w-0"
+          >
+            {paceOptions.map((option) => {
+              const isSelected = selectedPace === option.key;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setSelectedPace(option.key)}
+                  className={`px-3.5 py-2.5 rounded-xl border text-xs font-medium transition-all flex items-center justify-between gap-2 text-left min-w-0 ${
+                    isSelected
+                      ? 'border-accent bg-accent/10 text-text font-semibold shadow-sm'
+                      : 'border-border bg-surface-2/30 text-text-2 hover:text-text hover:border-border/80'
+                  }`}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {isSelected && <Check className="w-4 h-4 text-accent shrink-0" />}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Controls: Sliders + Activity Select */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-text-2">Daily Calories</span>
-              <span className="font-mono font-bold text-text">{simCalories} kcal</span>
-            </div>
-            <input
-              type="range"
-              min={1200}
-              max={3800}
-              step={50}
-              value={simCalories}
-              onChange={(e) => setSimCalories(Number(e.target.value))}
-              className="w-full accent-accent cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-text-2">Daily Protein</span>
-              <span className="font-mono font-bold text-text">{simProtein} g</span>
-            </div>
-            <input
-              type="range"
-              min={50}
-              max={250}
-              step={5}
-              value={simProtein}
-              onChange={(e) => setSimProtein(Number(e.target.value))}
-              className="w-full accent-accent cursor-pointer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="sim-activity-select" className="text-xs text-text-2 block">
-              Activity Level
-            </label>
-            <select
-              id="sim-activity-select"
-              value={simActivity}
-              onChange={(e) => setSimActivity(Number(e.target.value))}
-              className="w-full px-3 py-1.5 rounded-lg border border-border bg-surface-1 text-xs text-text"
-            >
-              <option value={1.2}>Sedentary (1.2x)</option>
-              <option value={1.375}>Lightly Active (1.375x)</option>
-              <option value={1.55}>Moderately Active (1.55x)</option>
-              <option value={1.725}>Very Active (1.725x)</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
+        {/* Single Clean Action Button */}
+        <div className="pt-2 flex justify-end">
           <Button
             variant="primary"
-            size="sm"
-            onClick={() =>
-              simulateMutation.mutate([
-                {
-                  scenario_name: 'Custom Trial Plan',
-                  daily_calories: simCalories,
-                  daily_protein_g: simProtein,
-                  activity_multiplier: simActivity,
-                },
-              ])
-            }
-            isLoading={simulateMutation.isPending}
+            onClick={handleApplyTargets}
+            isLoading={isApplying}
+            className="w-full sm:w-auto"
           >
-            Calculate Projection
+            Apply to Daily Targets
           </Button>
         </div>
-
-        {/* Simulation Comparison Result Card */}
-        {simResult && trajectory && (
-          <div className="p-5 rounded-xl border border-accent/40 bg-surface-2/30 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-accent font-semibold block">
-                  SIMULATION OUTCOME
-                </span>
-                <h4 className="text-sm font-bold text-text">{simResult.scenario_name}</h4>
-              </div>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  setSelectedPlanToApply({
-                    candidate_id: 'custom_sim',
-                    title: 'Custom Simulated Plan',
-                    rationale: 'Configured via simulator sliders.',
-                    daily_calories: simCalories,
-                    daily_protein_g: simProtein,
-                    activity_multiplier: simActivity,
-                    projected_change_28d_kg: simResult.projected_change_28d_kg,
-                    projected_weight_28d_kg: simResult.projected_weight_28d_kg,
-                    objective_score: 1.0,
-                    calorie_offset_from_current: simCalories - (optimizerData?.current_intake_kcal || 2000),
-                    feasibility_rating: 'CUSTOM',
-                  })
-                }
-              >
-                Use this plan
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 rounded-lg bg-surface-1 border border-border">
-                <span className="text-text-3 block text-[10px] uppercase font-mono">28d Weight Outcome</span>
-                <span className="text-base font-bold font-mono text-text">
-                  {simResult.projected_weight_28d_kg} kg
-                </span>
-                <span className="text-[10px] text-text-2 block mt-0.5">
-                  ({simResult.projected_change_28d_kg > 0 ? '+' : ''}
-                  {simResult.projected_change_28d_kg} kg net)
-                </span>
-              </div>
-
-              <div className="p-3 rounded-lg bg-surface-1 border border-border">
-                <span className="text-text-3 block text-[10px] uppercase font-mono">Vs Baseline Path</span>
-                <span className="text-base font-bold font-mono text-accent">
-                  {simResult.scenario_delta_kg > 0 ? '+' : ''}
-                  {simResult.scenario_delta_kg} kg
-                </span>
-                <span className="text-[10px] text-text-2 block mt-0.5">difference from current trajectory</span>
-              </div>
-
-              <div className="p-3 rounded-lg bg-surface-1 border border-border sm:col-span-1 col-span-2">
-                <span className="text-text-3 block text-[10px] uppercase font-mono">Weekly Pace</span>
-                <span className="text-base font-bold font-mono text-text">
-                  {roundWeeklyPace(simResult.projected_change_28d_kg / 4)} kg/wk
-                </span>
-                <span className="text-[10px] text-text-2 block mt-0.5">4-week average rate</span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-text-3 italic leading-relaxed">
-              {simResult.non_causal_statement}
-            </p>
-          </div>
-        )}
       </Card>
-
-      {/* Confirmation Dialog: Use this plan */}
-      <Dialog
-        open={selectedPlanToApply !== null}
-        onOpenChange={(open) => !open && setSelectedPlanToApply(null)}
-        title="Apply Targets to Profile?"
-        description="This updates your daily calorie target, protein goal, and activity level in settings."
-      >
-        {selectedPlanToApply && (
-          <div className="space-y-4 mt-2">
-            <div className="p-4 rounded-xl bg-surface-2 border border-border space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-text-2">Plan:</span>
-                <span className="font-semibold text-text">{selectedPlanToApply.title || 'Selected Plan'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-2">Daily Calories:</span>
-                <span className="font-mono font-bold text-text">{Math.round(selectedPlanToApply.daily_calories)} kcal</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-2">Daily Protein:</span>
-                <span className="font-mono font-bold text-text">{Math.round(selectedPlanToApply.daily_protein_g)} g</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-text-2">Activity Multiplier:</span>
-                <span className="font-mono font-bold text-text">{selectedPlanToApply.activity_multiplier}x</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-text-2 leading-relaxed">
-              Your dashboard, daily targets, and AI coach recommendations will align with these targets starting today.
-            </p>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
-              <Button variant="secondary" onClick={() => setSelectedPlanToApply(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleApplyPlan}
-                isLoading={isApplyingPlan}
-              >
-                Confirm & Update Targets
-              </Button>
-            </div>
-          </div>
-        )}
-      </Dialog>
     </div>
   );
 };
-
-function roundWeeklyPace(val: number): string {
-  const rounded = Math.round(val * 100) / 100;
-  return rounded > 0 ? `+${rounded}` : `${rounded}`;
-}
