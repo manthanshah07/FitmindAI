@@ -1,172 +1,109 @@
 # FitMind AI
 
-A full-stack, personalized fitness platform built with deterministic health calculation engines, persistent user memory, Google Gemini AI coaching, and a decoupled FastAPI / React 19 architecture.
+FitMind AI is a full-stack personalized fitness coaching platform that unifies deterministic physiological calculations (BMR, TDEE, macronutrient targets, progressive overload tracking, goal-aligned weight forecasting, and multi-factor Fitness Score v2) with a grounded Google Gemini AI Coach.
 
 ---
 
-## Live Production Deployment
+## Core Architecture Principle: Deterministic Math First, AI Coach Second
 
-* **Frontend Application (Vercel):** [https://fitmind-ai-omega.vercel.app](https://fitmind-ai-omega.vercel.app)
-* **Backend REST API (Render):** [https://fitmindai-ur71.onrender.com/health](https://fitmindai-ur71.onrender.com/health)
-* **Database (Neon PostgreSQL):** Serverless PostgreSQL 16+
-
----
-
-## What It Is
-
-FitMind AI is a full-stack engineering portfolio project demonstrating authentication security, deterministic health computation, and AI system integration.
-
-The application strictly separates **deterministic calculations** (BMR/TDEE, macro allocation, 0–100 fitness scoring) from **AI reasoning layers**, ensuring that numerical health data remains exact, testable, and auditable server-side before passing structured context to the Google Gemini AI Coach.
+FitMind AI enforces a strict separation between **deterministic calculation** and **conversational AI reasoning**:
+- **Backend Services Own All Numeric Logic:** Basal Metabolic Rate (Mifflin-St Jeor), Total Daily Energy Expenditure (TDEE), daily calorie and macronutrient targets, workout volume/adherence, EWMA weight trends, goal forecasts, and the 4-component Fitness Score (`formula_version = 2`) are computed exclusively by deterministic Python backend services and SQL queries.
+- **Grounded AI Coach:** The Google Gemini AI Coach (`gemini-2.5-flash`) receives a pre-computed `GroundedFactsContext` snapshot. It is strictly forbidden from inventing arithmetic, fabricating weight/macro numbers, or providing clinical/medical diagnoses.
 
 ---
 
-## Features
+## Tech Stack
 
-* **JWT Authentication & Token Rotation** — Registration, login, refresh token rotation, server-side revocation, automatic 401 recovery via Axios interceptors.
-
-* **5-Step Onboarding Wizard** — Collects demographics, fitness goals, physical metrics, dietary preferences, equipment, and medical notes. Computes baseline BMR & TDEE (Mifflin-St Jeor).
-
-* **Application Shell & Navigation** — Responsive layout with Desktop Sidebar, Mobile TopBar, and Mobile Bottom Navigation. Protected route guard.
-
-* **User Profile (`/profile`)** — View and edit demographics, physical metrics, equipment, and medical constraints.
-
-* **Workout System (`/workout`)** — Active workout plan tailored to user goals and equipment. Exercise catalog with muscle group filtering. Live session logger tracking sets, reps, weight, and RPE.
-
-* **Nutrition Module (`/nutrition`)** — Daily calorie and macro targets based on TDEE and goal. Meal logging (breakfast, lunch, dinner, snack). Searchable food database.
-
-* **Progress Analytics (`/progress`)** — Body weight history charts. Body measurement tracking (waist, chest, bicep, thigh, hips, body fat %) in cm and inches.
-
-* **Fitness Score Engine** — Multi-factor 0–100 score calculated server-side based on workout consistency, nutrition adherence, and logging completeness. Score history and grade classification.
-
-* **AI Coach (`/coach`)** — Conversational coach powered by Google Gemini (`gemini-2.5-flash-lite`). Structured Pydantic response parsing. Context Builder aggregating user metrics, goals, 7d/30d analytics, and extracted preferences. Persistent multi-session chat history.
-
-* **Automated Reports (`/reports`)** — Weekly performance summaries with adherence scores, workout volume, nutrition consistency, fitness score deltas, and AI narrative synthesis.
-
-* **Rate Limiting & Admin Controls** — Endpoint rate limiting via `slowapi`. Admin routes secured by database-backed `is_admin` user authorization. All DDL managed via Alembic CLI.
-
----
-
-## Technology Stack
-
-| Domain | Technology |
+| Layer | Technology |
 |---|---|
-| Frontend | React 19, TypeScript, Vite |
-| Styling | Tailwind CSS v3, Framer Motion |
-| State & Routing | Zustand, React Router v7 |
-| Forms & Validation | React Hook Form, Zod |
-| HTTP | Axios |
-| Backend | Python, FastAPI |
-| AI | Google Gemini API (`google-genai`) |
-| ORM & Migrations | SQLAlchemy 2, Alembic |
-| Database | PostgreSQL 16+ (Neon) |
-| Auth & Security | python-jose (JWT), Passlib/Bcrypt, slowapi |
-| Infrastructure | Vercel (frontend), Render (backend) |
-| Testing & CI | Vitest, Pytest, GitHub Actions |
-| Linting | Oxlint, TypeScript strict mode |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS (CSS Custom Property Design Tokens), TanStack React Query, Zustand, Recharts, `vite-plugin-pwa` |
+| **Backend** | Python 3.12+, FastAPI, SQLAlchemy 2.0 ORM, Pydantic v2, SlowAPI Rate Limiting |
+| **Database & Migrations** | PostgreSQL (Production / Docker) & SQLite (Local Dev / Test), Alembic Migrations (`2026_10_11_0016` head) |
+| **AI Integration** | Google GenAI SDK (`google-genai`, `gemini-2.5-flash`) with deterministic fallback |
 
 ---
 
-## Database Migrations
+## Local Setup Instructions
 
-Schema changes are version-controlled via Alembic (`backend/alembic/versions/`):
+### 1. Prerequisites
+- **Node.js** `>= 20.x` and `npm`
+- **Python** `>= 3.12`
+- **PostgreSQL** (optional for local dev; SQLite works out of the box for local development and tests)
 
-| Revision | Description |
-|---|---|
-| `2026_08_16_0001` | Creates `users` & `refresh_tokens` tables |
-| `2026_08_16_0002` | Creates `profiles` table |
-| `2026_08_16_0003` | Creates `goals` table |
-| `2026_08_16_0004` | Adds `weight_kg` to `profiles` |
-| `2026_08_16_0005` | Creates `exercises`, `workout_plans`, `workout_logs` tables |
-| `2026_08_16_0006` | Creates `foods`, `meal_logs`, `meal_log_items` tables |
-| `2026_08_17_0007` | Creates `measurements` table |
-| `2026_08_17_0008` | Creates `fitness_scores` table |
-| `2026_08_17_0009` | Adds composite date indexes |
-| `2026_08_19_0010` | Creates `ai_memory` and `chat_messages` tables |
-| `2026_08_19_0011` | Adds user settings to `profiles` |
-| `2026_08_20_0012` | Adds `is_admin` to `users` |
-| `2026_10_10_0013` | Adds `idempotency_key` and `request_fingerprint` to `workout_logs` |
-| `2026_10_10_0014` | Adds `day_label` to `workout_plan_exercises` |
-
----
-
-## Testing & CI
-
-```bash
-# Frontend tests (Vitest + React Testing Library)
-npm run test
-# → 144 tests passing across 21 test files
-
-# Backend tests (Pytest)
-cd backend && .venv/bin/pytest -q
-# → 364 tests passing across 30 test modules (307 baseline + 27 DB safety guard + 15 idempotency + 7 M4 tests + 8 M5 tests)
-
-# TypeScript typecheck
-npx tsc -b --noEmit
-
-# Lint
-npm run lint
-```
-
-Both test suites run automatically on push/PR to `main` via GitHub Actions (`.github/workflows/ci.yml`).
-
----
-
-## Local Development Setup
-
-### Prerequisites
-* Node.js 20+
-* Python 3.11+
-* Git
-
-### 1. Clone Repository
-```bash
-git clone https://github.com/manthanshah07/FitmindAI.git
-cd FitmindAI
-```
-
-### 2. Frontend Setup
-```bash
-npm install
-npm run dev
-# → http://localhost:5173
-```
-
-Copy `.env.example` to `.env.local` and set `VITE_API_BASE_URL=http://localhost:8000/api/v1`.
-
-### 3. Backend Setup
+### 2. Backend Setup
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-
-# Run migrations (SQLite for local development)
-DATABASE_URL="sqlite:///./dev.db" .venv/bin/alembic upgrade head
-
-# Start dev server
-DATABASE_URL="sqlite:///./dev.db" .venv/bin/uvicorn app.main:app --port 8000 --reload
-# → http://localhost:8000
-# → API docs at http://localhost:8000/docs
 ```
 
-Copy `backend/.env.example` to `backend/.env` and fill in your values.
+Create `backend/.env` (never committed to git):
+```env
+ENVIRONMENT=development
+DATABASE_URL=sqlite:///./fitmind_dev.db
+JWT_SECRET_KEY=replace-with-a-secure-32-byte-hex-secret
+GEMINI_API_KEY=your-gemini-api-key-optional
+CORS_ORIGINS=["http://localhost:5173"]
+```
 
-### 4. Optional: Seed Demo Data
+Run database migrations and seed the local demo dataset:
 ```bash
 cd backend
-DATABASE_URL="sqlite:///./dev.db" .venv/bin/python -m app.seed_demo_data
+.venv/bin/alembic upgrade head
+.venv/bin/python scripts/seed_demo.py
 ```
-See `docs/DEMO_ACCOUNTS.md` for demo account credentials.
+
+Start the FastAPI server:
+```bash
+cd backend
+.venv/bin/uvicorn app.main:app --reload --port 8000
+```
+
+### 3. Frontend Setup
+```bash
+npm install
+npm run dev
+```
+Open `http://localhost:5173`.
 
 ---
 
-## Known Limitations
+## Demo Credentials (Local Seed)
 
-* **Email Verification:** Registration sets `is_verified = False`; email confirmation flow is not implemented.
-* **Vector Store:** AI memory uses PostgreSQL relational storage and deterministic preference extraction; vector database integration is deferred.
+Running `cd backend && .venv/bin/python scripts/seed_demo.py` populates:
+- **Primary Demo Account:** `demo@fitmind.ai` / `FitMindDemo@2026` (4-day Upper/Lower hypertrophy split, 28 days of completed workouts, Indian & global meal logs from the 174-food catalog, goal-consistent weigh-ins, and a v2 Fitness Score).
+- **10 Specialized Persona Accounts:** `demo.full@fitmind.ai`, `demo.athlete@fitmind.ai`, `demo.cutting@fitmind.ai`, `demo.bulking@fitmind.ai`, `demo.progress@fitmind.ai`, `demo.beginner@fitmind.ai`, `demo.inconsistent@fitmind.ai`, `demo.noplan@fitmind.ai`, `demo.timezone@fitmind.ai`, `demo.ai@fitmind.ai` (all using password `FitMindDemo@2026`).
 
 ---
 
-## License
+## Running Tests & Quality Gates
 
-Engineering portfolio project. All rights reserved.
+```bash
+# Frontend unit & component tests (Vitest + React Testing Library)
+npm test -- --run
+
+# Backend unit & integration tests (Pytest against isolated in-memory SQLite)
+cd backend && .venv/bin/pytest -q
+
+# TypeScript strict typecheck
+npx tsc -b --noEmit
+
+# ESLint
+npm run lint
+
+# Production bundle & PWA build
+npm run build
+```
+
+---
+
+## Documentation Index
+
+- [`docs/FINAL_PLAN.md`](docs/FINAL_PLAN.md) — Master specification, audit findings, milestones, and release criteria
+- [`docs/STATUS.md`](docs/STATUS.md) — Verified milestone-by-milestone engineering status and release checklist
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — System architecture, data flows, and component diagrams
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — Locked product and engineering decisions (Decisions 1–13)
+- [`docs/TESTING.md`](docs/TESTING.md) — Test suites, database safety guardrails, and verification commands
+- [`docs/PRIVACY_AND_SAFETY.md`](docs/PRIVACY_AND_SAFETY.md) — Data minimization, physiological guardrails, and user rights
+- [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) — 5-minute guided walkthrough of FitMind AI

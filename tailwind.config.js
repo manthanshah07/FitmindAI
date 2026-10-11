@@ -39,16 +39,7 @@ export default {
           goal: 'var(--chart-goal)',
         },
 
-        /* Legacy design tokens retained for unmigrated views (deleted in M13) */
-        'legacy-bone': 'var(--color-bone)',
-        'legacy-graphite': 'var(--color-graphite)',
-        'legacy-charcoal': 'var(--color-charcoal)',
-        'legacy-olive': 'var(--color-olive)',
-        'legacy-accent': 'var(--color-accent)',
-        'legacy-faded': 'var(--color-faded)',
-        'legacy-border': 'var(--color-border)',
-
-        /* Compatibility aliases for views undergoing transition */
+        /* Compatibility aliases for landing page sections */
         bone: 'var(--color-bone)',
         graphite: 'var(--color-graphite)',
         charcoal: 'var(--color-charcoal)',

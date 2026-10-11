@@ -828,13 +828,216 @@ def seed_test_subjects(db: Session) -> List[str]:
 
 seed_demo_data = seed_test_subjects
 
+PRIMARY_DEMO_ACCOUNT_CONFIG = {
+    "email": "demo@fitmind.ai",
+    "full_name": "Alex Rivera",
+    "gender": "male",
+    "height_cm": 178.0,
+    "weight_kg": 79.4,
+    "start_weight_kg": 81.8,
+    "activity_level": "moderate",
+    "diet_preference": "omnivore",
+    "equipment": ["dumbbells", "barbell", "cables"],
+    "timezone": "Asia/Kolkata",
+    "goal_type": "fat_loss",
+    "target_weight_kg": 76.0,
+    "target_days": 4,
+    "history_days": 28,
+    "tdee": 2540,
+    "target_cals": 2140,
+    "target_protein": 158,
+}
+
+
+def seed_primary_demo_account(db: Session) -> str:
+    """
+    Idempotently seeds the primary single-account demo user `demo@fitmind.ai`
+    (password: FitMindDemo@2026) with a realistic 4-day Upper/Lower workout split,
+    completed sessions across the last 28 days, meals from the 174-food catalog,
+    goal-consistent weigh-ins, and a v2 fitness score.
+    """
+    validate_production_seeding_safety()
+    cfg = PRIMARY_DEMO_ACCOUNT_CONFIG
+    email = cfg["email"]
+
+    existing = db.query(User).filter(User.email == email).first()
+    if existing:
+        uid = existing.id
+        meal_logs = db.query(MealLog).filter(MealLog.user_id == uid).all()
+        if meal_logs:
+            ml_ids = [m.id for m in meal_logs]
+            db.query(MealLogItem).filter(MealLogItem.meal_log_id.in_(ml_ids)).delete(synchronize_session=False)
+
+        workout_logs = db.query(WorkoutLog).filter(WorkoutLog.user_id == uid).all()
+        if workout_logs:
+            wl_ids = [w.id for w in workout_logs]
+            db.query(WorkoutLogExercise).filter(WorkoutLogExercise.log_id.in_(wl_ids)).delete(synchronize_session=False)
+
+        workout_plans = db.query(WorkoutPlan).filter(WorkoutPlan.user_id == uid).all()
+        if workout_plans:
+            wp_ids = [p.id for p in workout_plans]
+            db.query(WorkoutPlanExercise).filter(WorkoutPlanExercise.plan_id.in_(wp_ids)).delete(synchronize_session=False)
+
+        db.query(RefreshToken).filter(RefreshToken.user_id == uid).delete(synchronize_session=False)
+        db.query(FitnessScore).filter(FitnessScore.user_id == uid).delete(synchronize_session=False)
+        db.query(Measurement).filter(Measurement.user_id == uid).delete(synchronize_session=False)
+        db.query(MealLog).filter(MealLog.user_id == uid).delete(synchronize_session=False)
+        db.query(WorkoutLog).filter(WorkoutLog.user_id == uid).delete(synchronize_session=False)
+        db.query(WorkoutPlan).filter(WorkoutPlan.user_id == uid).delete(synchronize_session=False)
+        db.query(Goal).filter(Goal.user_id == uid).delete(synchronize_session=False)
+        db.query(Profile).filter(Profile.user_id == uid).delete(synchronize_session=False)
+        db.query(AIMemory).filter(AIMemory.user_id == uid).delete(synchronize_session=False)
+        db.query(ChatMessage).filter(ChatMessage.user_id == uid).delete(synchronize_session=False)
+        db.query(User).filter(User.id == uid).delete(synchronize_session=False)
+        db.commit()
+
+    ex_catalog = seed_exercises(db)
+    food_catalog = seed_foods(db)
+    hashed_pwd = hash_password(DEMO_PASSWORD_PLAIN)
+    ref_today = date.today()
+    rng = random.Random(2026)
+
+    user = User(
+        email=email,
+        password_hash=hashed_pwd,
+        is_active=True,
+        is_verified=True,
+    )
+    db.add(user)
+    db.flush()
+
+    profile = Profile(
+        user_id=user.id,
+        full_name=cfg["full_name"],
+        date_of_birth=date(1996, 5, 14),
+        gender=cfg["gender"],
+        height_cm=cfg["height_cm"],
+        weight_kg=cfg["weight_kg"],
+        activity_level=cfg["activity_level"],
+        diet_preference=cfg["diet_preference"],
+        equipment=cfg["equipment"],
+        timezone=cfg["timezone"],
+        target_workout_days_per_week=cfg["target_days"],
+        preferred_workout_duration_minutes=50,
+        medical_notes=None,
+        onboarding_complete=True,
+    )
+    db.add(profile)
+
+    goal = Goal(
+        user_id=user.id,
+        goal_type=cfg["goal_type"],
+        target_weight_kg=cfg["target_weight_kg"],
+        target_date=ref_today + timedelta(days=75),
+        is_active=True,
+    )
+    db.add(goal)
+    db.flush()
+
+    active_plan = WorkoutPlan(
+        user_id=user.id,
+        name="4-Day Upper / Lower Hypertrophy Split",
+        days_per_week=4,
+        is_active=True,
+        ai_generated=False,
+    )
+    db.add(active_plan)
+    db.flush()
+
+    bench = ex_catalog["Barbell Bench Press"]
+    row = ex_catalog["Barbell Row"]
+    squat = ex_catalog["Barbell Squat"]
+    rdl = ex_catalog["Romanian Deadlift"]
+    pullup = ex_catalog["Pull-Up"]
+    ohp = ex_catalog.get("Overhead Barbell Press") or bench
+
+    db.add_all([
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=bench.id, day_of_week=1, sets=4, reps="8-10", order_index=1),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=row.id, day_of_week=1, sets=4, reps="8-10", order_index=2),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=squat.id, day_of_week=2, sets=4, reps="6-8", order_index=1),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=rdl.id, day_of_week=2, sets=3, reps="10-12", order_index=2),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=ohp.id, day_of_week=4, sets=3, reps="8-10", order_index=1),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=pullup.id, day_of_week=4, sets=3, reps="8-12", order_index=2),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=squat.id, day_of_week=5, sets=3, reps="8-10", order_index=1),
+        WorkoutPlanExercise(plan_id=active_plan.id, exercise_id=rdl.id, day_of_week=5, sets=3, reps="10-12", order_index=2),
+    ])
+
+    user_tz = ZoneInfo(cfg["timezone"])
+    history_days = cfg["history_days"]
+    start_date = ref_today - timedelta(days=history_days)
+    start_weight = cfg["start_weight_kg"]
+    end_weight = cfg["weight_kg"]
+
+    for d in range(history_days + 1):
+        curr_date = start_date + timedelta(days=d)
+        progress_ratio = d / float(history_days)
+        curr_weight = start_weight + (end_weight - start_weight) * progress_ratio + rng.uniform(-0.15, 0.15)
+
+        if d % 4 == 0 or d == history_days:
+            db.add(Measurement(
+                user_id=user.id,
+                measured_at=curr_date,
+                weight_kg=round(curr_weight, 1),
+                waist_cm=round(85.0 - (progress_ratio * 2.2), 1),
+                body_fat_pct=round(19.5 - (progress_ratio * 1.4), 1),
+            ))
+
+        if d % 7 != 3:
+            generate_daily_meals_for_user(
+                db=db,
+                user_id=user.id,
+                meal_date=curr_date,
+                target_cals=cfg["target_cals"],
+                target_protein=cfg["target_protein"],
+                diet_pref=cfg["diet_preference"],
+                user_tz=user_tz,
+                food_catalog=food_catalog,
+                rng=rng,
+                is_weekend=curr_date.weekday() in (5, 6),
+            )
+
+        if curr_date.weekday() in (0, 1, 3, 4) and d < history_days:
+            w_local = datetime.combine(curr_date, datetime.min.time().replace(hour=7, minute=30), tzinfo=user_tz)
+            w_utc = w_local.astimezone(timezone.utc)
+            end_utc = w_utc + timedelta(minutes=50)
+            log = WorkoutLog(
+                user_id=user.id,
+                plan_id=active_plan.id,
+                started_at=w_utc,
+                ended_at=end_utc,
+                notes="Completed scheduled Upper/Lower split session",
+            )
+            db.add(log)
+            db.flush()
+            bench_w = round(70.0 + progress_ratio * 5.0, 1)
+            squat_w = round(92.5 + progress_ratio * 7.5, 1)
+            db.add_all([
+                WorkoutLogExercise(log_id=log.id, exercise_id=bench.id, set_number=1, reps_completed=8, weight_kg=bench_w, rpe=8),
+                WorkoutLogExercise(log_id=log.id, exercise_id=bench.id, set_number=2, reps_completed=8, weight_kg=bench_w, rpe=8.5),
+                WorkoutLogExercise(log_id=log.id, exercise_id=squat.id, set_number=1, reps_completed=8, weight_kg=squat_w, rpe=8),
+                WorkoutLogExercise(log_id=log.id, exercise_id=squat.id, set_number=2, reps_completed=8, weight_kg=squat_w, rpe=8.5),
+            ])
+
+    db.add_all([
+        AIMemory(user_id=user.id, memory_type="conversational", key="training_split", value="Follows a 4-day Upper/Lower split with progressive overload on Barbell Bench Press and Squat.", source="conversation", is_active=True),
+        ChatMessage(user_id=user.id, role="user", content="How is my fat loss pace and protein consistency looking this week?"),
+        ChatMessage(user_id=user.id, role="assistant", content="Your weight has trended from 81.8 kg down to 79.4 kg over the last 4 weeks (-0.6 kg/week), right inside the evidence-based fat loss target zone while maintaining 4 weekly training sessions."),
+    ])
+    db.flush()
+
+    FitnessScoreService.calculate_and_save_fitness_score(db, user, ref_today)
+    db.commit()
+    return email
+
 
 def main():
     print("Initializing FitMind AI Synthetic Test Subject Dataset Importer...")
     db = SessionLocal()
     try:
+        primary_email = seed_primary_demo_account(db)
         emails = seed_test_subjects(db)
-        print(f"Successfully imported {len(emails)} realistic test subject accounts into database:")
+        print(f"Successfully imported primary demo account ({primary_email}) and {len(emails)} realistic test subject accounts into database:")
+        print(f"  - {primary_email} (Password: {TEST_SUBJECT_PASSWORD}) [Primary Demo Account]")
         for email in emails:
             print(f"  - {email} (Password: {TEST_SUBJECT_PASSWORD})")
     except Exception as e:
@@ -847,3 +1050,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,83 +1,64 @@
-# FitMind AI — Architectural & Technical Decisions
+# FitMind AI — Product & Engineering Decisions
 
-> **Document Version:** 1.0  
-> **Last Updated:** 2026-10-10 (Milestone M10)  
-> **Status:** APPROVED BASELINE  
-
-This document records the foundational architectural decisions, platform constraints, trade-offs, and technical rationale for FitMind AI.
+This document records the 13 locked product and architectural decisions governing FitMind AI (defined in Section 2 of [`docs/FINAL_PLAN.md`](FINAL_PLAN.md)).
 
 ---
 
-## 1. Architecture: PWA (Progressive Web Application) vs Native App
+### Decision 1 — Product Scope & Platform Admin Separation
+FitMind AI is a **personal fitness and nutrition coaching app for individual users**, plus a **lightweight platform admin console** for the app owner. The consumer navigation has 5 primary destinations (`Today`, `Workouts`, `Nutrition`, `Progress`, `Coach`). Platform Admin (`/admin`) is strictly separated from consumer navigation, guarded by `is_admin=True`, and restricted to system health, user account status (`is_active`), catalog curation, and audit logging. Admins cannot read private user meal logs, measurements, or AI chats.
 
-### Context
-FitMind AI is a full-stack personal fitness coaching and tracking platform designed for phones, tablets, and desktops. Building native iOS (Swift/SwiftUI) and Android (Kotlin/Jetpack Compose) applications was evaluated against a mobile-first Progressive Web Application.
+### Decision 2 — Visual Direction & Theme System
+- **Marketing Landing Page (`/`):** Preserves the editorial dark aesthetic (`#090D16` obsidian, `#F59E0B` warm amber, `Syne` display typography).
+- **Authenticated Application (`/today`, `/workouts`, `/nutrition`, `/progress`, `/coach`, `/settings`):** Uses a clean, high-contrast, light-first consumer fitness interface with full Dark Mode and System preference parity (`src/styles/design-tokens.css`), sentence-case typography (`Plus Jakarta Sans`), and tabular monospace numerals (`JetBrains Mono`).
 
-### Decision
-Build FitMind AI as an installable **Progressive Web Application (PWA)** using React 19, TypeScript, Vite, and Tailwind CSS, powered by `vite-plugin-pwa` and a FastAPI Python backend.
+### Decision 3 — Primary Navigation (Max 5 Consumer Destinations)
+1. **Today** (`/today`) — Daily action hub
+2. **Workouts** (`/workouts`) — Active plan, live session logger, exercise library, and history
+3. **Nutrition** (`/nutrition`) — Daily calorie/macro rings, meal sections, quick-add, and food logger
+4. **Progress** (`/progress`) — Weight & measurements, Fitness Score v2, Weekly Review, and Forecast tabs
+5. **Coach** (`/coach`) — Grounded conversational AI coach
 
-### Rationale
-1. **Single Unified Codebase:** 100% code sharing between mobile and desktop experiences, drastically reducing maintenance overhead.
-2. **Zero Deployment Friction:** Bug fixes and features deploy instantly to production without multi-day App Store or Google Play review delays.
-3. **Frictionless Onboarding:** Users can start immediately in any modern browser without downloading an app from a store, then install to their home screen with a single tap.
-4. **No Third-Party Store Fees:** Eliminates the 15–30% platform tax on fitness subscriptions and digital services.
-5. **Modern Browser Capabilities:** Modern mobile browsers support standalone full-screen viewports (`display: standalone`), touch-optimized gestures, offline caching via Service Workers, and persistent client-side storage.
+### Decision 4 — Single Source of Truth for User Weight
+`resolve_current_weight(db, user_id)` in `backend/app/services/weight_resolver.py` is the single resolver across all services:
+1. Latest `Measurement.weight_kg` ordered by `measured_at DESC, created_at DESC`.
+2. Fallback to `Profile.weight_kg`.
+3. `None` if neither exists.
+Logging a new measurement automatically synchronizes `Profile.weight_kg` in the same database transaction.
 
----
+### Decision 5 — Honest Fitness Score Formula (`formula_version = 2`)
+Because FitMind AI does not collect sleep or heart-rate variability data, hardcoded sleep (`80.0`) and recovery (`75.0`) constants were eliminated in `formula_version = 2`:
+- **With an active workout plan:** `0.35 * workout_adherence + 0.25 * calorie_adherence + 0.20 * protein_adherence + 0.20 * logging_consistency`.
+- **Without an active workout plan:** Weights redistribute across nutrition and consistency (`0.385 * calorie_adherence + 0.308 * protein_adherence + 0.307 * logging_consistency`).
+- Historical rows remain immutable (`formula_version` stored per row).
 
-## 2. Offline-First Live Workout Tracking
+### Decision 6 — Goal-Aware Calorie & Protein Targets
+- **BMR:** Mifflin-St Jeor equation; falls back to age `30` with an `age_assumed = True` flag if `date_of_birth` is unset.
+- **Goal Calorie Adjustments:** `fat_loss` (`TDEE - 400`), `weight_loss` (`TDEE - 500`), `muscle_gain` (`TDEE + 250`), `general_fitness` / `maintenance` (`TDEE`), `endurance` (`TDEE + 150`), `strength` (`TDEE + 200`).
+- **Physiological Safety Floors:** Never below `1200 kcal` (female), `1500 kcal` (male), or `1350 kcal` (other/unspecified).
+- **Protein Scaling:** `2.0 g/kg` for fat/weight loss, `1.8 g/kg` for muscle gain/strength/general fitness (`15%–35%` calorie cap).
 
-### Context
-During gym workouts, athletes frequently experience unreliable cellular connections, basement reception loss, or WiFi drops. Losing an active workout session because of an interrupted network connection ruins the user experience.
+### Decision 7 — Honest Nutrition Logging Denominator
+Nutrition adherence and averages are reported with two distinct metrics:
+- `avg_calories_on_logged_days` / `avg_protein_on_logged_days` (sum divided by `logged_days` only, avoiding dilution from unlogged days).
+- `logging_consistency_pct` (`logged_days / period_days * 100`).
 
-### Decision
-Implement a local-first **Draft Recovery Engine** (`src/lib/workoutDraft.ts` and `src/store/useWorkoutDraftStore.ts`):
-- All set updates, reps, weights, notes, and timers persist immediately to `localStorage` under a user-isolated key (`fitmind:workout-draft:<userId>`).
-- Submissions use an **Idempotent Workout API** with unique client-generated `Idempotency-Key` UUIDs and SHA-256 canonical fingerprints.
-- If a network error occurs upon completing a workout, the session stays safely in local draft state and displays an offline retry banner until connectivity returns.
-- Quota errors trigger safety quarantine (`fitmind:workout-draft-quarantine:<userId>:<timestamp>`) with clipboard copy and JSON download fallback options.
+### Decision 8 — Physiologically Safe Weight Forecasting
+- Requires `>= 4` weigh-ins spanning `>= 7` days.
+- Applies Exponentially Weighted Moving Average (`EWMA`, `alpha = 0.3`) before linear regression.
+- Clamps projected weekly rate of change to `[-1.0, +0.5] kg/week` (`flag = "rate_clamped"` when triggered) and enforces a minimum BMI floor of `18.5`.
+- Evaluates trajectory alignment against the active goal (`on_track`, `ahead`, `behind`, `off_track`, `holding_steady`).
 
----
+### Decision 9 — Timezone Correctness
+Every day-bounded query (`Today`, `Nutrition`, `Workouts`, `Fitness Score`, `Reports`) resolves local day boundaries (`00:00:00` to `23:59:59.999999`) in the user's `Profile.timezone` (auto-detected via `Intl.DateTimeFormat().resolvedOptions().timeZone` on signup and editable in Settings) before converting to UTC timestamps.
 
-## 3. iOS WebKit Platform Limitations & Mitigations
+### Decision 10 — Today Screen Redesign
+The `/today` screen is an action-oriented daily dashboard featuring a time-of-day greeting, a Next Best Action banner, 4 summary cards (Calories, Protein, Today's Workout, Weight Trend), Quick Actions (`+ Log Meal`, `Start Workout`, `+ Log Weight`, `Ask Coach`), and a compact Fitness Score strip.
 
-While Progressive Web Apps provide a near-native experience on iOS, Apple's WebKit engine imposes specific platform restrictions that FitMind AI actively designs around:
+### Decision 11 — Mobile-First Active Workout Logger
+The live workout session (`/workouts/session`) runs in a distraction-free full-screen layout with large touch targets (`>= 48px`), previous performance prefill, inline set completion checkboxes, an non-blocking bottom rest timer pill (`+15s`, `-15s`, `Skip`), Screen Wake Lock support, and offline draft persistence.
 
-### 3.1 Background Timer Throttling
-- **Constraint:** When an iOS Safari PWA is backgrounded, minimized, or the phone screen turns off, WebKit freezes or throttles JavaScript execution (`setInterval`, `setTimeout`, `requestAnimationFrame`).
-- **Mitigation:** FitMind AI **never** tracks elapsed time or rest intervals using stateful counters (`seconds++`). Instead, timers are stored as deterministic UNIX timestamps (`startedAt`, `restEndsAt`). When the application resumes or foregrounds, elapsed time and remaining rest are computed instantly: `Date.now() - startedAt`.
+### Decision 12 — Deterministic-First AI Architecture
+All mathematical calculations happen in deterministic Python services. The LLM (`gemini-2.5-flash`) is invoked only for `/coach` conversations and on-demand `/api/v1/reports/ai-summary`, receiving pre-computed facts in `GroundedFactsContext`. If `GEMINI_API_KEY` is absent or the provider times out, deterministic fallback responses are returned seamlessly.
 
-### 3.2 Haptic Feedback / Vibration API
-- **Constraint:** Apple's WebKit does **not** implement the W3C Vibration API (`navigator.vibrate` is `undefined` on iOS Safari and standalone PWAs).
-- **Mitigation:** FitMind AI wraps all vibration calls in safe feature detection (`if (navigator.vibrate) ...`). For rest timer completion, FitMind AI provides an audible Web Audio API synthetic chime (`AudioContext` 880Hz sine tone) as a primary universal cue.
-
-### 3.3 AudioContext Autoplay Policies
-- **Constraint:** WebKit blocks `AudioContext` playback unless unlocked by an explicit user gesture (tap/click).
-- **Mitigation:** The rest timer sound relies on an `AudioContext` that is warmed up during the user's initial workout interactions (e.g., tapping "Start Workout" or marking a set complete).
-
-### 3.4 Standalone Storage Lifecycle
-- **Constraint:** Mobile Safari's 7-day storage deletion policy applies to browser tabs if visited infrequently. However, standalone home-screen web applications (PWAs) are exempt from 7-day auto-purge and maintain persistent storage.
-- **Mitigation:** FitMind AI encourages home-screen installation via `InstallPromptCard` and protects active workout drafts from logout deletion.
-
----
-
-## 4. Service Worker Security & Caching Rules (Section 8.3)
-
-### Context
-Caching API responses in a Service Worker can inadvertently cache authenticated user records. On shared devices, if User A logs out and User B logs in, a service worker serving cached API responses could leak private health or workout data between accounts.
-
-### Decision
-1. **Static Assets Only:** The Service Worker (`workbox`) precaches only static client bundle assets (HTML, CSS, JavaScript, fonts, SVGs, and brand images).
-2. **Denylist for API Routes:** The Workbox configuration explicitly enforces `navigateFallbackDenylist: [/^\/api/]`.
-3. **Zero Caching of `/api/*`:** No authenticated API endpoints are ever cached by the Service Worker or HTTP cache. All state caching occurs securely via React Query memory cache tied to authenticated user session life cycles.
-4. **Immediate Update Deployment:** In `vercel.json`, service worker files (`sw.js`, `workbox-*.js`) are served with `Cache-Control: no-cache, no-store, must-revalidate` to prevent stale client instances from surviving new production deployments.
-
----
-
-## 5. Cold-Start Server Waking Indicator
-
-### Context
-When deployed on serverless or scale-to-zero container platforms (e.g. Render free tier, Neon serverless PostgreSQL), the backend service can take several seconds to spin up from an idle cold state.
-
-### Decision
-On application startup, FitMind AI pings the lightweight `/health` endpoint. If the response is delayed past 4.0 seconds, an unobtrusive banner is displayed: *"Waking up the server, this can take up to a minute."* The banner dismisses immediately as soon as `/health` responds, providing transparent feedback without false error alarms.
+### Decision 13 — Installable PWA, Web-First Scope
+FitMind AI is packaged as an installable Progressive Web App (`manifest.webmanifest`, Workbox service worker for static shell assets, offline workout draft store) without native iOS/Android wrapper complexity.

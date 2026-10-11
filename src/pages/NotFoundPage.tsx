@@ -5,20 +5,20 @@ import { Button } from '../components/ui/Button';
 
 export const NotFoundPage: React.FC = () => {
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8 text-center flex flex-col items-center gap-4">
-        <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold">
-          404 — Page Not Found
+    <div className="min-h-[70vh] flex flex-col items-center justify-center p-4 bg-bg text-text">
+      <Card className="max-w-md w-full p-8 text-center flex flex-col items-center gap-4 bg-surface border-border">
+        <span className="text-xs font-medium text-accent">
+          404 · Page not found
         </span>
-        <h1 className="text-3xl font-bold uppercase tracking-tighter font-mono text-graphite">
-          Route Unreachable
+        <h1 className="text-2xl font-semibold tracking-tight text-text">
+          We could not find that page
         </h1>
-        <p className="text-sm text-charcoal font-sans">
-          The requested page URL does not exist or has been moved.
+        <p className="text-sm text-text-2 font-sans">
+          The page address may have changed or is no longer available.
         </p>
-        <NavLink to="/dashboard" className="w-full mt-2">
+        <NavLink to="/today" className="w-full mt-2">
           <Button variant="primary" className="w-full">
-            Return to Dashboard →
+            Go to Today
           </Button>
         </NavLink>
       </Card>

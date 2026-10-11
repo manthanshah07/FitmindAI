@@ -702,4 +702,28 @@ All facts below were verified through code inspection, test runs, and CLI diagno
   - `admin_content_desktop.png` (1280x800)
   - `admin_audit_log_desktop.png` (1280x800)
 
+---
 
+## 16. Milestone M13 Verified Implementation & Release Checklist
+
+- **Branch:** `m13-hardening-release`
+- **Status:** **COMPLETE**
+- **Specification:** Strictly adhered to Section 6 (Milestone M13), Section 8 (Engineering Quality, Testing & Security Standards), and Section 9 (Release Checklist) of `docs/FINAL_PLAN.md`.
+- **Legacy Token Removal & UI Hardening:**
+  - Removed all `'legacy-*'` color keys (`legacy-bone`, `legacy-graphite`, `legacy-charcoal`, `legacy-olive`, `legacy-accent`, `legacy-faded`, `legacy-border`) from `tailwind.config.js`.
+  - Reskinned `src/components/ui/Badge.tsx`, `src/components/layout/ProtectedRoute.tsx`, `src/pages/NotFoundPage.tsx`, `src/pages/coach/CoachPage.tsx`, `src/pages/nutrition/FoodLoggerPage.tsx`, and `src/pages/nutrition/NutritionHistoryPage.tsx` to use Appendix A design tokens (`bg-bg`, `bg-surface`, `bg-surface-2`, `border-border`, `text-text`, `text-text-2`, `text-text-3`, `text-accent`) and sentence-case typography.
+  - Created `src/components/ui/ErrorBoundary.tsx` with accessible `"Try again"` recovery action and wrapped application routes in `src/App.tsx`.
+  - Configured `build.rollupOptions.output.manualChunks` in `vite.config.ts` to split `recharts`/`d3-*` (`vendor-charts`: `377.04 kB`) and core routing/state libraries (`vendor-app`: `124.65 kB`), keeping all JS chunks under `500 kB` (`index`: `468.50 kB`) with zero Vite bundle size warnings.
+- **Security Pass, Data Isolation Suite & Demo Seed Script:**
+  - Updated `CORSMiddleware` in `backend/app/main.py` to include `"PATCH"` in `allow_methods`.
+  - Created `backend/tests/test_data_isolation.py` verifying strict cross-user data isolation across Workouts, Nutrition, Measurements, Coach history, and User JSON Export, plus CORS `PATCH` preflight and refresh token bearer rejection (`401`).
+  - Added `seed_primary_demo_account` in `backend/app/seed_demo_data.py` and created `backend/scripts/seed_demo.py` (guarded by `enforce_database_safety`) to idempotently seed `demo@fitmind.ai` (`FitMindDemo@2026`) alongside the 10 persona test accounts.
+- **Documentation Suite Completed:**
+  - Updated `README.md` and created `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/TESTING.md`, `docs/PRIVACY_AND_SAFETY.md`, and `docs/DEMO_SCRIPT.md`.
+- **Verification & Test Results:**
+  - **Backend Pytest Suite:** **397 passed** (0 failures) (`backend/tests/test_data_isolation.py` 5/5 passed).
+  - **Frontend Vitest Suite:** **174 passed** (0 failures) across 26 test files (`src/tests/hardening_m13.test.tsx` 3/3 passed).
+  - **Demo Seed Script:** `cd backend && .venv/bin/python scripts/seed_demo.py` succeeded (`demo@fitmind.ai` + 10 persona accounts seeded locally).
+  - **TypeScript Static Verification:** `npx tsc -b --noEmit` passed with 0 errors.
+  - **Static Analysis:** `npm run lint` reported 0 errors.
+  - **Production Build:** `npm run build` completed in 555ms with 0 warnings and all chunks `< 500 kB`.

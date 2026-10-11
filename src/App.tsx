@@ -6,6 +6,8 @@ import Footer from './sections/Footer';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { AdminRoute } from './components/layout/AdminRoute';
 import { AppShell } from './components/layout/AppShell';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
+import { Skeleton } from './components/ui/Skeleton';
 import { ThemeProvider } from './lib/theme';
 
 // Lazy-loaded page components for route-level code splitting
@@ -31,12 +33,13 @@ const CoachPage = lazy(() => import('./pages/coach/CoachPage').then((m) => ({ de
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage').then((m) => ({ default: m.AdminDashboardPage })));
 const DevUiPage = lazy(() => import('./pages/dev/DevUiPage').then((m) => ({ default: m.DevUiPage })));
 
-
 const PageLoadingFallback = () => (
-  <div className="min-h-[50vh] flex items-center justify-center p-8 bg-bg text-accent">
-    <span className="text-xs uppercase tracking-widest animate-pulse font-semibold">
-      Loading...
-    </span>
+  <div className="min-h-[50vh] flex items-center justify-center p-8 bg-bg text-text">
+    <div className="w-full max-w-md space-y-3 bg-surface border border-border rounded-card p-6">
+      <Skeleton className="h-5 w-32" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-3/4" />
+    </div>
   </div>
 );
 
@@ -45,179 +48,181 @@ export function App() {
     <ThemeProvider>
       <div className="min-h-screen bg-bg text-text font-sans antialiased selection:bg-accent selection:text-white">
         <ScrollToTop />
-        <Suspense fallback={<PageLoadingFallback />}>
-          <Routes>
-            {/* Public Marketing Layout Routes */}
-            <Route
-              element={
-                <div className="flex flex-col min-h-screen">
-                  <Navbar />
-                  <main className="flex-grow">
-                    <Outlet />
-                  </main>
-                  <Footer />
-                </div>
-              }
-            >
-              <Route path="/" element={<MarketingPage />} />
-              <Route path="/how-it-works" element={<HowItWorksPage />} />
-              <Route path="/technology" element={<TechnologyPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/404" element={<NotFoundPage />} />
-              <Route path="*" element={<Navigate to="/404" replace />} />
-            </Route>
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Routes>
+              {/* Public Marketing Layout Routes */}
+              <Route
+                element={
+                  <div className="flex flex-col min-h-screen">
+                    <Navbar />
+                    <main className="flex-grow">
+                      <Outlet />
+                    </main>
+                    <Footer />
+                  </div>
+                }
+              >
+                <Route path="/" element={<MarketingPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/technology" element={<TechnologyPage />} />
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
+                <Route path="/404" element={<NotFoundPage />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Route>
 
-            {/* Protected Onboarding Flow */}
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <OnboardingPage />
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Onboarding Flow */}
+              <Route
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
+                    <OnboardingPage />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Full-screen Workout Session (Outside AppShell) */}
-            <Route
-              path="/workouts/session"
-              element={
-                <ProtectedRoute>
-                  <WorkoutSessionPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/workout/session" element={<Navigate to="/workouts/session" replace />} />
+              {/* Full-screen Workout Session (Outside AppShell) */}
+              <Route
+                path="/workouts/session"
+                element={
+                  <ProtectedRoute>
+                    <WorkoutSessionPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/workout/session" element={<Navigate to="/workouts/session" replace />} />
 
-            {/* Authenticated AppShell Layout Routes */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppShell />
-                </ProtectedRoute>
-              }
-            >
-              {/* Primary Section 5 routes */}
-              <Route path="/today" element={<DashboardPage />} />
-              <Route path="/dashboard" element={<Navigate to="/today" replace />} />
+              {/* Authenticated AppShell Layout Routes */}
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppShell />
+                  </ProtectedRoute>
+                }
+              >
+                {/* Primary Section 5 routes */}
+                <Route path="/today" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<Navigate to="/today" replace />} />
 
-              <Route path="/workouts" element={<WorkoutOverviewPage />} />
-              <Route path="/workout" element={<Navigate to="/workouts" replace />} />
-              <Route path="/workouts/history" element={<WorkoutHistoryPage />} />
-              <Route path="/workout/history" element={<Navigate to="/workouts/history" replace />} />
-              <Route path="/workouts/exercise/:id" element={<ExerciseDetailPage />} />
-              <Route path="/workout/exercise/:id" element={<ExerciseDetailPage />} />
-              <Route path="/workouts/catalog/:id" element={<ExerciseDetailPage />} />
-              <Route path="/workout/catalog/:id" element={<ExerciseDetailPage />} />
+                <Route path="/workouts" element={<WorkoutOverviewPage />} />
+                <Route path="/workout" element={<Navigate to="/workouts" replace />} />
+                <Route path="/workouts/history" element={<WorkoutHistoryPage />} />
+                <Route path="/workout/history" element={<Navigate to="/workouts/history" replace />} />
+                <Route path="/workouts/exercise/:id" element={<ExerciseDetailPage />} />
+                <Route path="/workout/exercise/:id" element={<ExerciseDetailPage />} />
+                <Route path="/workouts/catalog/:id" element={<ExerciseDetailPage />} />
+                <Route path="/workout/catalog/:id" element={<ExerciseDetailPage />} />
 
-              <Route path="/nutrition" element={<NutritionOverviewPage />} />
-              <Route path="/nutrition/log" element={<FoodLoggerPage />} />
-              <Route path="/nutrition/history" element={<NutritionHistoryPage />} />
+                <Route path="/nutrition" element={<NutritionOverviewPage />} />
+                <Route path="/nutrition/log" element={<FoodLoggerPage />} />
+                <Route path="/nutrition/history" element={<NutritionHistoryPage />} />
 
-              <Route path="/progress" element={<ProgressOverviewPage />} />
-              <Route path="/progress/measurements" element={<ProgressOverviewPage />} />
+                <Route path="/progress" element={<ProgressOverviewPage />} />
+                <Route path="/progress/measurements" element={<ProgressOverviewPage />} />
 
-              <Route path="/coach" element={<CoachPage />} />
+                <Route path="/coach" element={<CoachPage />} />
 
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/profile" element={<Navigate to="/settings" replace />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/profile" element={<Navigate to="/settings" replace />} />
 
-              {/* M7 Consolidated Routes */}
-              <Route path="/intelligence" element={<Navigate to="/progress?tab=forecast" replace />} />
-              <Route path="/reports" element={<Navigate to="/progress?tab=review" replace />} />
-              <Route path="/reports/*" element={<Navigate to="/progress?tab=review" replace />} />
-            </Route>
+                {/* M7 Consolidated Routes */}
+                <Route path="/intelligence" element={<Navigate to="/progress?tab=forecast" replace />} />
+                <Route path="/reports" element={<Navigate to="/progress?tab=review" replace />} />
+                <Route path="/reports/*" element={<Navigate to="/progress?tab=review" replace />} />
+              </Route>
 
-            {/* Dev UI & Today Showcase (Developer accessible) */}
-            <Route
-              path="/dev/ui"
-              element={
-                <AppShell>
-                  <DevUiPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/today"
-              element={
-                <AppShell>
-                  <DashboardPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/workout-session"
-              element={<WorkoutSessionPage />}
-            />
-            <Route
-              path="/dev/workouts"
-              element={
-                <AppShell>
-                  <WorkoutOverviewPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/nutrition"
-              element={
-                <AppShell>
-                  <NutritionOverviewPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/progress"
-              element={
-                <AppShell>
-                  <ProgressOverviewPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/coach"
-              element={
-                <AppShell>
-                  <CoachPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/settings"
-              element={
-                <AppShell>
-                  <SettingsPage />
-                </AppShell>
-              }
-            />
-            <Route
-              path="/dev/onboarding"
-              element={<OnboardingPage />}
-            />
-            <Route
-              path="/dev/admin"
-              element={<AdminDashboardPage />}
-            />
+              {/* Dev UI & Today Showcase (Developer accessible) */}
+              <Route
+                path="/dev/ui"
+                element={
+                  <AppShell>
+                    <DevUiPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/today"
+                element={
+                  <AppShell>
+                    <DashboardPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/workout-session"
+                element={<WorkoutSessionPage />}
+              />
+              <Route
+                path="/dev/workouts"
+                element={
+                  <AppShell>
+                    <WorkoutOverviewPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/nutrition"
+                element={
+                  <AppShell>
+                    <NutritionOverviewPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/progress"
+                element={
+                  <AppShell>
+                    <ProgressOverviewPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/coach"
+                element={
+                  <AppShell>
+                    <CoachPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/settings"
+                element={
+                  <AppShell>
+                    <SettingsPage />
+                  </AppShell>
+                }
+              />
+              <Route
+                path="/dev/onboarding"
+                element={<OnboardingPage />}
+              />
+              <Route
+                path="/dev/admin"
+                element={<AdminDashboardPage />}
+              />
 
-            {/* Platform Admin Console Routes (Separate Layout Protected by AdminRoute) */}
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminDashboardPage />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/admin/*"
-              element={
-                <AdminRoute>
-                  <AdminDashboardPage />
-                </AdminRoute>
-              }
-            />
-          </Routes>
-        </Suspense>
+              {/* Platform Admin Console Routes (Separate Layout Protected by AdminRoute) */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminDashboardPage />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/*"
+                element={
+                  <AdminRoute>
+                    <AdminDashboardPage />
+                  </AdminRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </ThemeProvider>
   );

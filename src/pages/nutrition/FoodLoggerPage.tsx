@@ -231,11 +231,11 @@ export const FoodLoggerPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 border border-borderLine bg-bone min-h-[400px]">
-        <span className="font-mono text-xs text-olive uppercase tracking-widest block mb-2">
+      <div className="flex flex-col items-center justify-center p-12 border border-border rounded-card bg-surface min-h-[400px]">
+        <span className="text-xs text-accent font-medium block mb-2">
           Food Catalog
         </span>
-        <h3 className="text-xl font-bold uppercase tracking-tight animate-pulse font-sans">
+        <h3 className="text-xl font-bold tracking-tight animate-pulse font-sans text-text">
           Loading food catalog...
         </h3>
       </div>
@@ -245,15 +245,15 @@ export const FoodLoggerPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-borderLine pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
-          <span className="font-mono text-xs text-olive uppercase tracking-widest font-bold block mb-1">
+          <span className="text-xs text-accent font-semibold block mb-1">
             Nutrition Station
           </span>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-graphite">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-text">
             Log Food Entry
           </h1>
-          <p className="text-sm text-charcoal font-sans mt-1">
+          <p className="text-sm text-text-2 font-sans mt-1">
             Search foods, assemble multi-item meals, and preview macro totals before saving.
           </p>
         </div>
@@ -265,7 +265,7 @@ export const FoodLoggerPage: React.FC = () => {
 
       {/* Error Alert */}
       {error && (
-        <div className="p-4 border border-error bg-error/5 text-error text-sm font-sans" role="alert">
+        <div className="p-4 border border-danger rounded-card bg-danger/10 text-danger text-sm font-sans" role="alert">
           {error}
         </div>
       )}
@@ -275,7 +275,7 @@ export const FoodLoggerPage: React.FC = () => {
         {/* Left Col: Food Search & Portion */}
         <div className="lg:col-span-6 flex flex-col gap-6">
           <Card className="p-6 flex flex-col gap-5">
-            <h2 className="text-lg font-bold text-graphite pb-2 border-b border-borderLine">
+            <h2 className="text-lg font-bold text-text pb-2 border-b border-border">
               1. Choose Food & Portion
             </h2>
 
@@ -296,12 +296,12 @@ export const FoodLoggerPage: React.FC = () => {
             />
 
             <div>
-              <label className="text-xs uppercase tracking-wider text-graphite font-bold block mb-2 font-mono">
+              <label className="text-xs text-text-2 font-semibold block mb-2">
                 Available Foods ({foods.length})
               </label>
               <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
                 {foods.length === 0 ? (
-                  <p className="text-xs text-faded py-4 text-center">No foods matching query.</p>
+                  <p className="text-xs text-text-3 py-4 text-center">No foods matching query.</p>
                 ) : (
                   foods.map((food) => {
                     const isSelected = selectedFood?.id === food.id;
@@ -310,10 +310,10 @@ export const FoodLoggerPage: React.FC = () => {
                         key={food.id}
                         type="button"
                         onClick={() => setSelectedFood(food)}
-                        className={`p-3 text-left border transition-all text-xs flex items-center justify-between gap-2 ${
+                        className={`p-3 text-left border rounded-input transition-all text-xs flex items-center justify-between gap-2 ${
                           isSelected
-                            ? 'border-olive bg-olive/10 font-bold text-graphite'
-                            : 'border-borderLine bg-bone hover:border-graphite text-charcoal'
+                            ? 'border-accent bg-accent/10 font-bold text-text'
+                            : 'border-border bg-surface-2 hover:border-text-3 text-text-2'
                         }`}
                       >
                         <span className="font-sans">{food.name}</span>
@@ -325,7 +325,7 @@ export const FoodLoggerPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-end gap-3 pt-2 border-t border-borderLine">
+            <div className="flex flex-col sm:flex-row items-end gap-3 pt-2 border-t border-border">
               <div className="flex-1 w-full">
                 <Input
                   label="Portion Quantity (grams)"
@@ -354,8 +354,8 @@ export const FoodLoggerPage: React.FC = () => {
         <div className="lg:col-span-6 flex flex-col gap-6">
           <Card className="p-6 flex flex-col justify-between gap-6">
             <div className="flex flex-col gap-5">
-              <div className="flex items-center justify-between pb-2 border-b border-borderLine">
-                <h2 className="text-lg font-bold text-graphite">
+              <div className="flex items-center justify-between pb-2 border-b border-border">
+                <h2 className="text-lg font-bold text-text">
                   2. Meal Draft ({draftItems.length} {draftItems.length === 1 ? 'item' : 'items'})
                 </h2>
                 <Badge variant={draftItems.length > 0 ? 'olive' : 'faded'}>
@@ -365,14 +365,14 @@ export const FoodLoggerPage: React.FC = () => {
 
               {/* Draft Items List */}
               {draftItems.length === 0 ? (
-                <div className="p-4 border border-dashed border-borderLine bg-bone/50 text-center flex flex-col gap-2">
-                  <p className="text-xs text-charcoal">
+                <div className="p-4 border border-dashed border-border rounded-input bg-surface-2/60 text-center flex flex-col gap-2">
+                  <p className="text-xs text-text-2">
                     No items in draft yet.
                   </p>
                   {selectedFood && (
-                    <p className="text-xs text-faded">
-                      Current selection: <strong className="text-graphite">{selectedFood.name}</strong> ({quantityGrams}g).
-                      Click <strong className="text-olive">"+ Add to Meal Draft"</strong> to include more items, or save directly.
+                    <p className="text-xs text-text-3">
+                      Current selection: <strong className="text-text">{selectedFood.name}</strong> ({quantityGrams}g).
+                      Click <strong className="text-accent">"+ Add to Meal Draft"</strong> to include more items, or save directly.
                     </p>
                   )}
                 </div>
@@ -384,11 +384,11 @@ export const FoodLoggerPage: React.FC = () => {
                     return (
                       <div
                         key={item.id}
-                        className="p-3 border border-borderLine bg-bone flex items-center justify-between gap-2 text-xs"
+                        className="p-3 border border-border rounded-input bg-surface-2 flex items-center justify-between gap-2 text-xs"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-graphite truncate">{item.food.name}</p>
-                          <p className="text-[11px] text-faded font-mono">
+                          <p className="font-bold text-text truncate">{item.food.name}</p>
+                          <p className="text-[11px] text-text-3 font-mono">
                             {itemCals} kcal • {itemProt}g protein
                           </p>
                         </div>
@@ -400,14 +400,14 @@ export const FoodLoggerPage: React.FC = () => {
                             max={5000}
                             value={item.quantityGrams}
                             onChange={(e) => handleUpdateDraftQuantity(item.id, parseFloat(e.target.value) || 0)}
-                            className="w-16 bg-white border border-borderLine px-2 py-1 text-xs text-center font-mono rounded"
+                            className="w-16 bg-surface border border-border px-2 py-1 text-xs text-text text-center font-mono rounded-input"
                             title="Grams"
                           />
-                          <span className="text-xs text-charcoal">g</span>
+                          <span className="text-xs text-text-2">g</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveDraftItem(item.id)}
-                            className="text-error hover:text-error/80 px-2 py-1 text-sm font-bold"
+                            className="text-danger hover:opacity-80 px-2 py-1 text-sm font-bold"
                             title="Remove item"
                             aria-label={`Remove ${item.food.name}`}
                           >
@@ -422,35 +422,35 @@ export const FoodLoggerPage: React.FC = () => {
 
               {/* Combined Macro Summary */}
               <div>
-                <span className="text-xs font-mono uppercase tracking-wider text-olive font-bold block mb-2">
+                <span className="text-xs text-accent font-semibold block mb-2">
                   Combined Meal Totals
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3 border border-borderLine bg-bone text-center">
-                    <span className="text-[10px] font-mono uppercase text-faded block">Calories</span>
-                    <span className="text-lg font-bold text-olive font-mono">{totalCals} <span className="text-[10px] text-graphite font-normal">kcal</span></span>
+                  <div className="p-3 border border-border rounded-input bg-surface-2 text-center">
+                    <span className="text-[10px] font-mono text-text-3 block">Calories</span>
+                    <span className="text-lg font-bold text-accent font-mono">{totalCals} <span className="text-[10px] text-text font-normal">kcal</span></span>
                   </div>
 
-                  <div className="p-3 border border-borderLine bg-bone text-center">
-                    <span className="text-[10px] font-mono uppercase text-faded block">Protein</span>
-                    <span className="text-lg font-bold text-graphite font-mono">{totalProt} <span className="text-[10px] font-normal">g</span></span>
+                  <div className="p-3 border border-border rounded-input bg-surface-2 text-center">
+                    <span className="text-[10px] font-mono text-text-3 block">Protein</span>
+                    <span className="text-lg font-bold text-text font-mono">{totalProt} <span className="text-[10px] font-normal">g</span></span>
                   </div>
 
-                  <div className="p-3 border border-borderLine bg-bone text-center">
-                    <span className="text-[10px] font-mono uppercase text-faded block">Carbs</span>
-                    <span className="text-lg font-bold text-graphite font-mono">{totalCarbs} <span className="text-[10px] font-normal">g</span></span>
+                  <div className="p-3 border border-border rounded-input bg-surface-2 text-center">
+                    <span className="text-[10px] font-mono text-text-3 block">Carbs</span>
+                    <span className="text-lg font-bold text-text font-mono">{totalCarbs} <span className="text-[10px] font-normal">g</span></span>
                   </div>
 
-                  <div className="p-3 border border-borderLine bg-bone text-center">
-                    <span className="text-[10px] font-mono uppercase text-faded block">Fats</span>
-                    <span className="text-lg font-bold text-graphite font-mono">{totalFat} <span className="text-[10px] font-normal">g</span></span>
+                  <div className="p-3 border border-border rounded-input bg-surface-2 text-center">
+                    <span className="text-[10px] font-mono text-text-3 block">Fats</span>
+                    <span className="text-lg font-bold text-text font-mono">{totalFat} <span className="text-[10px] font-normal">g</span></span>
                   </div>
                 </div>
               </div>
 
               {/* Notes */}
               <div>
-                <label className="text-xs font-mono uppercase tracking-wider text-graphite font-bold block mb-2">
+                <label className="text-xs text-text-2 font-semibold block mb-2">
                   Meal Notes (Optional)
                 </label>
                 <textarea
@@ -459,7 +459,7 @@ export const FoodLoggerPage: React.FC = () => {
                   value={sessionNotes}
                   onChange={(e) => setSessionNotes(e.target.value)}
                   disabled={isSubmitting}
-                  className="w-full bg-bone border border-borderLine p-3 text-xs text-graphite placeholder:text-faded focus:outline-none focus:ring-2 focus:ring-olive disabled:opacity-60 rounded"
+                  className="w-full bg-surface-2 border border-border p-3 text-xs text-text placeholder:text-text-3 focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60 rounded-input"
                 />
               </div>
             </div>

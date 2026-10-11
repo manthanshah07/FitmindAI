@@ -46,11 +46,30 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'vendor-charts'
+            }
+            if (
+              id.includes('react-router') ||
+              id.includes('@tanstack/react-query') ||
+              id.includes('axios') ||
+              id.includes('zustand')
+            ) {
+              return 'vendor-app'
+            }
+          }
+        },
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/tests/setup.ts',
   },
 })
-
-

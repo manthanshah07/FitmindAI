@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { Skeleton } from '../ui/Skeleton';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,14 +18,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!isInitialized || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bone text-graphite p-8">
-        <div className="text-center border border-borderLine p-12">
-          <span className="text-[10px] font-mono text-olive uppercase tracking-widest block mb-2">
-            FitMind AI Security Guard
-          </span>
-          <h3 className="text-xl font-bold tracking-tighter uppercase font-mono animate-pulse">
-            Initializing Session...
-          </h3>
+      <div className="min-h-screen flex items-center justify-center bg-bg text-text p-8">
+        <div className="w-full max-w-sm border border-border rounded-md bg-surface p-8 space-y-4">
+          <span className="sr-only">Initializing session...</span>
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-20 w-full" />
         </div>
       </div>
     );
