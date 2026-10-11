@@ -110,9 +110,9 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
   const lowestComponent = sortedComponents[0];
 
   return (
-    <Card className="p-6 md:p-8 flex flex-col gap-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
-        <div>
+    <Card className="p-6 md:p-8 flex flex-col gap-6 w-full max-w-full min-w-0 overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4 min-w-0">
+        <div className="min-w-0">
           <span className="text-xs text-accent font-semibold uppercase tracking-wider block mb-1">
             Your Fitness Score
           </span>
@@ -124,7 +124,7 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <div className="text-left sm:text-right">
             <span className="text-4xl font-bold text-text-primary tracking-tight tabular-nums block">
               {current_score.score}
@@ -136,28 +136,28 @@ export const FitnessScoreCard: React.FC<FitnessScoreCardProps> = ({ compact = fa
       </div>
 
       {/* Dynamic What to Improve Banner */}
-      <div className="p-4 bg-surface-subtle border border-border rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
+      <div className="p-4 bg-surface-subtle border border-border rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 min-w-0">
+        <div className="min-w-0">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-accent block">
             What to improve
           </span>
-          <p className="text-xs text-text-secondary mt-0.5">
+          <p className="text-xs text-text-secondary mt-0.5 break-words">
             Focus on <strong className="text-text-primary">{lowestComponent.name}</strong> ({lowestComponent.score}%). {lowestComponent.tip}
           </p>
         </div>
       </div>
 
       {/* 4-Bar Component Breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0 max-w-full">
         {components.map((c) => {
           const earnedPoints = ((c.score / 100) * c.weight).toFixed(1);
           return (
-            <div key={c.name} className="p-4 bg-surface-subtle border border-border rounded-lg flex flex-col gap-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-medium text-text-primary">
+            <div key={c.name} className="p-4 bg-surface-subtle border border-border rounded-lg flex flex-col gap-2 min-w-0">
+              <div className="flex justify-between gap-2 text-xs min-w-0">
+                <span className="font-medium text-text-primary truncate">
                   {c.name} ({c.weight}%)
                 </span>
-                <span className="font-semibold text-text-primary tabular-nums">
+                <span className="font-semibold text-text-primary tabular-nums shrink-0">
                   {earnedPoints} / {c.weight} pts ({c.score}%)
                 </span>
               </div>

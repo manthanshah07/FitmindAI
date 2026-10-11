@@ -157,7 +157,7 @@ export const ForecastTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-6">
       {applySuccessMessage && (
         <Banner variant="success" className="text-xs">
           {applySuccessMessage}
@@ -165,18 +165,18 @@ export const ForecastTab: React.FC = () => {
       )}
 
       {/* Top Headline Card: Plain Language Answer */}
-      <Card className="p-6 md:p-8 bg-gradient-to-br from-surface-1 to-surface-2/30 border-border space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+      <Card className="p-6 md:p-8 bg-gradient-to-br from-surface-1 to-surface-2/30 border-border space-y-4 w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <span className="text-[11px] font-mono uppercase tracking-wider text-accent font-semibold">
               TRAJECTORY & FORECAST
             </span>
             {renderStatusBadge(feasibility?.status)}
           </div>
-          <span className="text-xs text-text-3 font-mono">{getConfidenceText()}</span>
+          <span className="text-xs text-text-3 font-mono break-words">{getConfidenceText()}</span>
         </div>
 
-        <h3 className="text-lg md:text-xl font-bold text-text leading-snug">
+        <h3 className="text-lg md:text-xl font-bold text-text leading-snug break-words">
           {formatPaceHeadline()}
         </h3>
 
@@ -202,15 +202,15 @@ export const ForecastTab: React.FC = () => {
       </Card>
 
       {/* Forecast Chart Card: Past Weigh-ins, 28-day projection with confidence band */}
-      <Card className="p-6 md:p-8 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border">
-          <div>
+      <Card className="p-6 md:p-8 space-y-4 w-full max-w-full min-w-0 overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border min-w-0">
+          <div className="min-w-0">
             <h3 className="text-base font-semibold text-text">28-Day Projected Trajectory</h3>
             <p className="text-xs text-text-2 mt-0.5">
               Derived from your energy balance and baseline check-ins, rendered with a 90% benchmark confidence band.
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-text-3 font-mono">
+          <div className="flex items-center gap-2 text-xs text-text-3 font-mono shrink-0">
             <span>Projection: 28 Days</span>
           </div>
         </div>
@@ -239,7 +239,7 @@ export const ForecastTab: React.FC = () => {
 
       {/* Recommended Plan Card */}
       {optimizerData?.best_candidate && (
-        <Card className="p-6 md:p-8 space-y-5 border-accent/30 bg-surface-1">
+        <Card className="p-6 md:p-8 space-y-5 border-accent/30 bg-surface-1 w-full max-w-full min-w-0 overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
             <div className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-accent" />

@@ -3,7 +3,17 @@ import * as RadixTabs from '@radix-ui/react-tabs';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export const Tabs = RadixTabs.Root;
+export const Tabs = React.forwardRef<
+  React.ElementRef<typeof RadixTabs.Root>,
+  React.ComponentPropsWithoutRef<typeof RadixTabs.Root>
+>(({ className, ...props }, ref) => (
+  <RadixTabs.Root
+    ref={ref}
+    className={twMerge(clsx('w-full max-w-full min-w-0', className))}
+    {...props}
+  />
+));
+Tabs.displayName = RadixTabs.Root.displayName;
 
 export const TabsList = React.forwardRef<
   React.ElementRef<typeof RadixTabs.List>,
@@ -13,7 +23,7 @@ export const TabsList = React.forwardRef<
     ref={ref}
     className={twMerge(
       clsx(
-        'inline-flex items-center gap-2 border-b border-border w-full pb-px',
+        'flex items-center gap-2 border-b border-border w-full max-w-full min-w-0 overflow-x-auto flex-nowrap scrollbar-none pb-px',
         className,
       ),
     )}
@@ -33,7 +43,7 @@ export const TabsTrigger = React.forwardRef<
     }}
     className={twMerge(
       clsx(
-        'inline-flex items-center justify-center whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors',
+        'inline-flex items-center justify-center shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors',
         'border-b-2 border-transparent text-text-2 hover:text-text',
         'data-[state=active]:border-accent data-[state=active]:text-text data-[state=active]:font-semibold',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1',
@@ -54,7 +64,7 @@ export const TabsContent = React.forwardRef<
     ref={ref}
     className={twMerge(
       clsx(
-        'pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'w-full max-w-full min-w-0 pt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         className,
       ),
     )}

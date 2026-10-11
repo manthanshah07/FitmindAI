@@ -16,7 +16,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-bg text-text flex flex-col lg:flex-row">
+    <div className="min-h-screen min-h-[100dvh] w-full max-w-full overflow-x-hidden bg-bg text-text flex flex-col lg:flex-row">
       {/* PWA System Banners (Top of viewport) */}
       <div className="w-full fixed top-0 left-0 right-0 z-50 pointer-events-auto">
         <PwaUpdateBanner />
@@ -43,9 +43,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       )}
 
       {/* Main Content Area with safe area bottom clearance */}
-      <div className="flex-1 flex flex-col min-w-0 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
         <TopBar onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)} />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto max-w-[1120px] w-full mx-auto">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto overflow-x-hidden max-w-[1120px] w-full min-w-0 mx-auto">
           <InstallPromptCard />
           {children || <Outlet />}
         </main>

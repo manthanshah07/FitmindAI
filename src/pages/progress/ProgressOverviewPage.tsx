@@ -177,7 +177,7 @@ export const ProgressOverviewPage: React.FC = () => {
     }));
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 md:py-8 space-y-6">
+    <div className="w-full max-w-5xl min-w-0 overflow-x-hidden mx-auto px-4 py-6 md:py-8 space-y-6">
       <PageHeader
         title="Progress & Metrics"
         subtitle="Track your fitness score, body composition, and adherence progress."
@@ -202,21 +202,21 @@ export const ProgressOverviewPage: React.FC = () => {
       )}
 
       {/* Tabs: Overview, Body, Weekly Review (M7), Forecast (M7) */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="overview">
-        <TabsList>
-          <TabsTrigger value="overview" onClick={() => setActiveTab('overview')}>Overview</TabsTrigger>
-          <TabsTrigger value="body" onClick={() => setActiveTab('body')}>Body Measurements</TabsTrigger>
-          <TabsTrigger value="review" onClick={() => setActiveTab('review')}>Weekly Review</TabsTrigger>
-          <TabsTrigger value="forecast" onClick={() => setActiveTab('forecast')}>Forecast</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="overview" className="w-full max-w-full min-w-0">
+        <TabsList className="w-full max-w-full min-w-0 overflow-x-auto flex-nowrap scrollbar-none">
+          <TabsTrigger value="overview" onClick={() => setActiveTab('overview')} className="shrink-0 whitespace-nowrap">Overview</TabsTrigger>
+          <TabsTrigger value="body" onClick={() => setActiveTab('body')} className="shrink-0 whitespace-nowrap">Body Measurements</TabsTrigger>
+          <TabsTrigger value="review" onClick={() => setActiveTab('review')} className="shrink-0 whitespace-nowrap">Weekly Review</TabsTrigger>
+          <TabsTrigger value="forecast" onClick={() => setActiveTab('forecast')} className="shrink-0 whitespace-nowrap">Forecast</TabsTrigger>
         </TabsList>
 
         {/* ================= OVERVIEW TAB ================= */}
-        <TabsContent value="overview" className="space-y-6 mt-6">
+        <TabsContent value="overview" className="w-full max-w-full min-w-0 space-y-6 mt-6">
           {/* Fitness Score Card with 4-bar breakdown */}
           <FitnessScoreCard />
 
           {/* Stat Tiles: Current Weight, Change over Range, Distance to Goal */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 min-w-0 max-w-full">
             <StatTile
               label="Current Weight"
               value={latestWeight !== null ? `${latestWeight}` : '—'}
@@ -242,9 +242,9 @@ export const ProgressOverviewPage: React.FC = () => {
           </div>
 
           {/* Weight Line Chart Card with Trimmed Y-Axis */}
-          <Card className="p-6 md:p-8 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border">
-              <div>
+          <Card className="p-6 md:p-8 space-y-4 w-full max-w-full min-w-0 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border min-w-0">
+              <div className="min-w-0">
                 <h3 className="text-base font-semibold text-text">Weight History & Trend</h3>
                 <p className="text-xs text-text-2 mt-0.5">
                   Body weight progression compared against your target goal.
@@ -263,7 +263,7 @@ export const ProgressOverviewPage: React.FC = () => {
             </div>
 
             {weightDataPoints.length > 0 ? (
-              <div className="pt-2">
+              <div className="pt-2 w-full max-w-full min-w-0">
                 <LineChart
                   data={weightDataPoints}
                   xAxisKey="date"
@@ -292,24 +292,24 @@ export const ProgressOverviewPage: React.FC = () => {
         </TabsContent>
 
         {/* ================= BODY TAB ================= */}
-        <TabsContent value="body" className="space-y-6 mt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+        <TabsContent value="body" className="w-full max-w-full min-w-0 space-y-6 mt-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+            <div className="min-w-0">
               <h2 className="text-lg font-semibold text-text">Body Circumferences & Fat %</h2>
               <p className="text-xs text-text-2">
                 Track body tape measurements and body fat trends across time.
               </p>
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setShowAddModal(true)}>
+            <Button variant="secondary" size="sm" onClick={() => setShowAddModal(true)} className="self-start sm:self-auto shrink-0">
               <Plus className="w-3.5 h-3.5 mr-1" />
               New Entry
             </Button>
           </div>
 
           {/* Metric Selector & Chart */}
-          <Card className="p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
-              <span className="text-sm font-medium text-text">Measurement Progression</span>
+          <Card className="p-6 space-y-4 w-full max-w-full min-w-0 overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border min-w-0">
+              <span className="text-sm font-medium text-text shrink-0">Measurement Progression</span>
               <SegmentedControl
                 value={selectedMetric}
                 onChange={setSelectedMetric}
@@ -340,9 +340,9 @@ export const ProgressOverviewPage: React.FC = () => {
           </Card>
 
           {/* Natural Unnested Scrolling List of Measurement History (Fixes U10) */}
-          <Card className="p-0 overflow-hidden divide-y divide-border">
-            <div className="p-4 bg-surface-2 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-text-2">
+          <Card className="p-0 w-full max-w-full min-w-0 overflow-hidden divide-y divide-border">
+            <div className="p-4 bg-surface-2 flex items-center justify-between min-w-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-text-2 truncate">
                 Measurement Log ({history.length} {history.length === 1 ? 'entry' : 'entries'})
               </span>
             </div>
@@ -353,7 +353,7 @@ export const ProgressOverviewPage: React.FC = () => {
                   key={m.id}
                   title={m.measured_at}
                   subtitle={
-                    <span className="space-x-3 text-xs text-text-2">
+                    <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-2">
                       {m.weight_kg !== null && <span>Weight: <strong>{m.weight_kg} kg</strong></span>}
                       {m.waist_cm !== null && <span>Waist: <strong>{formatInches(m.waist_cm)}</strong></span>}
                       {m.chest_cm !== null && <span>Chest: <strong>{formatInches(m.chest_cm)}</strong></span>}
@@ -376,12 +376,12 @@ export const ProgressOverviewPage: React.FC = () => {
         </TabsContent>
 
         {/* ================= WEEKLY REVIEW TAB (M7) ================= */}
-        <TabsContent value="review" className="mt-6">
+        <TabsContent value="review" className="w-full max-w-full min-w-0 mt-6">
           <WeeklyReviewTab />
         </TabsContent>
 
         {/* ================= FORECAST TAB (M7) ================= */}
-        <TabsContent value="forecast" className="mt-6">
+        <TabsContent value="forecast" className="w-full max-w-full min-w-0 mt-6">
           <ForecastTab />
         </TabsContent>
       </Tabs>

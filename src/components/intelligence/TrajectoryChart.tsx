@@ -67,11 +67,11 @@ export const TrajectoryChart: React.FC<TrajectoryChartProps> = ({
   });
 
   return (
-    <div className={`w-full flex flex-col gap-2 ${className}`}>
-      <div className="w-full overflow-x-auto">
+    <div className={`w-full max-w-full min-w-0 flex flex-col gap-2 ${className}`}>
+      <div className="w-full max-w-full min-w-0 overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-auto min-w-[500px] select-none font-sans"
+          className="w-full max-w-full h-auto select-none font-sans"
           role="img"
           aria-label="28-day body-weight projection chart"
           data-testid="trajectory-chart-svg"

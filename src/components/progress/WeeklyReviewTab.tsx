@@ -91,17 +91,17 @@ export const WeeklyReviewTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full min-w-0 overflow-x-hidden space-y-6">
       {/* Top Header & Period Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border min-w-0">
+        <div className="min-w-0">
           <h2 className="text-lg font-semibold text-text">Retrospective Review</h2>
           <p className="text-xs text-text-2 mt-0.5">
             Deterministic period-over-period performance across workouts, nutrition, and fitness score.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 min-w-0 max-w-full">
           <SegmentedControl<'weekly' | 'monthly'>
             value={reportType}
             onChange={(val) => {
@@ -115,7 +115,7 @@ export const WeeklyReviewTab: React.FC = () => {
             ]}
           />
 
-          <div className="flex items-center border border-border rounded-lg overflow-hidden bg-surface-1">
+          <div className="flex items-center border border-border rounded-lg overflow-hidden bg-surface-1 shrink-0">
             <button
               type="button"
               aria-label="Previous period"
@@ -165,23 +165,23 @@ export const WeeklyReviewTab: React.FC = () => {
       ) : (
         <>
           {/* Headline Banner: Period Range + Fitness Score */}
-          <Card className="p-6 md:p-8 bg-gradient-to-br from-surface-1 to-surface-2/40 border-border">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-1">
+          <Card className="p-6 md:p-8 bg-gradient-to-br from-surface-1 to-surface-2/40 border-border w-full max-w-full min-w-0 overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 min-w-0">
+              <div className="space-y-1 min-w-0">
                 <span className="text-[11px] font-mono uppercase tracking-wider text-accent font-semibold">
                   {report.report_type.toUpperCase()} SUMMARY
                 </span>
-                <h3 className="text-xl md:text-2xl font-bold text-text">{report.headline}</h3>
+                <h3 className="text-xl md:text-2xl font-bold text-text break-words">{report.headline}</h3>
                 <p className="text-xs text-text-2">
                   Deterministic assessment grounded strictly in your logged activities.
                 </p>
               </div>
 
-              <div className="flex items-center gap-4 border border-border/80 bg-surface-1/90 px-5 py-3 rounded-xl shadow-sm shrink-0">
-                <div className="p-2 rounded-lg bg-accent/10 text-accent">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 border border-border/80 bg-surface-1/90 px-4 sm:px-5 py-3 rounded-xl shadow-sm min-w-0 max-w-full">
+                <div className="p-2 rounded-lg bg-accent/10 text-accent shrink-0">
                   <Zap className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-[10px] font-mono uppercase tracking-wider text-text-3">
                     Fitness Score
                   </div>
@@ -207,7 +207,7 @@ export const WeeklyReviewTab: React.FC = () => {
                         ? 'graphite'
                         : 'faded'
                     }
-                    className="ml-2"
+                    className="ml-auto sm:ml-2"
                   >
                     {report.adherence_label}
                   </Badge>
@@ -217,7 +217,7 @@ export const WeeklyReviewTab: React.FC = () => {
           </Card>
 
           {/* 4 Stat Tiles with Period-over-Period Deltas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 min-w-0 max-w-full">
             <StatTile
               label="Completed Sets"
               value={`${report.workouts.sets_completed}`}
